@@ -1,13 +1,3 @@
-let usuarios=[]
-
-function scrollRegistro(){
-
-document.getElementById("registro")
-.scrollIntoView({behavior:"smooth"})
-
-}
-
-
 async function registrar(){
 
 let nombre = document.getElementById("nombre").value
@@ -88,3 +78,19 @@ if(clave=="admin123"){
 document.querySelector(".admin").style.display="block"
 
 }
+document.getElementById("adminBtn").addEventListener("click", ()=>{
+
+let clave = prompt("Clave administrador")
+
+if(clave==="admin123"){
+
+document.querySelector(".admin").style.display="block"
+alert("Modo administrador activado")
+
+}else{
+
+alert("Clave incorrecta")
+
+}
+
+})
