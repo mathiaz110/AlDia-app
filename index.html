@@ -5,6 +5,30 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
+authDomain: "aldia-app1.firebaseapp.com",
+projectId: "aldia-app1",
+storageBucket: "aldia-app1.firebasestorage.app",
+mensajesSenderId: "1013051386288",
+appId: "1:1013051386288:web:e588c83d0892d6cbab4e75",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// hacemos global Firebase
+window.db = db
+window.addDoc = addDoc
+window.collection = collection
+window.getDocs = getDocs
+
+</script>
 
 <title>AlDía | Gestión Inteligente de Facturas</title>
 
