@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script type="module">
+<title>AlDía</title>
 
+<link rel="manifest" href="manifest.json">
+
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
@@ -22,149 +23,29 @@ appId: "1:1013051386288:web:e588c83d0892d6cbab4e75",
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// hacemos global Firebase
-window.db = db
-window.addDoc = addDoc
-window.collection = collection
-window.getDocs = getDocs
-
+window.db = db;
+window.addDoc = addDoc;
+window.collection = collection;
 </script>
 
-<title>AlDía | Gestión Inteligente de Facturas</title>
-
 <link rel="stylesheet" href="style.css">
-
 </head>
 
 <body>
 
-<header>
+<h1>AlDía - Registro</h1>
 
-<div class="logo">AlDía</div>
-
-<nav>
-
-<a href="#inicio">Inicio</a>
-<a href="#servicio">Servicio</a>
-<a href="#registro">Registro</a>
-
-</nav>
-
-<button id="themeBtn">🌙</button>
-
-</header>
-
-
-<section id="inicio" class="hero">
-
-<h1>Recibí tus facturas sin perder vencimientos</h1>
-
-<p>
-Servicio digital para recibir tu boleta y evitar recargos.
-</p>
-
-<button onclick="scrollRegistro()" class="cta">
-Comenzar
-</button>
-
-</section>
-
-
-<section id="servicio" class="features">
-
-<div class="feature">
-
-<h3>📄 Factura Digital</h3>
-
-<p>
-Recibí tu factura automáticamente cada mes.
-</p>
-
-</div>
-
-<div class="feature">
-
-<h3>⏰ Recordatorios</h3>
-
-<p>
-Avisos antes del vencimiento.
-</p>
-
-</div>
-
-<div class="feature">
-
-<h3>📲 WhatsApp</h3>
-
-<p>
-Envío directo a tu celular.
-</p>
-
-</div>
-
-</section>
-
-
-<section id="registro" class="panel">
-
-<h2>Registro de Usuario</h2>
-
-<input id="nombre" placeholder="Nombre completo">
+<input id="nombre" placeholder="Nombre">
 <input id="dni" placeholder="DNI">
 <input id="direccion" placeholder="Dirección">
 
-<button onclick="registrar()">Crear Cuenta</button>
+<button onclick="registrar()">Registrarse</button>
 
-</section>
+<footer>App piloto</footer>
 
-
-<section class="panel price">
-
-<h2>Suscripción</h2>
-
-<div class="valor">$2000 / mes</div>
-
-<button onclick="pagar()">Pagar con Mercado Pago</button>
-
-</section>
-
-
-<section class="panel admin">
-
-<h2>Panel Administrador</h2>
-
-<table>
-
-<thead>
-
-<tr>
-<th>Nombre</th>
-<th>DNI</th>
-<th>Dirección</th>
-</tr>
-
-</thead>
-
-<tbody id="tablaUsuarios">
-
-</tbody>
-
-</table>
-
-</section>
-
-
-<footer>
-
-Plataforma piloto de facturación digital
-
-</footer>
-<button id="adminBtn" style="opacity:0.1; position:fixed; bottom:10px; right:10px;">
-Admin
-</button>
+<button id="adminBtn"></button>
 
 <script src="script.js"></script>
 
 </body>
-
 </html>
