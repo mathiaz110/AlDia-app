@@ -11,6 +11,15 @@ let contrato=document.getElementById("contrato")
 contrato.style.display=check.checked?"block":"none"
 }
 
+function aceptarTerminos(){
+
+document.getElementById("pantallaTerminos").style.display="none"
+document.getElementById("pantallaRegistro").style.display="block"
+
+window.scrollTo({top:0, behavior:"smooth"})
+
+}
+
 // REGISTRO REAL
 async function registrar(){
 
