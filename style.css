@@ -238,3 +238,15 @@ height:30px;
 }
 
 }
+
+.pantalla{
+transition:all 0.4s ease;
+opacity:1;
+transform:translateX(0);
+}
+
+.oculta{
+opacity:0;
+transform:translateX(-20px);
+pointer-events:none;
+}
