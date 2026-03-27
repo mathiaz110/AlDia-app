@@ -25,12 +25,20 @@ cont.classList.remove("activo")
 }
 
 // ACEPTAR TERMINOS (MEJORADO PRO)
+
+
 async function aceptarTerminos(){
 
 let t = document.getElementById("pantallaTerminos")
 let r = document.getElementById("pantallaRegistro")
 
-// guardar aceptación
+// ⚠️ PRIMERO CAMBIAR PANTALLA (clave)
+t.style.display="none"
+r.style.display="block"
+
+window.scrollTo({top:0, behavior:"smooth"})
+
+// 🔥 DESPUÉS intentar guardar (sin bloquear)
 try{
 await addDoc(collection(db,"aceptaciones"),{
 fecha:new Date(),
@@ -38,31 +46,13 @@ aceptado:true,
 userAgent:navigator.userAgent
 })
 }catch(e){
-console.log("Error controlado", e)
+console.log("Firebase error (no bloquea):", e)
 }
 
-// animación salida
-t.classList.add("oculta")
-
-setTimeout(()=>{
-t.style.display="none"
-r.style.display="block"
-
-// animación entrada
-setTimeout(()=>{
-r.classList.remove("oculta")
-
-// scroll arriba
-window.scrollTo({top:0, behavior:"smooth"})
-
-// vibración (si el dispositivo lo permite)
+// vibración opcional
 if(navigator.vibrate){
 navigator.vibrate(80)
 }
-
-},50)
-
-},300)
 
 }
 
