@@ -38,6 +38,7 @@ window.getDownloadURL = getDownloadURL;
 
 <body>
 
+<!-- SPLASH -->
 <div id="splash">
   <div class="logo">AlDía ⚡</div>
   <div class="spinner"></div>
@@ -50,7 +51,30 @@ window.getDownloadURL = getDownloadURL;
 <p>Tu boleta digital</p>
 </header>
 
-<section class="card">
+<!-- TERMINOS -->
+<section class="card pantalla" id="pantallaTerminos">
+
+<h2>Términos y condiciones</h2>
+
+<div class="contrato show">
+<p>
+Autorizo el uso de mis datos para solicitar boletas, gestionar pagos y comunicaciones.
+</p>
+</div>
+
+<div class="check">
+<input type="checkbox" id="checkTerminos" onchange="habilitarBoton()">
+<label>Acepto los términos</label>
+</div>
+
+<button id="btnContinuar" onclick="aceptarTerminos()" disabled>
+Aceptar y continuar
+</button>
+
+</section>
+
+<!-- REGISTRO -->
+<section class="card pantalla oculta" id="pantallaRegistro" style="display:none;">
 
 <input id="nombre" placeholder="Nombre y Apellido">
 <input id="dni" placeholder="DNI">
@@ -58,20 +82,7 @@ window.getDownloadURL = getDownloadURL;
 <input id="direccion" placeholder="Dirección">
 <input id="celular" placeholder="Celular">
 
-<div class="check">
-<input type="checkbox" id="terminos" onchange="mostrarContrato()">
-<label>Acepto términos y condiciones</label>
-</div>
-
-<div id="contrato" class="contrato">
-<p>
-Autorizo el uso de mis datos para solicitar boletas, gestionar pagos y comunicaciones del servicio.
-</p>
-</div>
-
-<button class="pulse" onclick="registrar()">
-Activar servicio y pagar
-</button>
+<button class="pulse" onclick="registrar()">Activar servicio y pagar</button>
 
 <div class="loader" id="loader">
 <div></div>
@@ -80,11 +91,11 @@ Activar servicio y pagar
 
 <div class="pago-box">
 
-<p><strong>Pago del servicio</strong></p>
+<p><strong>Pago</strong></p>
 
-<p>Alias: <span id="aliasTexto">mathiascontreras</span></p>
+<p>Alias: <span id="aliasTexto">tualias.mp</span></p>
 
-<button onclick="copiarAlias()">mathiascontreras</button>
+<button onclick="copiarAlias()">Copiar Alias</button>
 <button onclick="abrirMP()">Ir a Mercado Pago</button>
 
 <input type="file" id="comprobante">
