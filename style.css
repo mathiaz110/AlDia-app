@@ -3,16 +3,65 @@ margin:0;
 font-family:'Segoe UI', Arial;
 background:linear-gradient(135deg,#4c1d95,#1e3a8a);
 color:white;
+display:flex;
+justify-content:center;
 }
-header{text-align:center;padding:30px;}
+
+.app{
+width:100%;
+max-width:480px;
+min-height:100vh;
+}
+
+/* SPLASH */
+
+#splash{
+position:fixed;
+width:100%;
+height:100%;
+background:linear-gradient(135deg,#4c1d95,#1e3a8a);
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:9999;
+animation:fadeOut 1s ease forwards;
+animation-delay:2s;
+}
+
+.logo{
+font-size:32px;
+font-weight:bold;
+margin-bottom:20px;
+}
+
+.spinner{
+width:40px;
+height:40px;
+border:4px solid white;
+border-top:4px solid transparent;
+border-radius:50%;
+animation:spin 1s linear infinite;
+}
+
+@keyframes fadeOut{
+to{opacity:0; visibility:hidden;}
+}
+
+@keyframes spin{
+to{transform:rotate(360deg);}
+}
+
+/* CARD */
+
 .card{
 background:rgba(255,255,255,0.08);
-max-width:420px;
-margin:20px auto;
+margin:20px;
 padding:25px;
 border-radius:20px;
 backdrop-filter:blur(20px);
 }
+
 input{
 width:100%;
 padding:14px;
@@ -22,6 +71,7 @@ border-radius:10px;
 background:rgba(255,255,255,0.1);
 color:white;
 }
+
 button{
 width:100%;
 padding:14px;
@@ -32,16 +82,48 @@ background:linear-gradient(135deg,#22c55e,#16a34a);
 color:white;
 cursor:pointer;
 }
+
+.pulse{
+animation:pulse 1.5s infinite;
+}
+
+@keyframes pulse{
+50%{transform:scale(1.05);}
+}
+
+/* PAGO */
+
 .pago-box{
 margin-top:20px;
 padding:15px;
 background:#1e293b;
 border-radius:15px;
 }
+
+.pago-box button{
+background:linear-gradient(135deg,#3b82f6,#2563eb);
+}
+
+/* CONTRATO */
+
+.contrato{
+display:none;
+background:rgba(0,0,0,0.4);
+padding:10px;
+border-radius:10px;
+margin-top:10px;
+font-size:12px;
+max-height:150px;
+overflow:auto;
+}
+
+/* LOADER */
+
 .loader{
 display:none;
 text-align:center;
 }
+
 .loader div{
 width:30px;
 height:30px;
@@ -50,6 +132,18 @@ border-top:4px solid transparent;
 border-radius:50%;
 animation:spin 1s linear infinite;
 }
-@keyframes spin{
-to{transform:rotate(360deg);}
+
+/* TEXTOS */
+
+.info{
+font-size:12px;
+opacity:0.7;
+text-align:center;
+}
+
+.check{
+display:flex;
+gap:10px;
+align-items:center;
+margin-top:10px;
 }
