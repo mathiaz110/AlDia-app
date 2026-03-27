@@ -25,18 +25,25 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-window.db=db;
-window.addDoc=addDoc;
-window.collection=collection;
-window.storage=storage;
-window.ref=ref;
-window.uploadBytes=uploadBytes;
-window.getDownloadURL=getDownloadURL;
+window.db = db;
+window.storage = storage;
+window.addDoc = addDoc;
+window.collection = collection;
+window.ref = ref;
+window.uploadBytes = uploadBytes;
+window.getDownloadURL = getDownloadURL;
 </script>
 
 </head>
 
 <body>
+
+<div id="splash">
+  <div class="logo">AlDía ⚡</div>
+  <div class="spinner"></div>
+</div>
+
+<div class="app">
 
 <header>
 <h1>AlDía</h1>
@@ -52,11 +59,19 @@ window.getDownloadURL=getDownloadURL;
 <input id="celular" placeholder="Celular">
 
 <div class="check">
-<input type="checkbox" id="terminos">
-<label>Acepto condiciones</label>
+<input type="checkbox" id="terminos" onchange="mostrarContrato()">
+<label>Acepto términos y condiciones</label>
 </div>
 
-<button class="pulse" onclick="registrar()">Activar servicio y pagar</button>
+<div id="contrato" class="contrato">
+<p>
+Autorizo el uso de mis datos para solicitar boletas, gestionar pagos y comunicaciones del servicio.
+</p>
+</div>
+
+<button class="pulse" onclick="registrar()">
+Activar servicio y pagar
+</button>
 
 <div class="loader" id="loader">
 <div></div>
@@ -64,19 +79,22 @@ window.getDownloadURL=getDownloadURL;
 </div>
 
 <div class="pago-box">
-<p><strong>Pago</strong></p>
-<p>Alias: <span id="aliasTexto">click abajo en alias mathiascontreras<</span></p>
+
+<p><strong>Pago del servicio</strong></p>
+
+<p>Alias: <span id="aliasTexto">click abajo en alias mathiascontreras</span></p>
 
 <button onclick="copiarAlias()">mathiascontreras</button>
-<button onclick="abrirMP()">Abrir Mercado Pago</button>
+<button onclick="abrirMP()">Ir a Mercado Pago</button>
 
 <input type="file" id="comprobante">
 <button onclick="subirComprobante()">Enviar comprobante</button>
 
-<p class="info">Luego de pagar, enviar comprobante</p>
 </div>
 
 </section>
+
+</div>
 
 <script src="script.js"></script>
 
