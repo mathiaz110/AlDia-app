@@ -1,14 +1,55 @@
 body{
-font-family:Arial;
-padding:20px;
+margin:0;
+font-family:'Segoe UI', Arial;
+background:linear-gradient(135deg,#4c1d95,#1e3a8a);
+color:white;
 }
-
+header{text-align:center;padding:30px;}
+.card{
+background:rgba(255,255,255,0.08);
+max-width:420px;
+margin:20px auto;
+padding:25px;
+border-radius:20px;
+backdrop-filter:blur(20px);
+}
 input{
-display:block;
-margin:10px 0;
-padding:10px;
+width:100%;
+padding:14px;
+margin:8px 0;
+border:none;
+border-radius:10px;
+background:rgba(255,255,255,0.1);
+color:white;
 }
-
 button{
-padding:10px;
+width:100%;
+padding:14px;
+margin-top:10px;
+border:none;
+border-radius:12px;
+background:linear-gradient(135deg,#22c55e,#16a34a);
+color:white;
+cursor:pointer;
+}
+.pago-box{
+margin-top:20px;
+padding:15px;
+background:#1e293b;
+border-radius:15px;
+}
+.loader{
+display:none;
+text-align:center;
+}
+.loader div{
+width:30px;
+height:30px;
+border:4px solid white;
+border-top:4px solid transparent;
+border-radius:50%;
+animation:spin 1s linear infinite;
+}
+@keyframes spin{
+to{transform:rotate(360deg);}
 }

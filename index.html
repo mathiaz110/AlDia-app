@@ -3,47 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AlDía</title>
+<title>AlDía App</title>
 
-<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
-authDomain: "aldia-app1.firebaseapp.com",
-projectId: "aldia-app1",
-storageBucket: "aldia-app1.firebasestorage.app",
-mensajesSenderId: "1013051386288",
-appId: "1:1013051386288:web:e588c83d0892d6cbab4e75",
+apiKey: "TU_API_KEY",
+authDomain: "TU_DOMINIO.firebaseapp.com",
+projectId: "TU_PROJECT_ID",
+storageBucket: "TU_BUCKET.appspot.com",
+messagingSenderId: "TU_ID",
+appId: "TU_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
-window.db = db;
-window.addDoc = addDoc;
-window.collection = collection;
+window.db=db;
+window.addDoc=addDoc;
+window.collection=collection;
+window.storage=storage;
+window.ref=ref;
+window.uploadBytes=uploadBytes;
+window.getDownloadURL=getDownloadURL;
 </script>
 
-<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h1>AlDía - Registro</h1>
+<header>
+<h1>AlDía</h1>
+<p>Tu boleta digital</p>
+</header>
 
-<input id="nombre" placeholder="Nombre">
+<section class="card">
+
+<input id="nombre" placeholder="Nombre y Apellido">
 <input id="dni" placeholder="DNI">
+<input id="usuario" placeholder="Número de usuario">
 <input id="direccion" placeholder="Dirección">
+<input id="celular" placeholder="Celular">
 
-<button onclick="registrar()">Registrarse</button>
+<div class="check">
+<input type="checkbox" id="terminos">
+<label>Acepto condiciones</label>
+</div>
 
-<footer>App piloto</footer>
+<button class="pulse" onclick="registrar()">Activar servicio y pagar</button>
 
-<button id="adminBtn"></button>
+<div class="loader" id="loader">
+<div></div>
+<p>Procesando...</p>
+</div>
+
+<div class="pago-box">
+<p><strong>Pago</strong></p>
+<p>Alias: <span id="aliasTexto">tualias.mp</span></p>
+
+<button onclick="copiarAlias()">Copiar Alias</button>
+<button onclick="abrirMP()">Abrir Mercado Pago</button>
+
+<input type="file" id="comprobante">
+<button onclick="subirComprobante()">Enviar comprobante</button>
+
+<p class="info">Luego de pagar, enviar comprobante</p>
+</div>
+
+</section>
 
 <script src="script.js"></script>
 
