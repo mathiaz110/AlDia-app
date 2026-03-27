@@ -250,3 +250,19 @@ opacity:0;
 transform:translateX(-20px);
 pointer-events:none;
 }
+
+/* TRANSICIÓN ENTRE PANTALLAS */
+
+.pantalla{
+transition:all 0.4s ease;
+opacity:1;
+transform:translateX(0);
+}
+
+/* OCULTA CON ANIMACIÓN */
+
+.oculta{
+opacity:0;
+transform:translateX(-20px);
+pointer-events:none;
+}
