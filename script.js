@@ -1,160 +1,188 @@
-// SPLASH
-window.onload = () => {
-setTimeout(()=> {
-document.getElementById("splash").style.display="none"
-},2000)
+// ==============================
+// SPLASH SCREEN
+// ==============================
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    const splash = document.getElementById("splash");
+    if (splash) {
+      splash.style.opacity = "0";
+      splash.style.pointerEvents = "none";
+    }
+  }, 1500);
+});
+
+
+// ==============================
+// ELEMENTOS
+// ==============================
+const checkTerminos = document.getElementById("checkTerminos");
+const btnContinuar = document.getElementById("btnContinuar");
+
+const pantallaTerminos = document.getElementById("pantallaTerminos");
+const pantallaRegistro = document.getElementById("pantallaRegistro");
+
+
+// ==============================
+// HABILITAR BOTÓN
+// ==============================
+function habilitarBoton() {
+  if (!checkTerminos || !btnContinuar) return;
+
+  btnContinuar.disabled = !checkTerminos.checked;
+  btnContinuar.classList.toggle("activo", checkTerminos.checked);
 }
 
-// HABILITAR BOTON
-function habilitarBoton(){
 
-let check = document.getElementById("checkTerminos")
-let btn = document.getElementById("btnContinuar")
-let cont = check.parentElement
+// ==============================
+// CAMBIO DE PANTALLA
+// ==============================
+async function aceptarTerminos() {
 
-if(check.checked){
-btn.disabled = false
-btn.classList.add("activo")
-cont.classList.add("activo")
-}else{
-btn.disabled = true
-btn.classList.remove("activo")
-cont.classList.remove("activo")
+  // Validación extra
+  if (!checkTerminos.checked) return;
+
+  // Cambio de pantalla (SIN display, solo clases)
+  pantallaTerminos.classList.add("oculta");
+  pantallaRegistro.classList.remove("oculta");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  // Guardado en Firebase (no bloquea UI)
+  try {
+    if (window.db && window.addDoc && window.collection) {
+      await addDoc(collection(db, "aceptaciones"), {
+        fecha: new Date(),
+        aceptado: true,
+        userAgent: navigator.userAgent
+      });
+    }
+  } catch (error) {
+    console.log("Error Firebase:", error);
+  }
+
+  // Vibración opcional
+  if (navigator.vibrate) {
+    navigator.vibrate(80);
+  }
 }
 
+
+// ==============================
+// REGISTRO USUARIO
+// ==============================
+async function registrar() {
+
+  const loader = document.getElementById("loader");
+  if (loader) loader.style.display = "block";
+
+  const nombre = document.getElementById("nombre").value.trim();
+  const dni = document.getElementById("dni").value.trim();
+  const usuario = document.getElementById("usuario").value.trim();
+  const direccion = document.getElementById("direccion").value.trim();
+  const celular = document.getElementById("celular").value.trim();
+
+  // Validación
+  if (!nombre || !dni || !usuario || !direccion || !celular) {
+    alert("Completar todos los campos");
+    if (loader) loader.style.display = "none";
+    return;
+  }
+
+  try {
+    if (window.db) {
+      await addDoc(collection(db, "usuarios"), {
+        nombre,
+        dni,
+        usuario,
+        direccion,
+        celular,
+        fecha: new Date(),
+        estado: "pendiente_pago"
+      });
+    }
+
+    alert("Registro exitoso 🚀");
+
+  } catch (error) {
+    console.log("Firebase error:", error);
+    alert("Continuar con pago (modo seguro)");
+  }
+
+  if (loader) loader.style.display = "none";
+
+  // Scroll a pago
+  const pagoBox = document.querySelector(".pago-box");
+  if (pagoBox) {
+    pagoBox.scrollIntoView({ behavior: "smooth" });
+  }
+
+  // Vibración
+  if (navigator.vibrate) {
+    navigator.vibrate(100);
+  }
 }
 
-// ACEPTAR TERMINOS (MEJORADO PRO)
 
+// ==============================
+// COPIAR ALIAS
+// ==============================
+function copiarAlias() {
+  const texto = document.getElementById("aliasTexto").innerText;
 
-async function aceptarTerminos(){
-
-let t = document.getElementById("pantallaTerminos")
-let r = document.getElementById("pantallaRegistro")
-
-// ⚠️ PRIMERO CAMBIAR PANTALLA (clave)
-t.style.display="none"
-r.style.display="block"
-
-window.scrollTo({top:0, behavior:"smooth"})
-
-// 🔥 DESPUÉS intentar guardar (sin bloquear)
-try{
-await addDoc(collection(db,"aceptaciones"),{
-fecha:new Date(),
-aceptado:true,
-userAgent:navigator.userAgent
-})
-}catch(e){
-console.log("Firebase error (no bloquea):", e)
+  navigator.clipboard.writeText(texto)
+    .then(() => alert("Alias copiado"))
+    .catch(() => alert("No se pudo copiar"));
 }
 
-// vibración opcional
-if(navigator.vibrate){
-navigator.vibrate(80)
+
+// ==============================
+// ABRIR MERCADO PAGO
+// ==============================
+function abrirMP() {
+  window.open("https://www.mercadopago.com.ar", "_blank");
 }
 
-}
 
-// REGISTRO (ANTI BUG)
-async function registrar(){
-
-let loader=document.getElementById("loader")
-loader.style.display="block"
-
-let nombre=document.getElementById("nombre").value
-let dni=document.getElementById("dni").value
-let usuario=document.getElementById("usuario").value
-let direccion=document.getElementById("direccion").value
-let celular=document.getElementById("celular").value
-
-if(!nombre||!dni||!usuario||!direccion||!celular){
-alert("Completar todo")
-loader.style.display="none"
-return
-}
-
-try{
-
-await Promise.race([
-addDoc(collection(db,"usuarios"),{
-nombre,dni,usuario,direccion,celular,
-fecha:new Date(),
-estado:"pendiente_pago"
-}),
-new Promise((_, reject)=>setTimeout(()=>reject("timeout"),5000))
-])
-
-alert("Registro exitoso 🚀")
-
-}catch(e){
-alert("Continuar con pago (modo seguro)")
-}
-
-loader.style.display="none"
-
-// vibración leve
-if(navigator.vibrate){
-navigator.vibrate(100)
-}
-
-// scroll a pago
-document.querySelector(".pago-box").scrollIntoView({
-behavior:"smooth"
-})
-
-}
-
-// COPIAR
-function copiarAlias(){
-navigator.clipboard.writeText(
-document.getElementById("aliasTexto").innerText
-)
-alert("Alias copiado")
-}
-
-// MERCADO PAGO
-function abrirMP(){
-window.open("https://www.mercadopago.com.ar","_blank")
-}
-
+// ==============================
 // SUBIR COMPROBANTE
-async function subirComprobante(){
+// ==============================
+async function subirComprobante() {
 
-let archivo=document.getElementById("comprobante").files[0]
+  const archivo = document.getElementById("comprobante").files[0];
 
-if(!archivo){
-alert("Seleccionar archivo")
-return
-}
+  if (!archivo) {
+    alert("Seleccionar archivo");
+    return;
+  }
 
-try{
+  try {
 
-let ruta="comprobantes/"+Date.now()+"_"+archivo.name
-let storageRef = ref(storage, ruta)
+    if (window.storage && window.ref && window.uploadBytes && window.getDownloadURL) {
 
-await Promise.race([
-uploadBytes(storageRef, archivo),
-new Promise((_, reject)=>setTimeout(()=>reject("timeout"),5000))
-])
+      const ruta = "comprobantes/" + Date.now() + "_" + archivo.name;
+      const storageRef = ref(storage, ruta);
 
-let url = await getDownloadURL(storageRef)
+      await uploadBytes(storageRef, archivo);
 
-await addDoc(collection(db,"comprobantes"),{
-url,
-fecha:new Date(),
-estado:"pendiente"
-})
+      const url = await getDownloadURL(storageRef);
 
-alert("Comprobante enviado ✅")
+      await addDoc(collection(db, "comprobantes"), {
+        url,
+        fecha: new Date(),
+        estado: "pendiente"
+      });
 
-}catch(e){
-alert("Comprobante recibido (modo seguro)")
-}
+    }
 
-// vibración final
-if(navigator.vibrate){
-navigator.vibrate([100,50,100])
-}
+    alert("Comprobante enviado ✅");
 
+  } catch (error) {
+    console.log("Error subida:", error);
+    alert("Comprobante recibido (modo seguro)");
+  }
+
+  // Vibración final
+  if (navigator.vibrate) {
+    navigator.vibrate([100, 50, 100]);
+  }
 }

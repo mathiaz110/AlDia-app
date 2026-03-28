@@ -246,17 +246,18 @@ transform:translateX(0);
 }
 
 .oculta{
-opacity:0;
-transform:translateX(-20px);
-pointer-events:none;
+  opacity:0;
+  transform:translateX(-20px);
+  pointer-events:none;
+  position:absolute;
+  width:100%;
 }
 
 /* TRANSICIÓN ENTRE PANTALLAS */
 
 .pantalla{
-transition:all 0.4s ease;
-opacity:1;
-transform:translateX(0);
+  transition: all 0.4s ease;
+  position: relative;
 }
 
 /* OCULTA CON ANIMACIÓN */
