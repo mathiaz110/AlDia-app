@@ -1,269 +1,89 @@
 body{
-margin:0;
-font-family:'Segoe UI', Arial;
-background:linear-gradient(135deg,#4c1d95,#1e3a8a);
-color:white;
-display:flex;
-justify-content:center;
+  margin:0;
+  font-family:'Segoe UI', Arial;
+  color:white;
+  background:
+    radial-gradient(circle at 20% 30%, #6d28d9, transparent 40%),
+    radial-gradient(circle at 80% 70%, #2563eb, transparent 40%),
+    linear-gradient(135deg,#1e1b4b,#0f172a);
 }
 
 .app{
-width:100%;
-max-width:480px;
-min-height:100vh;
-}
-
-/* SPLASH */
-
-#splash{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:linear-gradient(135deg,#4c1d95,#1e3a8a);
-display:flex;
-flex-direction:column;
-justify-content:center;
-align-items:center;
-z-index:9999;
-animation:fadeOut 1s ease forwards;
-animation-delay:2s;
-}
-
-.logo{
-font-size:32px;
-font-weight:bold;
-margin-bottom:20px;
-}
-
-.spinner{
-width:40px;
-height:40px;
-border:4px solid white;
-border-top:4px solid transparent;
-border-radius:50%;
-animation:spin 1s linear infinite;
-}
-
-@keyframes fadeOut{
-to{opacity:0; visibility:hidden;}
-}
-
-@keyframes spin{
-to{transform:rotate(360deg);}
+  max-width:480px;
+  margin:auto;
+  min-height:100vh;
+  padding:20px;
 }
 
 /* HEADER */
-
 header{
-text-align:center;
-padding:25px;
-}
-
-/* CARD */
-
-.card{
-background:rgba(255,255,255,0.08);
-margin:20px;
-padding:25px;
-border-radius:20px;
-backdrop-filter:blur(20px);
-}
-
-/* INPUTS */
-
-input{
-width:100%;
-padding:14px;
-margin:8px 0;
-border:none;
-border-radius:10px;
-background:rgba(255,255,255,0.1);
-color:white;
-}
-
-/* BOTONES */
-
-button{
-width:100%;
-padding:14px;
-margin-top:10px;
-border:none;
-border-radius:12px;
-background:linear-gradient(135deg,#22c55e,#16a34a);
-color:white;
-cursor:pointer;
-transition:all 0.3s ease;
-}
-
-/* BOTÓN BLOQUEADO */
-
-button:disabled{
-opacity:0.4;
-cursor:not-allowed;
-transform:scale(0.98);
-filter:grayscale(40%);
-}
-
-/* BOTÓN ACTIVO ANIMACIÓN */
-
-button.activo{
-animation:activarBtn 0.4s ease forwards;
-}
-
-@keyframes activarBtn{
-0%{transform:scale(0.9);opacity:0.5;}
-60%{transform:scale(1.05);}
-100%{transform:scale(1);opacity:1;}
-}
-
-/* EFECTO CLICK */
-
-button:not(:disabled):active{
-transform:scale(0.97);
-}
-
-/* CHECK */
-
-.check{
-display:flex;
-align-items:center;
-gap:10px;
-margin-top:15px;
-padding:10px;
-border-radius:10px;
-transition:all 0.3s ease;
-}
-
-/* CHECK ACTIVO */
-
-.check.activo{
-background:rgba(34,197,94,0.15);
-box-shadow:0 0 10px rgba(34,197,94,0.4);
-}
-
-.check label{
-transition:0.3s;
-}
-
-.check.activo label{
-color:#22c55e;
-font-weight:bold;
-}
-
-/* CONTRATO */
-
-.contrato{
-display:none;
-background:rgba(0,0,0,0.4);
-padding:10px;
-border-radius:10px;
-margin-top:10px;
-font-size:12px;
-max-height:150px;
-overflow:auto;
-}
-
-.contrato.show{
-display:block;
-}
-
-/* PAGO */
-
-.pago-box{
-margin-top:20px;
-padding:15px;
-background:#1e293b;
-border-radius:15px;
-}
-
-.pago-box button{
-background:linear-gradient(135deg,#3b82f6,#2563eb);
-}
-
-/* LOADER */
-
-.loader{
-display:none;
-text-align:center;
-}
-
-.loader div{
-width:30px;
-height:30px;
-border:4px solid white;
-border-top:4px solid transparent;
-border-radius:50%;
-animation:spin 1s linear infinite;
-}
-
-/* TEXTOS */
-
-.info{
-font-size:12px;
-opacity:0.7;
-text-align:center;
-}
-
-/* RESPONSIVE */
-
-@media (max-width:500px){
-
-header{
-padding:20px;
+  text-align:center;
+  margin-bottom:20px;
 }
 
 header h1{
-font-size:22px;
+  font-size:40px;
+  font-weight:800;
+  margin:0;
+  letter-spacing:1px;
+
+  background: linear-gradient(135deg,#22c55e,#60a5fa);
+
+  background-clip: text;              /* estándar */
+  -webkit-background-clip: text;      /* compatibilidad */
+
+  color: transparent;                /* estándar */
+  -webkit-text-fill-color: transparent; /* compatibilidad */
+
+  text-shadow:0 4px 20px rgba(0,0,0,0.4);
 }
 
-.card{
-margin:10px;
-padding:18px;
+header p{
+  opacity:0.8;
 }
 
-input,button{
-padding:12px;
-font-size:14px;
-}
-
-.logo{
-font-size:26px;
-}
-
-.spinner{
-width:30px;
-height:30px;
-}
-
-}
-
-.pantalla{
-transition:all 0.4s ease;
-opacity:1;
-transform:translateX(0);
-}
-
-.oculta{
-  opacity:0;
-  transform:translateX(-20px);
-  pointer-events:none;
-  position:absolute;
+/* INPUTS */
+input{
   width:100%;
+  padding:14px;
+  margin:10px 0;
+  border:none;
+  border-radius:12px;
+  background:rgba(0,0,0,0.5);
+  color:white;
 }
 
-/* TRANSICIÓN ENTRE PANTALLAS */
+/* BOTONES */
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:white;
+  cursor:pointer;
+}
 
+/* PANTALLAS */
 .pantalla{
-  transition: all 0.4s ease;
-  position: relative;
+  display:none;
 }
 
-/* OCULTA CON ANIMACIÓN */
+.pantalla.activa{
+  display:block;
+}
 
-.oculta{
-opacity:0;
-transform:translateX(-20px);
-pointer-events:none;
+/* PAGO */
+.pago-box{
+  background:#1e293b;
+  padding:15px;
+  border-radius:15px;
+  margin-top:20px;
+}
+
+/* ESTADO */
+#pantallaEstado{
+  text-align:center;
+  margin-top:40px;
 }

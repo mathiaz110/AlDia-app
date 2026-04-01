@@ -13,20 +13,18 @@ import { getFirestore, collection, addDoc } from "https://www.gstatic.com/fireba
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
-authDomain: "aldia-app1.firebaseapp.com",
-projectId: "aldia-app1",
-storageBucket: "aldia-app1.firebasestorage.com",
-mensajesSenderId: "1013051386288",
-appId: "1:1013051386288:web:e588c83d0892d6cbab4e75",
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_DOMINIO",
+  projectId: "TU_PROYECTO",
+  storageBucket: "TU_BUCKET",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
 
-window.db = db;
-window.storage = storage;
+window.db = getFirestore(app);
+window.storage = getStorage(app);
 window.addDoc = addDoc;
 window.collection = collection;
 window.ref = ref;
@@ -38,71 +36,50 @@ window.getDownloadURL = getDownloadURL;
 
 <body>
 
-<!-- SPLASH -->
-<div id="splash">
-  <div class="logo">AlDía ⚡</div>
-  <div class="spinner"></div>
-</div>
-
 <div class="app">
 
 <header>
-<h1>AlDía</h1>
-<p>Tu boleta digital</p>
+  <h1>AlDía</h1>
+  <p>Tu boleta digital</p>
 </header>
 
-<!-- TERMINOS -->
-<section class="card pantalla" id="pantallaTerminos">
+<!-- PANTALLA 1 -->
+<section class="pantalla activa" id="pantallaTerminos">
+  <h2>Términos</h2>
 
-<h2>Términos y condiciones</h2>
+  <div class="check">
+    <input type="checkbox" id="checkTerminos">
+    <label>Acepto los términos</label>
+  </div>
 
-<div class="contrato show">
-<p>
-Autorizo el uso de mis datos para solicitar boletas, gestionar pagos y comunicaciones.
-</p>
-</div>
+  <button id="btnContinuar" disabled>Continuar</button>
+</section>
 
-<div class="check">
-<input type="checkbox" id="checkTerminos" onchange="habilitarBoton()">
-<label>Acepto los términos</label>
-</div>
+<!-- PANTALLA 2 -->
+<section class="pantalla" id="pantallaRegistro">
 
-<button id="btnContinuar" onclick="aceptarTerminos()" disabled>
-Aceptar y continuar
-</button>
+  <input id="nombre" placeholder="Nombre y Apellido">
+  <input id="dni" placeholder="DNI">
+  <input id="usuario" placeholder="Número de usuario">
+  <input id="direccion" placeholder="Dirección">
+  <input id="celular" placeholder="Celular">
+
+  <div class="pago-box">
+    <p>Alias: <span id="aliasTexto">tualias.mp</span></p>
+
+    <button id="btnCopiar">Copiar Alias</button>
+    <button id="btnMP">Ir a Mercado Pago</button>
+
+    <input type="file" id="comprobante">
+    <button id="btnEnviar">Enviar comprobante</button>
+  </div>
 
 </section>
 
-<!-- REGISTRO -->
-<section class="card pantalla oculta" id="pantallaRegistro">
-
-<input id="nombre" placeholder="Nombre y Apellido">
-<input id="dni" placeholder="DNI">
-<input id="usuario" placeholder="Número de usuario">
-<input id="direccion" placeholder="Dirección">
-<input id="celular" placeholder="Celular">
-
-<button class="pulse" onclick="registrar()">Activar servicio y pagar</button>
-
-<div class="loader" id="loader">
-<div></div>
-<p>Procesando...</p>
-</div>
-
-<div class="pago-box">
-
-<p><strong>Pago</strong></p>
-
-<p>Alias: <span id="aliasTexto">tualias.mp</span></p>
-
-<button onclick="copiarAlias()">Copiar Alias</button>
-<button onclick="abrirMP()">Ir a Mercado Pago</button>
-
-<input type="file" id="comprobante">
-<button onclick="subirComprobante()">Enviar comprobante</button>
-
-</div>
-
+<!-- PANTALLA 3 -->
+<section class="pantalla" id="pantallaEstado">
+  <h2 id="estadoTitulo">Procesando...</h2>
+  <p id="estadoTexto">Verificando pago</p>
 </section>
 
 </div>
