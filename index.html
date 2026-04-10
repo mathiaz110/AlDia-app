@@ -7,32 +7,35 @@
 
 <link rel="stylesheet" href="style.css">
 
+<!-- 🔥 TU FIREBASE (RESPETADO) -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
-  authDomain: "aldia-app1.firebaseapp.com",
-  projectId: "aldia-app1",
-  storageBucket: "aldia-app1.firebasestorage.app",
-  messagingSenderId: "1013051386288",
-  appId: "1:1013051386288:web:e588c83d0892d6cbab4e75"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
+    authDomain: "aldia-app1.firebaseapp.com",
+    projectId: "aldia-app1",
+    storageBucket: "aldia-app1.firebasestorage.app",
+    messagingSenderId: "1013051386288",
+    appId: "1:1013051386288:web:e588c83d0892d6cbab4e75",
+    measurementId: "G-28VQ7VM4KS"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
 
-// GLOBAL (CRÍTICO)
-window.db = db;
-window.storage = storage;
-window.addDoc = addDoc;
-window.collection = collection;
-window.ref = ref;
-window.uploadBytes = uploadBytes;
-window.getDownloadURL = getDownloadURL;
+  // GLOBAL
+  window.db = db;
+  window.storage = storage;
+  window.addDoc = addDoc;
+  window.collection = collection;
+  window.ref = ref;
+  window.uploadBytes = uploadBytes;
+  window.getDownloadURL = getDownloadURL;
 </script>
 
 </head>

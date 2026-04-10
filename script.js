@@ -1,77 +1,85 @@
-const check = document.getElementById("checkTerminos");
-const btn = document.getElementById("btnContinuar");
+function el(id){ return document.getElementById(id); }
 
-const btnEnviar = document.getElementById("btnEnviar");
-const btnCopiar = document.getElementById("btnCopiar");
-const btnMP = document.getElementById("btnMP");
+window.habilitarBoton = function(){
+  const check = el("checkTerminos");
+  el("btnContinuar").disabled = !check.checked;
+};
 
-// habilitar botón
-check.addEventListener("change", () => {
-  btn.disabled = !check.checked;
-});
-
-// cambiar pantalla
-function cambiar(actual, siguiente){
-  document.getElementById(actual).classList.remove("activa");
-  document.getElementById(siguiente).classList.add("activa");
+function cambiar(a,b){
+  el(a).classList.remove("activa");
+  el(b).classList.add("activa");
 }
 
-// continuar
-btn.addEventListener("click", () => {
+window.aceptarTerminos = function(){
+  if(!el("checkTerminos").checked) return;
   cambiar("pantallaTerminos","pantallaRegistro");
-});
+};
 
-// copiar alias
-btnCopiar.addEventListener("click", () => {
-  navigator.clipboard.writeText(document.getElementById("aliasTexto").innerText);
-  alert("Alias copiado");
-});
+window.registrar = function(){
 
-// abrir MP
-btnMP.addEventListener("click", () => {
-  window.open("https://www.mercadopago.com.ar");
-});
+  const campos = ["nombre","dni","usuario","direccion","celular"];
 
-// enviar comprobante + FIREBASE
-btnEnviar.addEventListener("click", async () => {
+  for(let c of campos){
+    if(!el(c).value.trim()){
+      alert("Completar todos los campos");
+      return;
+    }
+  }
+
+  alert("Datos correctos ✔");
+};
+
+window.copiarAlias = function(){
+  navigator.clipboard.writeText(el("aliasTexto").innerText)
+    .then(()=>alert("Alias copiado ✔"))
+    .catch(()=>alert("Error al copiar"));
+};
+
+window.abrirMP = function(){
+  window.open("https://www.mercadopago.com.ar","_blank");
+};
+
+window.subirComprobante = async function(){
+
+  const archivo = el("comprobante").files[0];
+
+  if(!archivo){
+    alert("Seleccionar comprobante");
+    return;
+  }
 
   cambiar("pantallaRegistro","pantallaEstado");
 
-  const nombre = document.getElementById("nombre").value;
-  const dni = document.getElementById("dni").value;
-  const usuario = document.getElementById("usuario").value;
-  const direccion = document.getElementById("direccion").value;
-  const celular = document.getElementById("celular").value;
-
-  const archivo = document.getElementById("comprobante").files[0];
-
-  try {
+  try{
 
     let url = "";
 
-    if(archivo){
-      const storageRef = ref(storage, "comprobantes/" + Date.now());
+    if(window.storage){
+      const storageRef = ref(storage, "comprobantes/"+Date.now());
       await uploadBytes(storageRef, archivo);
       url = await getDownloadURL(storageRef);
     }
 
-    await addDoc(collection(db, "usuarios"), {
-      nombre, dni, usuario, direccion, celular,
-      comprobante: url,
-      fecha: new Date(),
-      estado: "pendiente"
-    });
+    if(window.db){
+      await addDoc(collection(db,"usuarios"),{
+        nombre:el("nombre").value,
+        dni:el("dni").value,
+        usuario:el("usuario").value,
+        direccion:el("direccion").value,
+        celular:el("celular").value,
+        comprobante:url,
+        fecha:new Date(),
+        estado:"pendiente"
+      });
+    }
 
     setTimeout(()=>{
-      document.getElementById("estadoTitulo").innerText = "Pago recibido ✅";
-      document.getElementById("estadoTexto").innerText = "En breve recibirás tu boleta";
-    },2000);
+      el("estadoTitulo").innerText="Pago recibido ✅";
+      el("estadoTexto").innerText="En breve recibirás tu boleta";
+    },1500);
 
-  } catch (error) {
-    console.log(error);
-
-    document.getElementById("estadoTitulo").innerText = "Error ❌";
-    document.getElementById("estadoTexto").innerText = "Intentá nuevamente";
+  }catch(e){
+    el("estadoTitulo").innerText="Error ❌";
+    el("estadoTexto").innerText="Intentá nuevamente";
   }
-
-});
+};
