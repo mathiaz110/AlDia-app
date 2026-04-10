@@ -7,36 +7,7 @@
 
 <link rel="stylesheet" href="style.css">
 
-<!-- 🔥 TU FIREBASE (RESPETADO) -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
-    authDomain: "aldia-app1.firebaseapp.com",
-    projectId: "aldia-app1",
-    storageBucket: "aldia-app1.firebasestorage.app",
-    messagingSenderId: "1013051386288",
-    appId: "1:1013051386288:web:e588c83d0892d6cbab4e75",
-    measurementId: "G-28VQ7VM4KS"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
-
-  // GLOBAL
-  window.db = db;
-  window.storage = storage;
-  window.addDoc = addDoc;
-  window.collection = collection;
-  window.ref = ref;
-  window.uploadBytes = uploadBytes;
-  window.getDownloadURL = getDownloadURL;
-</script>
+<script type="module" src="script.js"></script>
 
 </head>
 
@@ -54,13 +25,11 @@
   <h2>Términos</h2>
 
   <div class="check">
-    <input type="checkbox" id="checkTerminos" onchange="habilitarBoton()">
+    <input type="checkbox" id="checkTerminos">
     <label>Acepto los términos</label>
   </div>
 
-  <button id="btnContinuar" onclick="aceptarTerminos()" disabled>
-    Continuar
-  </button>
+  <button id="btnContinuar" disabled>Continuar</button>
 </section>
 
 <!-- PANTALLA 2 -->
@@ -72,16 +41,14 @@
   <input id="direccion" placeholder="Dirección">
   <input id="celular" placeholder="Celular">
 
-  <button onclick="registrar()">Registrarse</button>
-
   <div class="pago-box">
     <p>Alias: <span id="aliasTexto">contrerassmathias</span></p>
 
-    <button onclick="copiarAlias()">Copiar Alias</button>
-    <button onclick="abrirMP()">Ir a Mercado Pago</button>
+    <button id="btnCopiar">Copiar Alias</button>
+    <button id="btnMP">Ir a Mercado Pago</button>
 
     <input type="file" id="comprobante">
-    <button onclick="subirComprobante()">Enviar comprobante</button>
+    <button id="btnEnviar">Enviar comprobante</button>
   </div>
 
 </section>
@@ -93,8 +60,6 @@
 </section>
 
 </div>
-
-<script src="script.js"></script>
 
 </body>
 </html>

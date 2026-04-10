@@ -1,85 +1,119 @@
-function el(id){ return document.getElementById(id); }
+// =======================
+// 🔥 FIREBASE IMPORTS
+// =======================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 
-window.habilitarBoton = function(){
-  const check = el("checkTerminos");
-  el("btnContinuar").disabled = !check.checked;
+// =======================
+// 🔥 CONFIG REAL (LA TUYA)
+// =======================
+const firebaseConfig = {
+  apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
+  authDomain: "aldia-app1.firebaseapp.com",
+  projectId: "aldia-app1",
+  storageBucket: "aldia-app1.firebasestorage.app",
+  messagingSenderId: "1013051386288",
+  appId: "1:1013051386288:web:e588c83d0892d6cbab4e75",
+  measurementId: "G-28VQ7VM4KS"
 };
 
-function cambiar(a,b){
-  el(a).classList.remove("activa");
-  el(b).classList.add("activa");
-}
+// =======================
+// 🔥 INIT FIREBASE
+// =======================
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-window.aceptarTerminos = function(){
-  if(!el("checkTerminos").checked) return;
-  cambiar("pantallaTerminos","pantallaRegistro");
-};
+// =======================
+// 🖥️ ELEMENTOS
+// =======================
+const pantallaTerminos = document.getElementById("pantallaTerminos");
+const pantallaRegistro = document.getElementById("pantallaRegistro");
+const pantallaEstado = document.getElementById("pantallaEstado");
 
-window.registrar = function(){
+const check = document.getElementById("checkTerminos");
+const btnContinuar = document.getElementById("btnContinuar");
+const btnEnviar = document.getElementById("btnEnviar");
+const btnCopiar = document.getElementById("btnCopiar");
+const btnMP = document.getElementById("btnMP");
 
-  const campos = ["nombre","dni","usuario","direccion","celular"];
+const aliasTexto = document.getElementById("aliasTexto");
 
-  for(let c of campos){
-    if(!el(c).value.trim()){
-      alert("Completar todos los campos");
-      return;
-    }
+// =======================
+// ✅ CHECK
+// =======================
+check.addEventListener("change", () => {
+  btnContinuar.disabled = !check.checked;
+});
+
+// =======================
+// ➡️ CAMBIO PANTALLA
+// =======================
+btnContinuar.addEventListener("click", () => {
+  pantallaTerminos.classList.remove("activa");
+  pantallaRegistro.classList.add("activa");
+});
+
+// =======================
+// 📋 COPIAR ALIAS
+// =======================
+btnCopiar.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(aliasTexto.innerText);
+    alert("Alias copiado ✅");
+  } catch {
+    alert("Error al copiar");
   }
+});
 
-  alert("Datos correctos ✔");
-};
+// =======================
+// 💰 MERCADO PAGO
+// =======================
+btnMP.addEventListener("click", () => {
+  window.open("https://www.mercadopago.com.ar", "_blank");
+});
 
-window.copiarAlias = function(){
-  navigator.clipboard.writeText(el("aliasTexto").innerText)
-    .then(()=>alert("Alias copiado ✔"))
-    .catch(()=>alert("Error al copiar"));
-};
+// =======================
+// ☁️ GUARDAR EN FIRESTORE
+// =======================
+async function subirDatos() {
 
-window.abrirMP = function(){
-  window.open("https://www.mercadopago.com.ar","_blank");
-};
+  const nombre = document.getElementById("nombre").value.trim();
+  const dni = document.getElementById("dni").value.trim();
+  const usuario = document.getElementById("usuario").value.trim();
+  const direccion = document.getElementById("direccion").value.trim();
+  const celular = document.getElementById("celular").value.trim();
 
-window.subirComprobante = async function(){
-
-  const archivo = el("comprobante").files[0];
-
-  if(!archivo){
-    alert("Seleccionar comprobante");
+  if (!nombre || !dni || !usuario) {
+    alert("Completá los datos obligatorios");
     return;
   }
 
-  cambiar("pantallaRegistro","pantallaEstado");
+  try {
 
-  try{
+    await addDoc(collection(db, "usuarios"), {
+      nombre,
+      dni,
+      usuario,
+      direccion,
+      celular,
+      alias: aliasTexto.innerText,
+      fecha: new Date(),
+      estado: "pendiente"
+    });
 
-    let url = "";
+    pantallaRegistro.classList.remove("activa");
+    pantallaEstado.classList.add("activa");
 
-    if(window.storage){
-      const storageRef = ref(storage, "comprobantes/"+Date.now());
-      await uploadBytes(storageRef, archivo);
-      url = await getDownloadURL(storageRef);
-    }
+    document.getElementById("estadoTitulo").innerText = "Pago recibido ✅";
+    document.getElementById("estadoTexto").innerText = "Estamos verificando tu pago";
 
-    if(window.db){
-      await addDoc(collection(db,"usuarios"),{
-        nombre:el("nombre").value,
-        dni:el("dni").value,
-        usuario:el("usuario").value,
-        direccion:el("direccion").value,
-        celular:el("celular").value,
-        comprobante:url,
-        fecha:new Date(),
-        estado:"pendiente"
-      });
-    }
-
-    setTimeout(()=>{
-      el("estadoTitulo").innerText="Pago recibido ✅";
-      el("estadoTexto").innerText="En breve recibirás tu boleta";
-    },1500);
-
-  }catch(e){
-    el("estadoTitulo").innerText="Error ❌";
-    el("estadoTexto").innerText="Intentá nuevamente";
+  } catch (error) {
+    console.error(error);
+    alert("Error al guardar en Firebase");
   }
-};
+}
+
+// =======================
+// 🔘 BOTÓN FINAL
+// =======================
+btnEnviar.addEventListener("click", subirDatos);
