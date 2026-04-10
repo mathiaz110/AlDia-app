@@ -2,55 +2,72 @@ body{
   margin:0;
   font-family:'Segoe UI', Arial;
   color:white;
-  background:
-    radial-gradient(circle at 20% 30%, #6d28d9, transparent 40%),
-    radial-gradient(circle at 80% 70%, #2563eb, transparent 40%),
-    linear-gradient(135deg,#1e1b4b,#0f172a);
+  background: radial-gradient(circle at 20% 30%, #6d28d9, transparent 40%),
+              radial-gradient(circle at 80% 70%, #2563eb, transparent 40%),
+              linear-gradient(135deg,#1e1b4b,#0f172a);
 }
 
 .app{
   max-width:480px;
   margin:auto;
   min-height:100vh;
-  padding:20px;
 }
 
 /* HEADER */
 header{
   text-align:center;
-  margin-bottom:20px;
+  padding:20px;
 }
 
 header h1{
-  font-size:40px;
+  font-size:42px;
   font-weight:800;
   margin:0;
-  letter-spacing:1px;
-
   background: linear-gradient(135deg,#22c55e,#60a5fa);
-
-  background-clip: text;              /* estándar */
-  -webkit-background-clip: text;      /* compatibilidad */
-
-  color: transparent;                /* estándar */
-  -webkit-text-fill-color: transparent; /* compatibilidad */
-
-  text-shadow:0 4px 20px rgba(0,0,0,0.4);
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 header p{
-  opacity:0.8;
+  font-size:16px;
+  opacity:0.9;
 }
 
-/* INPUTS */
+/* CARD */
+.pantalla{
+  display:none;
+  opacity:0;
+  transform:translateY(20px);
+  transition: all 0.4s ease;
+}
+
+.activa{
+  display:block;
+  opacity:1;
+  transform:translateY(0);
+}
+
+section{
+  background:rgba(255,255,255,0.08);
+  margin:10px;
+  padding:20px;
+  border-radius:20px;
+  backdrop-filter:blur(12px);
+}
+
+/* INPUT */
 input{
   width:100%;
   padding:14px;
   margin:10px 0;
   border:none;
   border-radius:12px;
-  background:rgba(0,0,0,0.5);
+  background:rgba(0,0,0,0.6);
   color:white;
+}
+
+input::placeholder{
+  color:rgba(255,255,255,0.8);
 }
 
 /* BOTONES */
@@ -63,27 +80,35 @@ button{
   background:linear-gradient(135deg,#22c55e,#16a34a);
   color:white;
   cursor:pointer;
+  transition:all 0.25s ease;
 }
 
-/* PANTALLAS */
-.pantalla{
-  display:none;
+button:hover{
+  transform:translateY(-2px);
 }
 
-.pantalla.activa{
-  display:block;
+button:active{
+  transform:scale(0.97);
 }
 
 /* PAGO */
 .pago-box{
-  background:#1e293b;
-  padding:15px;
-  border-radius:15px;
   margin-top:20px;
+  padding:15px;
+  background:#1e293b;
+  border-radius:15px;
 }
 
 /* ESTADO */
 #pantallaEstado{
   text-align:center;
-  margin-top:40px;
+}
+
+#estadoTitulo{
+  font-size:28px;
+  margin-top:10px;
+}
+
+#estadoTexto{
+  opacity:0.8;
 }
