@@ -117,3 +117,10 @@ button:active{
 #estadoTexto{
   opacity:0.8;
 }
+
+#btnInstalar{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  z-index:999;
+}
