@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - AlDía PRO</title>
+
+<style>
+
+/* BACKGROUND */
+body{
+  margin:0;
+  font-family:'Segoe UI', Arial;
+  color:white;
+  background: radial-gradient(circle at 20% 30%, #6d28d9, transparent 40%),
+              radial-gradient(circle at 80% 70%, #2563eb, transparent 40%),
+              linear-gradient(135deg,#1e1b4b,#0f172a);
+}
+
+/* CONTENEDOR */
+.app{
+  max-width:1000px;
+  margin:auto;
+  padding:20px;
+}
+
+/* HEADER */
+header{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+header h1{
+  font-size:40px;
+  margin:0;
+  background: linear-gradient(135deg,#22c55e,#60a5fa);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* STATS */
+.stats{
+  display:flex;
+  justify-content:space-around;
+  margin:20px 0;
+  gap:10px;
+}
+
+.stat{
+  background:rgba(255,255,255,0.08);
+  padding:15px;
+  border-radius:15px;
+  text-align:center;
+  flex:1;
+  backdrop-filter:blur(10px);
+}
+
+/* BUSCADOR */
+input{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  margin-bottom:20px;
+  background:rgba(0,0,0,0.5);
+  color:white;
+}
+
+/* GRID */
+.grid{
+  display:grid;
+  gap:15px;
+}
+
+/* CARD */
+.card{
+  background:rgba(255,255,255,0.08);
+  padding:18px;
+  border-radius:16px;
+  backdrop-filter:blur(12px);
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:translateY(-4px) scale(1.01);
+}
+
+/* TEXTO */
+.nombre{
+  font-size:18px;
+  font-weight:700;
+}
+
+.info{
+  opacity:0.8;
+  font-size:14px;
+}
+
+/* ESTADO */
+.estado{
+  margin-top:10px;
+  padding:6px 10px;
+  border-radius:10px;
+  display:inline-block;
+  font-size:13px;
+  font-weight:600;
+}
+
+.pendiente{
+  background:#f59e0b;
+}
+
+.activo{
+  background:#22c55e;
+}
+
+/* BOTON */
+button{
+  margin-top:12px;
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:white;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+button:hover{
+  transform:scale(1.05);
+}
+
+</style>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
+  authDomain: "aldia-app1.firebaseapp.com",
+  projectId: "aldia-app1",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let usuariosGlobal = [];
+
+const lista = document.getElementById("lista");
+const total = document.getElementById("total");
+const activos = document.getElementById("activos");
+const pendientes = document.getElementById("pendientes");
+const buscador = document.getElementById("buscador");
+
+async function cargarUsuarios(){
+  const snapshot = await getDocs(collection(db, "usuarios"));
+
+  usuariosGlobal = [];
+
+  snapshot.forEach((docu)=>{
+    usuariosGlobal.push({
+      id: docu.id,
+      ...docu.data()
+    });
+  });
+
+  renderUsuarios(usuariosGlobal);
+}
+
+function renderUsuarios(data){
+  lista.innerHTML = "";
+
+  let totalCount = data.length;
+  let activosCount = data.filter(u=>u.estado==="activo").length;
+  let pendientesCount = data.filter(u=>u.estado==="pendiente").length;
+
+  total.innerText = totalCount;
+  activos.innerText = activosCount;
+  pendientes.innerText = pendientesCount;
+
+  data.forEach(u=>{
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <div class="nombre">${u.nombre}</div>
+      <div class="info">DNI: ${u.dni}</div>
+      <div class="info">Celular: ${u.celular}</div>
+      <div class="info">Fecha: ${u.fecha?.toDate?.().toLocaleString() || "-"}</div>
+
+      <div class="estado ${u.estado}">
+        ${u.estado.toUpperCase()}
+      </div>
+
+      <button onclick="cambiarEstado('${u.id}', '${u.estado}')">
+        ${u.estado === "pendiente" ? "Activar" : "Desactivar"}
+      </button>
+    `;
+
+    lista.appendChild(div);
+  });
+}
+
+window.cambiarEstado = async (id, estadoActual)=>{
+  const nuevo = estadoActual === "pendiente" ? "activo" : "pendiente";
+
+  await updateDoc(doc(db,"usuarios",id),{
+    estado: nuevo
+  });
+
+  cargarUsuarios();
+};
+
+buscador.addEventListener("input", ()=>{
+  const texto = buscador.value.toLowerCase();
+
+  const filtrados = usuariosGlobal.filter(u =>
+    u.nombre?.toLowerCase().includes(texto) ||
+    u.dni?.toLowerCase().includes(texto)
+  );
+
+  renderUsuarios(filtrados);
+});
+
+cargarUsuarios();
+
+</script>
+
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+  <h1>Panel Admin PRO</h1>
+</header>
+
+<div class="stats">
+  <div class="stat">Total<br><b id="total">0</b></div>
+  <div class="stat">Activos<br><b id="activos">0</b></div>
+  <div class="stat">Pendientes<br><b id="pendientes">0</b></div>
+</div>
+
+<input id="buscador" placeholder="Buscar por nombre o DNI...">
+
+<div class="grid" id="lista"></div>
+
+</div>
+
+</body>
+</html>
