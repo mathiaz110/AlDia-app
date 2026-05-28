@@ -1,0 +1,22 @@
+# ════════════════════════════════════════════════════
+#  ALDIA APP — .dockerignore
+#  Archivos que Docker NO copia al contenedor
+# ════════════════════════════════════════════════════
+
+# Dependencias — se instalan dentro del contenedor
+node_modules
+
+# Archivos sensibles — se pasan como variables de entorno
+.env
+firebase-key.json
+
+# Archivos de desarrollo — no necesarios en producción
+.env.example
+*.log
+*.md
+.git
+.gitignore
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

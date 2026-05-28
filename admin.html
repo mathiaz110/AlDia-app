@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AlDía — Panel Admin</title>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
+  <meta name="theme-color" content="#0a0e1a" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="admin-body">
+
+  <!-- LOGIN ADMIN -->
+  <div id="adminLogin" class="admin-login">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-icon large">
+          <svg viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="18" stroke="url(#lgl)" stroke-width="2"/>
+            <path d="M12 20.4L17.8 26L28 15.5" stroke="#39ff8f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs><linearGradient id="lgl" x1="2" y1="2" x2="38" y2="38"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs>
+          </svg>
+        </div>
+        <div>
+          <div class="login-title">AlDía</div>
+          <div class="login-subtitle">Panel Administrador</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Email</label>
+        <div class="field-wrap">
+          <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 7l8 5 8-5" stroke="currentColor" stroke-width="1.5"/></svg>
+          <input type="email" id="adminEmail" class="field-input" placeholder="admin@aldia.app" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Contraseña</label>
+        <div class="field-wrap">
+          <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="password" id="adminPass" class="field-input" placeholder="••••••••" />
+        </div>
+      </div>
+
+      <div class="login-error" id="loginError"></div>
+
+      <button class="btn-primary" id="btnLogin">
+        <span>Ingresar al panel</span>
+        <svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD -->
+  <div id="adminDash" class="admin-dash hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="15" stroke="url(#sbg)" stroke-width="1.8"/>
+            <path d="M10 16.3L14.3 20.5L22 13" stroke="#39ff8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs><linearGradient id="sbg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs>
+          </svg>
+        </div>
+        <span>AlDía</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active">
+          <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item">
+          <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Usuarios</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="admin-user">
+          <div class="admin-avatar" id="adminAvatar">A</div>
+          <div class="admin-info">
+            <div class="admin-name" id="adminName">Admin</div>
+            <div class="admin-role">Administrador</div>
+          </div>
+        </div>
+        <button class="btn-logout" id="btnLogout" title="Cerrar sesión">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M7 3H4a1 1 0 00-1 1v12a1 1 0 001 1h3M13 15l4-5-4-5M17 10H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="admin-main">
+
+      <!-- TOP BAR MOBILE -->
+      <div class="topbar">
+        <button class="btn-menu" id="btnMenu">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="brand small">
+          <div class="brand-icon">
+            <svg viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="15" stroke="url(#tbg)" stroke-width="1.8"/>
+              <path d="M10 16.3L14.3 20.5L22 13" stroke="#39ff8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs><linearGradient id="tbg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs>
+            </svg>
+          </div>
+          <span>AlDía Admin</span>
+        </div>
+        <button class="btn-logout-mob" id="btnLogoutMob" title="Salir">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M7 3H4a1 1 0 00-1 1v12a1 1 0 001 1h3M13 15l4-5-4-5M17 10H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="--c:#39ff8f">
+            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="stat-value" id="statTotal">—</div>
+          <div class="stat-label">Total usuarios</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="--c:#f59e0b">
+            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.5v4l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stat-value" id="statPending">—</div>
+          <div class="stat-label">Pendientes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="--c:#00c2ff">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="stat-value" id="statActive">—</div>
+          <div class="stat-label">Activos</div>
+        </div>
+      </div>
+
+      <!-- FILTERS & SEARCH -->
+      <div class="filters-bar">
+        <div class="search-wrap">
+          <svg viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M15 15l-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nombre, DNI o usuario..." />
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all">Todos</button>
+          <button class="filter-tab" data-filter="pendiente">Pendientes</button>
+          <button class="filter-tab" data-filter="activo">Activos</button>
+        </div>
+      </div>
+
+      <!-- USERS LIST -->
+      <div class="users-section">
+        <div class="section-header">
+          <h2>Usuarios registrados</h2>
+          <button class="btn-refresh" id="btnRefresh" title="Actualizar">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M4 4v5h5M16 16v-5h-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.6 8A8 8 0 105.7 16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div id="usersLoading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <span>Cargando usuarios...</span>
+        </div>
+
+        <div id="usersEmpty" class="empty-state hidden">
+          <div class="empty-icon">👥</div>
+          <div class="empty-title">Sin usuarios</div>
+          <div class="empty-sub">No hay usuarios que coincidan con los filtros</div>
+        </div>
+
+        <div id="usersList" class="users-list hidden"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- USER DETAIL MODAL -->
+  <div id="userModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalTitle">Detalle de usuario</h3>
+        <button class="btn-close" id="btnCloseModal">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

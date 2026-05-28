@@ -1,0 +1,58 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "**/.*",
+      "**/node_modules/**",
+      "backend/**",
+      "*.md",
+      "icons/icono.png"
+    ],
+    "rewrites": [
+      { "source": "/admin/**", "destination": "/admin.html" },
+      { "source": "**",        "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "sw.js",
+        "headers": [
+          { "key": "Cache-Control",        "value": "no-cache, no-store" },
+          { "key": "Service-Worker-Allowed","value": "/" }
+        ]
+      },
+      {
+        "source": "firebase-messaging-sw.js",
+        "headers": [
+          { "key": "Cache-Control",        "value": "no-cache, no-store" },
+          { "key": "Service-Worker-Allowed","value": "/" }
+        ]
+      },
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "icons/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=86400" }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          { "key": "X-Content-Type-Options",  "value": "nosniff" },
+          { "key": "X-Frame-Options",          "value": "DENY" },
+          { "key": "Referrer-Policy",          "value": "strict-origin-when-cross-origin" },
+          { "key": "Permissions-Policy",       "value": "camera=(), microphone=(), geolocation=()" }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

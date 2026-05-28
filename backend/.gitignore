@@ -1,0 +1,5 @@
+# Archivos secretos — NUNCA subir a GitHub
+firebase-key.json
+.env
+node_modules
+*.log

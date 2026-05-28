@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+  <title>AlDía App — Tu boleta de luz, siempre al día</title>
+  <meta name="description" content="Recibí tu boleta de luz por WhatsApp. Sin filas, sin sorpresas."/>
+  <meta name="theme-color" content="#0a0e1a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="AlDía"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
+  <!-- iOS PWA: pantalla completa, sin barra de Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="AlDía"/>
+  <!-- Android / Chrome PWA -->
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <!-- Splash colors -->
+  <meta name="msapplication-TileColor" content="#070b14"/>
+  <meta name="msapplication-TileImage" content="/icons/icon-192.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ══ SPLASH ══ -->
+<div id="splash" class="splash">
+  <div class="splash-inner">
+    <div class="splash-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="22" stroke="url(#lg1)" stroke-width="2.5"/>
+          <path d="M16 24.5L21.5 30L32 19" stroke="#39ff8f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs><linearGradient id="lg1" x1="0" y1="0" x2="48" y2="48"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs>
+        </svg>
+      </div>
+      <span class="logo-text">AlDía</span>
+    </div>
+    <div class="splash-tagline">Tu boleta de luz, siempre al día.</div>
+    <div class="splash-loader"><div class="loader-bar"></div></div>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+
+  <!-- ══ SCREEN 0 — ONBOARDING ══ -->
+  <div id="screen-onboarding" class="screen active">
+    <div class="onboarding-wrap">
+      <!-- Slide 1 -->
+      <div class="ob-slide active" id="ob0">
+        <div class="ob-icon-wrap" style="--oc:rgba(57,255,143,0.15)">
+          <span class="ob-emoji">⚡</span>
+        </div>
+        <h1 class="ob-title">Tu boleta en<br/><span class="gradient-text">tu celular</span></h1>
+        <p class="ob-desc">Sin filas, sin papel. Descargá tu boleta de luz cuando quieras, desde donde estés.</p>
+      </div>
+      <!-- Slide 2 -->
+      <div class="ob-slide" id="ob1">
+        <div class="ob-icon-wrap" style="--oc:rgba(0,194,255,0.15)">
+          <span class="ob-emoji">💬</span>
+        </div>
+        <h1 class="ob-title">Avisamos antes<br/><span class="gradient-text">del vencimiento</span></h1>
+        <p class="ob-desc">Push + WhatsApp 3 días antes para que nunca te quedes sin luz por un olvido.</p>
+      </div>
+      <!-- Slide 3 -->
+      <div class="ob-slide" id="ob2">
+        <div class="ob-icon-wrap" style="--oc:rgba(167,139,250,0.15)">
+          <span class="ob-emoji">🔒</span>
+        </div>
+        <h1 class="ob-title">100% seguro<br/><span class="gradient-text">y privado</span></h1>
+        <p class="ob-desc">Tus datos están protegidos. Nunca compartimos tu información con terceros.</p>
+      </div>
+
+      <!-- Dots de progreso -->
+      <div class="ob-dots">
+        <div class="ob-dot active" id="od0"></div>
+        <div class="ob-dot" id="od1"></div>
+        <div class="ob-dot" id="od2"></div>
+      </div>
+
+      <!-- Botones -->
+      <div class="ob-actions">
+        <button class="btn-primary" id="btnObNext">
+          <span id="btnObLabel">Siguiente</span>
+          <svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="btn-ghost" id="btnObSkip">Saltar intro</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 1 — BENEFICIOS ══ -->
+  <div id="screen-benefits" class="screen">
+    <div class="screen-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" stroke="url(#lgb)" stroke-width="1.8"/><path d="M10 16.3L14.3 20.5L22 13" stroke="#39ff8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="lgb" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs></svg>
+        </div>
+        <span>AlDía</span>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="hero-block">
+        <div class="hero-badge">⚡ Servicio de electricidad</div>
+        <h1>Tu boleta de luz,<br/><span class="gradient-text">sin complicaciones</span></h1>
+        <p class="hero-sub">Recibila directo en tu celular y descargala cuando quieras.</p>
+      </div>
+      <div class="benefits-list">
+        <div class="benefit-card"><div class="benefit-icon" style="--ic:#39ff8f;--ib:rgba(57,255,143,0.12)"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="benefit-text"><div class="benefit-title">Ahorrá tiempo</div><div class="benefit-desc">Olvidate de hacer fila. Gestioná todo desde tu celular en segundos.</div></div></div>
+        <div class="benefit-card"><div class="benefit-icon" style="--ic:#00c2ff;--ib:rgba(0,194,255,0.12)"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7l9-4 9 4v6c0 4-4 7-9 8-5-1-9-4-9-8V7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="benefit-text"><div class="benefit-title">Evitá el mal clima</div><div class="benefit-desc">Sin salir de casa en días de lluvia o frío. Tu boleta te espera en el teléfono.</div></div></div>
+        <div class="benefit-card"><div class="benefit-icon" style="--ic:#39ff8f;--ib:rgba(57,255,143,0.12)"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div><div class="benefit-text"><div class="benefit-title">Boleta por WhatsApp</div><div class="benefit-desc">Recibís tu boleta cada mes directo en tu WhatsApp, sin buscarlo.</div></div></div>
+        <div class="benefit-card"><div class="benefit-icon" style="--ic:#00c2ff;--ib:rgba(0,194,255,0.12)"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 4v5M16 4v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="benefit-text"><div class="benefit-title">Historial de boletas</div><div class="benefit-desc">Descargá tus últimas 4 boletas cuando quieras desde la app.</div></div></div>
+        <div class="benefit-card"><div class="benefit-icon" style="--ic:#f59e0b;--ib:rgba(245,158,11,0.12)"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="benefit-text"><div class="benefit-title">Alertas de vencimiento</div><div class="benefit-desc">Te avisamos 3 días antes para que nunca te quedes sin luz.</div></div></div>
+        <div class="benefit-card"><div class="benefit-icon" style="--ic:#a78bfa;--ib:rgba(167,139,250,0.12)"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="1.8"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="benefit-text"><div class="benefit-title">Avisos y novedades</div><div class="benefit-desc">Cortes, cambios de tarifa y comunicados directo en la app.</div></div></div>
+      </div>
+      <div class="cta-block">
+        <button class="btn-primary" id="btnGoRegister"><span>Quiero registrarme</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="btn-ghost" id="btnGoLogin">Ya tengo cuenta — <strong>Ingresar</strong></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 2 — AUTH ══ -->
+  <div id="screen-auth" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" id="btnBackAuth"><svg viewBox="0 0 20 20" fill="none"><path d="M13 5l-5 5 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="brand">
+        <div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" stroke="url(#lga)" stroke-width="1.8"/><path d="M10 16.3L14.3 20.5L22 13" stroke="#39ff8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="lga" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs></svg></div>
+        <span>AlDía</span>
+      </div>
+      <div style="width:36px"></div>
+    </div>
+    <div class="screen-body">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Ingresar</button>
+        <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Registrarme</button>
+        <div class="auth-tab-indicator" id="tabIndicator"></div>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="loginForm">
+        <div class="screen-title-block">
+          <h1>Bienvenido <span class="gradient-text">de vuelta</span></h1>
+          <p class="subtitle">Ingresá tu usuario y contraseña</p>
+        </div>
+        <div class="form-card">
+          <div class="field-group">
+            <label class="field-label">Usuario o celular</label>
+            <div class="field-wrap">
+              <svg class="field-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input type="text" id="loginUser" class="field-input" placeholder="juanperez99" autocomplete="username"/>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Contraseña</label>
+            <div class="field-wrap">
+              <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input type="password" id="loginPass" class="field-input" placeholder="••••••••" autocomplete="current-password"/>
+              <button class="btn-eye" id="btnEyeLogin" type="button"><svg viewBox="0 0 20 20" fill="none"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <div class="auth-error" id="loginError"></div>
+        <button class="btn-primary" id="btnLogin"><span>Ingresar</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="forgot-link">¿Olvidaste tu contraseña? <button class="link-btn" id="btnForgot">Recuperar</button></div>
+      </div>
+
+      <!-- REGISTRO CON STEPPER -->
+      <div id="registerForm" class="hidden">
+
+        <!-- STEPPER VISUAL -->
+        <div class="reg-stepper">
+          <div class="reg-stepper-bar">
+            <div class="reg-stepper-fill" id="regStepFill"></div>
+          </div>
+          <div class="reg-stepper-steps">
+            <div class="reg-step active" id="rstep0">
+              <div class="reg-step-circle" id="rcirc0"><span>1</span></div>
+              <div class="reg-step-label">Datos</div>
+            </div>
+            <div class="reg-step" id="rstep1">
+              <div class="reg-step-circle" id="rcirc1"><span>2</span></div>
+              <div class="reg-step-label">Pago</div>
+            </div>
+            <div class="reg-step" id="rstep2">
+              <div class="reg-step-circle" id="rcirc2"><span>3</span></div>
+              <div class="reg-step-label">Verificar</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO 1: DATOS -->
+        <div id="regStep1">
+          <div class="screen-title-block">
+            <h1>Tus <span class="gradient-text">datos</span></h1>
+            <p class="subtitle">Completá tu información personal</p>
+          </div>
+          <div class="info-notice">
+            <svg viewBox="0 0 20 20" fill="none" style="width:18px;height:18px;flex-shrink:0"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M10 9v5M10 7h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span>Tu <strong>N° de cliente</strong> figura en la parte superior de tu boleta de luz actual.</span>
+          </div>
+          <div class="form-card">
+            <div class="field-group"><label class="field-label">N° de cliente (boleta de luz)</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h10M5 10h6M5 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="nroCliente" class="field-input" placeholder="Ej: 000123456" inputmode="numeric" maxlength="12"/></div><span class="field-error" id="err-nroCliente"></span></div>
+            <div class="field-group"><label class="field-label">Nombre completo</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="nombre" class="field-input" placeholder="Juan Pérez" autocomplete="name"/></div><span class="field-error" id="err-nombre"></span></div>
+            <div class="field-group"><label class="field-label">DNI</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="4.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 10h8M6 13h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="dni" class="field-input" placeholder="12345678" maxlength="8" inputmode="numeric"/></div><span class="field-error" id="err-dni"></span></div>
+            <div class="field-group"><label class="field-label">Nombre de usuario</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2l1.5 4.5H16l-3.7 2.7 1.4 4.3L10 11l-3.7 2.5 1.4-4.3L4 6.5h4.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><input type="text" id="usuario" class="field-input" placeholder="juanperez99" autocomplete="username"/></div><span class="field-error" id="err-usuario"></span></div>
+            <div class="field-group"><label class="field-label">Celular (WhatsApp)</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="5.5" y="2" width="9" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="15.5" r="0.8" fill="currentColor"/></svg><input type="tel" id="celular" class="field-input" placeholder="1130001234" inputmode="tel" autocomplete="tel"/></div><span class="field-error" id="err-celular"></span></div>
+            <div class="field-group"><label class="field-label">Dirección</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2C7.2 2 5 4.2 5 7c0 4.5 5 11 5 11s5-6.5 5-11c0-2.8-2.2-5-5-5z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="7" r="1.8" stroke="currentColor" stroke-width="1.5"/></svg><input type="text" id="direccion" class="field-input" placeholder="Av. Corrientes 1234" autocomplete="street-address"/></div><span class="field-error" id="err-direccion"></span></div>
+            <div class="field-group"><label class="field-label">Contraseña</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="password" id="password" class="field-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/><button class="btn-eye" id="btnEyeReg" type="button"><svg viewBox="0 0 20 20" fill="none"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg></button></div><span class="field-error" id="err-password"></span></div>
+          </div>
+          <div class="auth-error" id="registerError"></div>
+          <button class="btn-primary" id="btnRegStep1"><span>Continuar al pago</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+
+        <!-- PASO 2: PAGO -->
+        <div id="regStep2" class="hidden">
+          <div class="screen-title-block">
+            <h1>Tu <span class="gradient-text">pago</span></h1>
+            <p class="subtitle">Realizá el pago de la membresía</p>
+          </div>
+          <div class="payment-card">
+            <div class="payment-header">
+              <div class="payment-icon">⚡</div>
+              <div><div class="payment-title">Aboná tu membresía</div><div class="payment-sub">Mercado Pago · Pago directo</div></div>
+              <div class="payment-amount">$2.200</div>
+            </div>
+            <div class="alias-row">
+              <div class="alias-label">Alias</div>
+              <div class="alias-value" id="aliasDisplay">contrerassmathias</div>
+              <button class="btn-copy" id="btnCopy"><svg viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 13V4h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Copiar</span></button>
+            </div>
+            <button class="btn-mp" id="btnMP">
+              <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;flex-shrink:0"><circle cx="12" cy="12" r="10" fill="#009ee3"/><path d="M7 12h10M12 7v10" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              <span><span style="display:block;font-size:13px;font-weight:700">Pagar $2.200 con Mercado Pago</span><span style="display:block;font-size:10px;opacity:.75;margin-top:1px">Abre la pantalla de pago directamente</span></span>
+            </button>
+          </div>
+          <!-- COPIA FEEDBACK -->
+          <div class="copy-success" id="copySuccess">
+            <svg viewBox="0 0 20 20" fill="none" style="width:16px;height:16px;flex-shrink:0"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Alias copiado al portapapeles ✓
+          </div>
+          <button class="btn-primary" id="btnRegStep2"><span>Ya pagué — Continuar</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+
+        <!-- PASO 3: VERIFICACIÓN SMS -->
+        <div id="regStep3" class="hidden">
+          <div class="screen-title-block">
+            <h1>Verificá tu <span class="gradient-text">celular</span></h1>
+            <p class="subtitle">Ingresá el código que enviamos por WhatsApp</p>
+          </div>
+          <div class="sms-info-card">
+            <svg viewBox="0 0 20 20" fill="none" style="width:20px;height:20px;flex-shrink:0"><path d="M17 11a7 7 0 01-10.4 6.1L3 18l.9-3.6A7 7 0 1117 11z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            <div>
+              <div class="sms-info-title">Código enviado a</div>
+              <div class="sms-info-num" id="smsTargetNum">1130001234</div>
+            </div>
+          </div>
+          <!-- 4 CAJAS INDIVIDUALES SMS -->
+          <div class="sms-boxes" id="smsBoxes">
+            <input class="sms-box" id="sms0" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+            <input class="sms-box" id="sms1" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+            <input class="sms-box" id="sms2" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+            <input class="sms-box" id="sms3" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+          </div>
+          <span class="field-error" id="err-sms" style="text-align:center;display:block"></span>
+          <div class="resend-link" style="text-align:center">¿No llegó? <button class="link-btn" id="btnResendSms">Reenviar código</button></div>
+          <div class="auth-error" id="registerError2"></div>
+          <button class="btn-primary" id="btnRegister"><span>Confirmar y registrar</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 3 — DASHBOARD ══ -->
+  <div id="screen-dashboard" class="screen">
+    <div class="screen-header">
+      <div class="brand">
+        <div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" stroke="url(#lgd)" stroke-width="1.8"/><path d="M10 16.3L14.3 20.5L22 13" stroke="#39ff8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="lgd" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs></svg></div>
+        <span>AlDía</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-logout-user" id="btnNovAvisos" title="Novedades" style="position:relative">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 016 6v3l1.5 2.5H2.5L4 11V8a6 6 0 016-6z" stroke="currentColor" stroke-width="1.5"/><path d="M8 16a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span class="notif-dot" id="notifDot" style="display:none"></span>
+        </button>
+        <button class="btn-logout-user" id="btnSupport" title="Soporte WhatsApp"><svg viewBox="0 0 20 20" fill="none"><path d="M17 11a7 7 0 01-10.4 6.1L3 18l.9-3.6A7 7 0 1117 11z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
+        <button class="btn-logout-user" id="btnLogoutUser" title="Salir"><svg viewBox="0 0 20 20" fill="none"><path d="M7 3H4a1 1 0 00-1 1v12a1 1 0 001 1h3M13 15l4-5-4-5M17 10H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+
+    <!-- SKELETON LOADING -->
+    <div id="dashSkeleton" class="screen-body">
+      <div class="sk-welcome"></div>
+      <div class="sk-card"></div>
+      <div class="sk-row"><div class="sk-mini"></div><div class="sk-mini"></div></div>
+      <div class="sk-item"></div>
+      <div class="sk-item"></div>
+      <div class="sk-item"></div>
+    </div>
+
+    <!-- CONTENIDO REAL -->
+    <div id="dashContent" class="screen-body" style="display:none">
+      <!-- BIENVENIDA -->
+      <div class="dash-welcome">
+        <div class="dash-avatar" id="dashAvatar">J</div>
+        <div style="flex:1;min-width:0">
+          <div class="dash-greeting">Hola, <span id="dashName">Juan</span> 👋</div>
+          <div class="dash-status"><span class="status-dot pending" id="dashDot"></span><span id="dashStatusText">Cuenta pendiente</span></div>
+          <div class="dash-cliente-num" id="dashClienteNum"></div>
+        </div>
+      </div>
+
+      <!-- MEMBRESIA PROGRESS CARD -->
+      <div class="membresia-card" id="membresiaCard" style="display:none">
+        <div class="mc-top">
+          <div>
+            <div class="mc-label">Estado de membresía</div>
+            <div class="mc-active">Activa ✓</div>
+          </div>
+          <div style="text-align:right">
+            <div class="mc-label">Días al vencimiento</div>
+            <div class="mc-dias" id="mcDias">—</div>
+          </div>
+        </div>
+        <div class="mc-bar-wrap">
+          <div class="mc-bar-fill" id="mcBarFill"></div>
+        </div>
+        <div class="mc-dates">
+          <span id="mcFechaInicio">—</span>
+          <span id="mcFechaVenc">—</span>
+        </div>
+      </div>
+
+      <!-- VENCIMIENTO (cuando no hay membresia card) -->
+      <div class="venc-card" id="vencCard">
+        <div class="venc-left">
+          <div class="venc-label">Próximo vencimiento</div>
+          <div class="venc-date" id="vencDate">—</div>
+          <div class="venc-days" id="vencDays"></div>
+        </div>
+        <div class="venc-right">
+          <div class="venc-amount-label">Boleta</div>
+          <div class="venc-disp" id="vencAmount">—</div>
+        </div>
+        <div class="venc-bolt">⚡</div>
+      </div>
+
+      <!-- STATS -->
+      <div class="dash-stats-row" id="dashStatsRow" style="display:none">
+        <div class="dash-mini-stat">
+          <div class="dms-label">Boletas disponibles</div>
+          <div class="dms-value" id="statTotal">—</div>
+          <div class="dms-sub">últimos meses</div>
+        </div>
+        <div class="dash-mini-stat">
+          <div class="dms-label">Días al venc.</div>
+          <div class="dms-value" id="statDias" style="color:var(--amber)">—</div>
+          <div class="dms-sub" id="statVencDias"></div>
+        </div>
+      </div>
+
+      <!-- NOVEDADES BANNER -->
+      <div class="novedades-banner" id="novedadesBanner" style="display:none">
+        <div class="nov-icon">📢</div>
+        <div><div class="nov-title" id="novTitle">Aviso importante</div><div class="nov-sub" id="novSub"></div></div>
+        <button class="nov-close" id="novClose"><svg viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+
+      <!-- BOLETAS -->
+      <div class="section-header-simple">
+        <h2>Mis boletas de luz</h2>
+        <div class="boletas-count" id="boletasCount">—</div>
+      </div>
+      <div class="boletas-list" id="boletasList"></div>
+
+      <!-- LINK PAGO EMPRESA -->
+      <div class="pay-link-card" id="payLinkCard" style="display:none">
+        <div class="plc-left"><div class="plc-icon">💡</div><div><div class="plc-title">Pagar en la empresa de luz</div><div class="plc-sub">Ir al sitio oficial de pagos</div></div></div>
+        <button class="btn-pay-link" id="btnPayLink"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Ir a pagar</button>
+      </div>
+
+      <!-- BANNER PENDIENTE -->
+      <div class="pending-banner" id="pendingBanner">
+        <div class="pb-icon">⏳</div>
+        <div><div class="pb-title">Verificando tu membresía</div><div class="pb-sub">Te notificamos por WhatsApp y push cuando tu cuenta esté activa.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 4 — NOVEDADES ══ -->
+  <div id="screen-novedades" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" id="btnBackNov"><svg viewBox="0 0 20 20" fill="none"><path d="M13 5l-5 5 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="brand"><div class="brand-icon"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" stroke="url(#lgn)" stroke-width="1.8"/><path d="M10 16.3L14.3 20.5L22 13" stroke="#39ff8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="lgn" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs></svg></div><span>AlDía</span></div>
+      <div style="width:36px"></div>
+    </div>
+    <div class="screen-body">
+      <div class="screen-title-block"><h1>Novedades <span class="gradient-text">y avisos</span></h1><p class="subtitle">Comunicados y alertas de tu proveedor</p></div>
+      <div id="novedadesList" class="novedades-list"></div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 5 — REGISTRO EXITOSO ══ -->
+  <div id="screen-pending" class="screen">
+    <div class="screen-body centered">
+      <div class="success-anim">
+        <div class="success-ring r1"></div>
+        <div class="success-ring r2"></div>
+        <div class="success-icon-wrap">
+          <svg viewBox="0 0 48 48" fill="none"><path d="M13 24l8 8 14-14" stroke="#39ff8f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="status-content">
+        <div class="status-badge pending">Pendiente de activación</div>
+        <h2>¡Registro exitoso! 🎉</h2>
+        <p>Verificamos tu membresía.<br/>Te avisamos por <strong style="color:var(--green)">WhatsApp</strong> y notificación push cuando esté activa.</p>
+      </div>
+      <div class="info-cards">
+        <div class="info-card"><div class="info-icon">⏱</div><div><div class="info-title">Tiempo estimado</div><div class="info-sub">Hasta 24 horas hábiles</div></div></div>
+        <div class="info-card"><div class="info-icon">💬</div><div><div class="info-title">WhatsApp</div><div class="info-sub">Boleta mensual a tu número</div></div></div>
+        <div class="info-card"><div class="info-icon">🔔</div><div><div class="info-title">Notificación push</div><div class="info-sub">Aviso automático al activar</div></div></div>
+      </div>
+      <button class="btn-primary" id="btnGoToDash" style="margin-top:8px"><span>Ver mi cuenta</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL RECUPERAR CONTRASEÑA -->
+<div id="modalForgot" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="modal-header"><h3>Recuperar contraseña</h3><button class="btn-close" id="btnCloseForgot"><svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-2);line-height:1.6">Ingresá tu celular registrado y te enviamos un código por WhatsApp.</p>
+      <div class="field-group" style="margin-top:8px"><label class="field-label">Celular registrado</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="5.5" y="2" width="9" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="15.5" r="0.8" fill="currentColor"/></svg><input type="tel" id="forgotCelular" class="field-input" placeholder="1130001234" inputmode="tel"/></div></div>
+      <div class="field-group" id="forgotCodeGroup" style="display:none"><label class="field-label">Código recibido por WhatsApp</label><div class="sms-boxes" id="forgotSmsBoxes"><input class="sms-box" id="fsms0" type="text" maxlength="1" inputmode="numeric"/><input class="sms-box" id="fsms1" type="text" maxlength="1" inputmode="numeric"/><input class="sms-box" id="fsms2" type="text" maxlength="1" inputmode="numeric"/><input class="sms-box" id="fsms3" type="text" maxlength="1" inputmode="numeric"/></div></div>
+      <div class="field-group" id="forgotNewPassGroup" style="display:none"><label class="field-label">Nueva contraseña</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="password" id="forgotNewPass" class="field-input" placeholder="Mínimo 6 caracteres"/></div></div>
+      <div class="auth-error" id="forgotError"></div>
+    </div>
+    <div class="modal-actions"><button class="btn-primary" id="btnForgotAction"><span>Enviar código por WhatsApp</span></button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script type="module" src="script.js"></script>
+
+<!-- ══ BANNER INSTALACIÓN PWA (Android/Chrome) ══ -->
+<div id="installBanner" class="install-banner hidden">
+  <div class="install-banner-left">
+    <img src="/icons/icon-192.png" alt="AlDía" class="install-banner-icon"/>
+    <div>
+      <div class="install-banner-title">Instalá AlDía App</div>
+      <div class="install-banner-sub">Accedé sin abrir el navegador</div>
+    </div>
+  </div>
+  <div class="install-banner-actions">
+    <button class="install-btn-accept" id="btnInstallAccept">Instalar</button>
+    <button class="install-btn-dismiss" id="btnInstallDismiss">×</button>
+  </div>
+</div>
+
+<!-- ══ BANNER ACTUALIZACIÓN DISPONIBLE ══ -->
+<div id="updateBanner" class="update-banner hidden">
+  <span>🔄 Nueva versión disponible</span>
+  <button id="btnUpdateAccept">Actualizar ahora</button>
+</div>
+
+<!-- ══ GUÍA iOS — instrucciones para iPhone/iPad ══ -->
+<div id="iosBanner" class="ios-banner hidden">
+  <button class="ios-banner-close" id="btnIosClose">×</button>
+  <div class="ios-banner-content">
+    <img src="/icons/icon-192.png" alt="AlDía" class="ios-icon"/>
+    <div class="ios-steps">
+      <div class="ios-title">Instalá AlDía en tu iPhone</div>
+      <div class="ios-step">
+        <span class="ios-num">1</span>
+        Tocá el botón compartir
+        <svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px;display:inline;vertical-align:middle;margin:0 2px"><path d="M10 2v10M5 7l5-5 5 5" stroke="#00c2ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v3h14v-3" stroke="#00c2ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        de Safari
+      </div>
+      <div class="ios-step">
+        <span class="ios-num">2</span>
+        Seleccioná <strong>"Agregar a inicio"</strong>
+      </div>
+      <div class="ios-step">
+        <span class="ios-num">3</span>
+        Tocá <strong>Agregar</strong> ✓
+      </div>
+    </div>
+  </div>
+  <div class="ios-arrow">▼</div>
+</div>
+
+</body>
+</html>
