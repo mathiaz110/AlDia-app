@@ -21,7 +21,7 @@ const FIREBASE_CONFIG = {
   appId:             "1:1013051386288:web:e588c83d0892d6cbab4e75",
   measurementId:     "G-28VQ7VM4KS",
 };
-const BACKEND_URL = "https://tu-backend.com"; // ← URL de Railway/Render
+const BACKEND_URL = "https://aldia-app-production.up.railway.app"; // ← URL de Railway/Render
 
 // ─── FIREBASE INIT ───────────────────────────────────
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
