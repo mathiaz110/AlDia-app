@@ -29,9 +29,23 @@ require("dotenv").config();
 // ════════════════════════════════════════════════════
 //  FIREBASE ADMIN — Firestore + FCM
 // ════════════════════════════════════════════════════
-const serviceAccount = require("./firebase-key.json");
+// En Railway: lee credenciales desde variable de entorno
+// En local con Docker: lee desde firebase-key.json
+let serviceAccount;
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+} else {
+  try {
+    serviceAccount = require("./firebase-key.json");
+  } catch(e) {
+    console.error("[ERROR] No se encontró firebase-key.json ni GOOGLE_APPLICATION_CREDENTIALS_JSON");
+    process.exit(1);
+  }
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
+  storageBucket: `${serviceAccount.project_id}.appspot.com`,
 });
 const db        = admin.firestore();
 const messaging = admin.messaging();
