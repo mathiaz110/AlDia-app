@@ -75,6 +75,9 @@ const R2_PUB_URL  = process.env.R2_PUBLIC_URL  || "";
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Railway usa un proxy inverso — necesario para rate limiting correcto
+app.set("trust proxy", 1);
+
 // Multer: recibir PDFs como multipart (hasta 5 MB)
 const upload = multer({
   storage: multer.memoryStorage(),
