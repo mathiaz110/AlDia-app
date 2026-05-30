@@ -12,7 +12,7 @@
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, getDocs,
-  doc, updateDoc, query, where, serverTimestamp
+  doc, updateDoc, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getMessaging, getToken, onMessage
@@ -311,7 +311,7 @@ async function handleRegister() {
       password:   $("password")?.value          || "",
       fcmToken:   State.fcmToken || "no-token",
       estado:     "pendiente",
-      creadoEn:   serverTimestamp(),
+      creadoEn:   new Date().toISOString(),
       termsAceptados: true,
     };
     if (db) {
