@@ -294,7 +294,8 @@ $("btnRegister")?.addEventListener("click", handleRegister);
 
 async function handleRegister() {
   if (State.loading) return;
-  const errEl = $("registerError2");
+  // Usar el error del paso 1 (registerError2 fue eliminado con el paso SMS)
+  const errEl = $("registerError") || $("registerError2");
   if (errEl) errEl.textContent = "";
 
   State.loading = true;
@@ -330,6 +331,7 @@ async function handleRegister() {
     if(errEl) errEl.textContent = "Error al registrar. Intentá de nuevo.";
   } finally {
     State.loading = false;
+    setLoading("btnRegStep2", false, "Ya pagué — Registrarme");
     setLoading("btnRegister", false, "Confirmar y registrar");
   }
 }
