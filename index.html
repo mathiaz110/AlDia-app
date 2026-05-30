@@ -189,7 +189,7 @@
             </div>
             <div class="reg-step" id="rstep2">
               <div class="reg-step-circle" id="rcirc2"><span>3</span></div>
-              <div class="reg-step-label">Verificar</div>
+              <div class="reg-step-label">Listo</div>
             </div>
           </div>
         </div>
@@ -244,31 +244,11 @@
             <svg viewBox="0 0 20 20" fill="none" style="width:16px;height:16px;flex-shrink:0"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Alias copiado al portapapeles ✓
           </div>
-          <button class="btn-primary" id="btnRegStep2"><span>Ya pagué — Continuar</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="btn-primary" id="btnRegStep2"><span>Ya pagué — Registrarme</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
 
-        <!-- PASO 3: VERIFICACIÓN SMS -->
+        <!-- PASO 3: VERIFICACIÓN SMS — desactivada, registro directo -->
         <div id="regStep3" class="hidden">
-          <div class="screen-title-block">
-            <h1>Verificá tu <span class="gradient-text">celular</span></h1>
-            <p class="subtitle">Ingresá el código que enviamos por WhatsApp</p>
-          </div>
-          <div class="sms-info-card">
-            <svg viewBox="0 0 20 20" fill="none" style="width:20px;height:20px;flex-shrink:0"><path d="M17 11a7 7 0 01-10.4 6.1L3 18l.9-3.6A7 7 0 1117 11z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-            <div>
-              <div class="sms-info-title">Código enviado a</div>
-              <div class="sms-info-num" id="smsTargetNum">1130001234</div>
-            </div>
-          </div>
-          <!-- 4 CAJAS INDIVIDUALES SMS -->
-          <div class="sms-boxes" id="smsBoxes">
-            <input class="sms-box" id="sms0" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-            <input class="sms-box" id="sms1" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-            <input class="sms-box" id="sms2" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-            <input class="sms-box" id="sms3" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
-          </div>
-          <span class="field-error" id="err-sms" style="text-align:center;display:block"></span>
-          <div class="resend-link" style="text-align:center">¿No llegó? <button class="link-btn" id="btnResendSms">Reenviar código</button></div>
           <div class="auth-error" id="registerError2"></div>
           <button class="btn-primary" id="btnRegister"><span>Confirmar y registrar</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>

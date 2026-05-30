@@ -288,27 +288,14 @@ $("btnRegStep1")?.addEventListener("click", () => {
 });
 
 // PASO 2 → 3 + envío SMS
-$("btnRegStep2")?.addEventListener("click", async () => {
-  const cel = $("celular")?.value.trim();
-  await enviarSMS(cel);
-  const numEl = $("smsTargetNum");
-  if (numEl) numEl.textContent = cel;
-  showRegStep(3);
-  initSmsBoxes("sms", 4);
-});
-
-// PASO 3 → Registrar
+// PASO 2 → Registrar directamente (sin verificación SMS)
+$("btnRegStep2")?.addEventListener("click", handleRegister);
 $("btnRegister")?.addEventListener("click", handleRegister);
 
 async function handleRegister() {
   if (State.loading) return;
   const errEl = $("registerError2");
   if (errEl) errEl.textContent = "";
-
-  // Leer código de las 4 cajas
-  const cod = [0,1,2,3].map(i => $(`sms${i}`)?.value || "").join("");
-  if (cod.length < 4) { showSmsError("Ingresá los 4 dígitos del código"); return; }
-  if (cod !== State.smsCode) { showSmsError("Código incorrecto. Revisá el mensaje."); shakeSmsBoxes("sms"); return; }
 
   State.loading = true;
   setLoading("btnRegister", true, "Registrando...");
@@ -347,63 +334,7 @@ async function handleRegister() {
   }
 }
 
-// ════════════════════════════════════════════════════
-//  SMS CAJAS — auto-avance + backspace + paste
-// ════════════════════════════════════════════════════
-function initSmsBoxes(prefix, count) {
-  for (let i = 0; i < count; i++) {
-    const box = $(`${prefix}${i}`);
-    if (!box) continue;
-    box.value = "";
-    box.classList.remove("filled","error");
-
-    box.addEventListener("input", e => {
-      const v = e.target.value.replace(/\D/g,"");
-      box.value = v.slice(-1);
-      box.classList.toggle("filled", !!box.value);
-      if (box.value && i < count-1) $(`${prefix}${i+1}`)?.focus();
-    });
-    box.addEventListener("keydown", e => {
-      if (e.key==="Backspace" && !box.value && i > 0) {
-        $(`${prefix}${i-1}`)?.focus();
-      }
-    });
-    box.addEventListener("paste", e => {
-      e.preventDefault();
-      const pasted = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g,"");
-      [...pasted.slice(0,count)].forEach((ch, j) => {
-        const b = $(`${prefix}${j}`);
-        if (b) { b.value = ch; b.classList.add("filled"); }
-      });
-      $(`${prefix}${Math.min(pasted.length, count-1)}`)?.focus();
-    });
-  }
-  $(`${prefix}0`)?.focus();
-}
-
-function showSmsError(msg) {
-  const el = $("err-sms"); if (el) el.textContent = msg;
-}
-function shakeSmsBoxes(prefix) {
-  [0,1,2,3].forEach(i => {
-    const b = $(`${prefix}${i}`);
-    if (b) { b.classList.add("error"); setTimeout(()=>b.classList.remove("error"),400); }
-  });
-}
-
-// ════════════════════════════════════════════════════
-//  ENVÍO SMS
-// ════════════════════════════════════════════════════
-async function enviarSMS(celular) {
-  State.smsCode = String(Math.floor(1000 + Math.random() * 9000));
-  console.info("[SMS Demo]", State.smsCode);
-  toast(`Código enviado al ${celular}`, "success");
-}
-$("btnResendSms")?.addEventListener("click", async () => {
-  const cel = $("celular")?.value.trim();
-  if (!cel) { toast("Ingresá tu celular primero","error"); return; }
-  await enviarSMS(cel); initSmsBoxes("sms", 4);
-});
+// SMS verificación desactivada — se activa manualmente por el admin
 
 // ════════════════════════════════════════════════════
 //  RECUPERAR CONTRASEÑA
