@@ -644,20 +644,28 @@ app.post("/usuarios/:id/activar", async (req, res) => {
 
     // Push de activación
     const { fcmToken, nombre="Cliente" } = snap.data();
-    console.log(`[Activar] ${nombre} | fcmToken: ${fcmToken?.substring(0,20) || "NO TOKEN"}...`);
-    if (fcmToken && fcmToken !== "no-token" && fcmToken.length > 100) {
-      await messaging.send({
-        token: fcmToken,
-        notification: {
-          title: "✅ Cuenta activada",
-          body:  `¡Hola ${nombre.split(" ")[0]}! Tu cuenta AlDía ya está activa.`,
-        },
-        webpush: {
-          notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png" },
-          fcmOptions: { link:"/" },
-        },
-        data: { tipo:"cuenta-activada" },
-      }).catch(e => console.warn("[Push activar]", e.code));
+    console.log(`[Activar] ${nombre} | fcmToken: ${fcmToken?.substring(0,20) || "NO TOKEN"}... | largo: ${fcmToken?.length}`);
+    if (fcmToken && fcmToken !== "no-token" && fcmToken.length > 50) {
+      try {
+        const msgId = await messaging.send({
+          token: fcmToken,
+          notification: {
+            title: "✅ Cuenta activada",
+            body:  `¡Hola ${nombre.split(" ")[0]}! Tu cuenta AlDía ya está activa. Ya podés ver tus boletas.`,
+          },
+          android:  { priority: "high" },
+          webpush: {
+            notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
+            fcmOptions: { link:"/" },
+          },
+          data: { tipo:"cuenta-activada" },
+        });
+        console.log(`[Push OK] Cuenta activada enviada: ${msgId.substring(0,20)}...`);
+      } catch(pushErr) {
+        console.error("[Push ERROR activar]", pushErr.code, pushErr.message);
+      }
+    } else {
+      console.warn(`[Push SKIP] Token inválido para ${nombre}: "${fcmToken}"`);
     }
 
     res.json({ success:true, usuarioId:id, estado:"activo" });
@@ -803,6 +811,37 @@ app.post("/registro", async (req, res) => {
     res.json({ success: true, usuarioId: ref.id });
 
   } catch(e) { handleError(res, e, "registro"); }
+});
+
+// ─── DELETE /boleta/:id — admin borra una boleta ─────
+app.delete("/boleta/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ error:"ID requerido" });
+  try {
+    const snap = await db.collection("boletas").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error:"Boleta no encontrada" });
+    const { r2Key: key } = snap.data();
+    if (key) {
+      const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
+      await R2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key })).catch(e => console.warn("[R2 delete]", e.message));
+    }
+    await snap.ref.delete();
+    console.log(`[Boleta] Eliminada: ${id}`);
+    res.json({ success:true, deleted:id });
+  } catch(e) { handleError(res, e, "boleta/delete"); }
+});
+
+// ─── GET /admin/boletas/:usuarioId — boletas de un cliente ─
+app.get("/admin/boletas/:usuarioId", async (req, res) => {
+  const { usuarioId } = req.params;
+  try {
+    const snap = await db.collection("boletas")
+      .where("usuarioId","==",usuarioId)
+      .orderBy("creadoEn","desc")
+      .get();
+    const boletas = snap.docs.map(d => ({ id:d.id, ...d.data(), creadoEn: d.data().creadoEn?.toDate?.()?.toLocaleDateString("es-AR") || "—" }));
+    res.json({ success:true, boletas, total:boletas.length });
+  } catch(e) { handleError(res, e, "admin/boletas"); }
 });
 
 app.use((req, res) => res.status(404).json({ error:"Endpoint no encontrado", path:req.path }));

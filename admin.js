@@ -256,11 +256,20 @@ window.openModal = function(userId) {
       <button class="btn-activate" id="btnReactivate">Reactivar cuenta</button>
     `}
 
-    <!-- ─── SUBIR BOLETA A R2 ─────────────────────── -->
+    <!-- ─── BOLETAS DEL CLIENTE ─────────────────────── -->
     <div class="upload-boleta-section">
       <div class="upload-section-title">
+        <svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M3 4h14M3 8h14M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Boletas del cliente
+      </div>
+      <div id="adminBoletasList" style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text-3)">Cargando boletas...</div>
+      </div>
+
+    <!-- ─── SUBIR BOLETA A R2 ─────────────────────── -->
+    <div class="upload-section-title" style="margin-top:8px">
         <svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        Subir boleta PDF → Cloudflare R2
+        Subir nueva boleta PDF → R2
       </div>
       <div class="upload-fields">
         <div class="field-group">
@@ -297,10 +306,13 @@ window.openModal = function(userId) {
         </button>
       </div>
     </div>
+    </div>
   `;
 
   // Eventos de acción
   $("btnActivate")?.addEventListener("click",   () => activateUser(selectedUser));
+  // Cargar boletas del cliente
+  cargarBoletasAdmin(selectedUser.id);
   $("btnReject")?.addEventListener("click",     () => rejectUser(selectedUser));
   $("btnReactivate")?.addEventListener("click", () => activateUser(selectedUser));
   $("btnUploadBoleta")?.addEventListener("click", uploadBoleta);
@@ -344,6 +356,50 @@ function setPdfFile(file) {
   const btn = $("btnUploadBoleta");
   if(btn) btn.disabled = false;
 }
+
+async function cargarBoletasAdmin(usuarioId) {
+  const list = $("adminBoletasList");
+  if (!list) return;
+  try {
+    const resp = await fetch(`${BACKEND_URL}/admin/boletas/${usuarioId}`);
+    if (!resp.ok) throw new Error("Error al cargar");
+    const { boletas, total } = await resp.json();
+    if (!boletas.length) {
+      list.innerHTML = `<div style="font-size:11px;color:var(--text-3);padding:8px 0">Sin boletas cargadas todavía.</div>`;
+      return;
+    }
+    list.innerHTML = `
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">${total} boleta${total!==1?"s":""} cargada${total!==1?"s":""}</div>
+      ${boletas.map(b => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+          <span style="font-size:16px">⚡</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;font-weight:600;color:var(--text-1)">${escHtml(b.periodo)}</div>
+            <div style="font-size:10px;color:var(--text-3)">Vence: ${b.vencimiento} · Emitida: ${b.emitida}</div>
+          </div>
+          <button onclick="borrarBoleta('${b.id}','${escHtml(b.periodo)}')"
+            style="padding:4px 10px;background:rgba(255,77,109,0.12);border:1px solid rgba(255,77,109,0.3);border-radius:6px;color:#ff4d6d;font-size:10px;font-weight:600;cursor:pointer;flex-shrink:0">
+            Borrar
+          </button>
+        </div>
+      `).join("")}`;
+  } catch(e) {
+    if(list) list.innerHTML = `<div style="font-size:11px;color:var(--red)">Error al cargar boletas</div>`;
+  }
+}
+
+window.borrarBoleta = async function(boletaId, periodo) {
+  if (!confirm(`¿Borrar la boleta de ${periodo}?`)) return;
+  try {
+    const resp = await fetch(`${BACKEND_URL}/boleta/${boletaId}`, { method:"DELETE" });
+    if (!resp.ok) throw new Error("Error al borrar");
+    showToast(`Boleta ${periodo} eliminada`, "success");
+    // Recargar lista
+    if (selectedUser) cargarBoletasAdmin(selectedUser.id);
+  } catch(e) {
+    showToast("Error al borrar boleta", "error");
+  }
+};
 
 async function uploadBoleta() {
   if (!selectedUser || !selectedPdfFile) return;
