@@ -666,6 +666,45 @@ app.post("/usuarios/:id/activar", async (req, res) => {
 // ════════════════════════════════════════════════════
 //  ERROR HANDLERS
 // ════════════════════════════════════════════════════
+
+// ─── POST /registro — nuevo usuario desde el frontend ──
+app.post("/registro", async (req, res) => {
+  const { nroCliente, nombre, dni, usuario, celular,
+          direccion, password, fcmToken } = req.body;
+
+  if (!nombre || !dni || !usuario || !celular || !password) {
+    return res.status(400).json({ error: "Faltan campos requeridos" });
+  }
+
+  try {
+    // Verificar duplicado
+    const dup = await db.collection("usuarios")
+      .where("usuario", "==", usuario).limit(1).get();
+    if (!dup.empty) {
+      return res.status(409).json({ error: "Ese nombre de usuario ya existe. Elegí otro." });
+    }
+
+    // Guardar con Admin SDK (sin restricciones de reglas Firestore)
+    const ref = await db.collection("usuarios").add({
+      nroCliente:     nroCliente || "",
+      nombre,
+      dni,
+      usuario,
+      celular,
+      direccion:      direccion || "",
+      password,
+      fcmToken:       fcmToken || "no-token",
+      estado:         "pendiente",
+      creadoEn:       admin.firestore.FieldValue.serverTimestamp(),
+      termsAceptados: true,
+    });
+
+    console.log(`[Registro] ${usuario} → ${ref.id}`);
+    res.json({ success: true, usuarioId: ref.id });
+
+  } catch(e) { handleError(res, e, "registro"); }
+});
+
 app.use((req, res) => res.status(404).json({ error:"Endpoint no encontrado", path:req.path }));
 app.use((err, req, res, next) => {
   if (err.message?.includes("CORS"))   return res.status(403).json({ error:err.message });

@@ -314,15 +314,19 @@ async function handleRegister() {
       creadoEn:   new Date().toISOString(),
       termsAceptados: true,
     };
-    if (db) {
-      const dup = await getDocs(query(collection(db,"usuarios"), where("usuario","==",payload.usuario)));
-      if (!dup.empty) { if(errEl) errEl.textContent="Ese usuario ya existe. Elegí otro."; return; }
-      const ref = await addDoc(collection(db,"usuarios"), payload);
-      payload.id = ref.id;
-    } else {
-      await new Promise(r => setTimeout(r, 900));
-      payload.id = "demo-" + Date.now();
+    // Registrar via backend Railway — Admin SDK sin restricciones de permisos
+    const resp = await fetch(`${CFG.backendUrl}/registro`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      if (errEl) errEl.textContent = data.error || "Error al registrar. Intentá de nuevo.";
+      return;
     }
+    payload.id = data.usuarioId;
     State.user = payload; saveSession(payload);
     goTo("pending");
     toast("¡Registro exitoso!", "success");
