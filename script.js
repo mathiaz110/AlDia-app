@@ -537,6 +537,8 @@ function renderDashboard(user) {
     $("statVencDias") && ($("statVencDias").textContent = DEMO.venc.fecha);
     renderBoletas(user);
     checkNovedades();
+    // Mostrar card de instalación
+    setTimeout(initInstallCard, 500);
   } else {
     if(memCard) memCard.style.display="none";
     if(vencCard) vencCard.style.display="";
@@ -712,6 +714,66 @@ window.descargarBoleta = async function(id, periodo) {
     if(btn){ btn.disabled=false; btn.textContent="Reintentar"; }
   }
 };
+
+// ════════════════════════════════════════════════════
+//  INSTALAR APP — botones por plataforma
+// ════════════════════════════════════════════════════
+function initInstallCard() {
+  const card = $("installAppCard");
+  if (!card) return;
+
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isPC      = !isAndroid && !isIOS;
+  const isInstalled = window.matchMedia("(display-mode: standalone)").matches
+                   || window.navigator.standalone === true;
+
+  // No mostrar si ya está instalada
+  if (isInstalled) { card.style.display = "none"; return; }
+
+  card.classList.add("visible");
+
+  // Botón Android — usa deferredInstallPrompt
+  $("btnInstallAndroid")?.addEventListener("click", async () => {
+    if (deferredInstallPrompt) {
+      const { outcome } = await deferredInstallPrompt.prompt();
+      if (outcome === "accepted") {
+        card.style.display = "none";
+        deferredInstallPrompt = null;
+      }
+    } else {
+      // Instrucciones manuales
+      toast("Tocá los 3 puntitos del navegador → Agregar a pantalla de inicio", "", 5000);
+    }
+  });
+
+  // Botón iOS — mostrar guía
+  $("btnInstallIOS")?.addEventListener("click", () => {
+    $("iosBanner")?.classList.remove("hidden");
+  });
+
+  // Botón PC — instrucciones
+  $("btnInstallPC")?.addEventListener("click", () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+    } else {
+      toast("En Edge/Chrome: clic en los 3 puntitos → Aplicaciones → Instalar este sitio como aplicación", "", 6000);
+    }
+  });
+
+  // Ocultar botones que no corresponden al dispositivo actual
+  // pero mostrar todos para que el usuario pueda compartir instrucciones
+  if (isAndroid) {
+    $("btnInstallIOS")?.style && ($("btnInstallIOS").style.opacity = "0.5");
+    $("btnInstallPC")?.style  && ($("btnInstallPC").style.opacity  = "0.5");
+  } else if (isIOS) {
+    $("btnInstallAndroid")?.style && ($("btnInstallAndroid").style.opacity = "0.5");
+    $("btnInstallPC")?.style      && ($("btnInstallPC").style.opacity      = "0.5");
+  } else {
+    $("btnInstallAndroid")?.style && ($("btnInstallAndroid").style.opacity = "0.5");
+    $("btnInstallIOS")?.style     && ($("btnInstallIOS").style.opacity     = "0.5");
+  }
+}
 
 // ════════════════════════════════════════════════════
 //  TÉRMINOS Y CONDICIONES
