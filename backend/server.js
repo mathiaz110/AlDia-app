@@ -667,6 +667,46 @@ app.post("/usuarios/:id/activar", async (req, res) => {
 //  ERROR HANDLERS
 // ════════════════════════════════════════════════════
 
+// ─── POST /login — autenticación de usuario ─────────
+app.post("/login", authLimiter, async (req, res) => {
+  const { usuario, password, fcmToken } = req.body;
+  if (!usuario || !password) {
+    return res.status(400).json({ error: "Usuario y contraseña requeridos" });
+  }
+
+  try {
+    // Buscar por usuario O por celular
+    const [snapU, snapC] = await Promise.all([
+      db.collection("usuarios").where("usuario","==",usuario).limit(1).get(),
+      db.collection("usuarios").where("celular","==",usuario).limit(1).get(),
+    ]);
+    const docSnap = snapU.empty ? (snapC.empty ? null : snapC.docs[0]) : snapU.docs[0];
+
+    if (!docSnap) {
+      return res.status(401).json({ error: "Usuario no encontrado" });
+    }
+
+    const data = docSnap.data();
+
+    // Verificar contraseña (en producción usar bcrypt)
+    if (data.password !== password) {
+      return res.status(401).json({ error: "Contraseña incorrecta" });
+    }
+
+    // Actualizar token FCM si cambió de dispositivo
+    if (fcmToken && fcmToken !== "no-token" && fcmToken !== data.fcmToken) {
+      docSnap.ref.update({ fcmToken }).catch(() => {});
+    }
+
+    console.log(`[Login] ${usuario} → OK`);
+    res.json({
+      success: true,
+      usuario: { id: docSnap.id, ...data },
+    });
+
+  } catch(e) { handleError(res, e, "login"); }
+});
+
 // ─── POST /registro — nuevo usuario desde el frontend ──
 app.post("/registro", async (req, res) => {
   const { nroCliente, nombre, dni, usuario, celular,

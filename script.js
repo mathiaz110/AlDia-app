@@ -227,22 +227,23 @@ async function handleLogin() {
   State.loading = true;
   setLoading("btnLogin", true, "Ingresando...");
   try {
-    let found = null;
-    if (db) {
-      const [su, sc] = await Promise.all([
-        getDocs(query(collection(db,"usuarios"), where("usuario","==",usuario))),
-        getDocs(query(collection(db,"usuarios"), where("celular","==",usuario))),
-      ]);
-      const ds = su.empty ? (sc.empty ? null : sc.docs[0]) : su.docs[0];
-      if (!ds) { if(errEl) errEl.textContent="Usuario no encontrado"; return; }
-      const d = ds.data();
-      if (d.password !== pass) { if(errEl) errEl.textContent="Contraseña incorrecta"; return; }
-      found = { id:ds.id, ...d };
-      if (State.fcmToken && State.fcmToken !== d.fcmToken)
-        updateDoc(doc(db,"usuarios",ds.id), { fcmToken:State.fcmToken }).catch(()=>{});
-    } else {
-      found = { nombre:"Juan Pérez", usuario, nroCliente:"000123456", estado:"activo", celular:"1130001234" };
+    // Login via backend Railway — evita problemas de permisos Firestore
+    const resp = await fetch(`${CFG.backendUrl}/login`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        usuario,
+        password: pass,
+        fcmToken: State.fcmToken || "no-token",
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      if (errEl) errEl.textContent = data.error || "Error al ingresar";
+      return;
     }
+    const found = data.usuario;
     State.user = found; saveSession(found);
     showDashboard(found);
     toast("Bienvenido ✓", "success");
