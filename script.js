@@ -281,7 +281,7 @@ $("btnSupport")?.addEventListener("click", () => {
   const c = State.user?.nroCliente || "—";
   window.open(`https://wa.me/${CFG.soporteWA}?text=${encodeURIComponent(`Hola AlDía, soy ${n} (N° ${c}). Necesito ayuda con:`)}`, "_blank");
 });
-$("btnPayLink")?.addEventListener("click", () => window.open(CFG.empresaUrl, "_blank"));
+// btnPayLink ahora copia el número de billetera (ver sección COPIAR NÚMERO BILLETERA)
 
 // ════════════════════════════════════════════════════
 //  AUTH TABS
@@ -368,9 +368,12 @@ function showRegStep(step) {
   });
 }
 
-$("btnRegStep1")?.addEventListener("click", () => {
+$("btnRegStep1")?.addEventListener("click", async () => {
   if (!validateForm()) return;
+  await obtenerFCMToken();
   showRegStep(2);
+  // Deshabilitar botones de pago hasta que acepte términos
+  initPagoStep();
 });
 
 // PASO 2 → Registrar directamente
@@ -381,6 +384,15 @@ async function handleRegister() {
   if (State.loading) return;
   const errEl = $("registerError2") || $("registerError");
   if (errEl) errEl.textContent = "";
+
+  // Validar términos y condiciones
+  const termsChk = $("termsCheck");
+  const termsErr = $("err-terms");
+  if (termsChk && !termsChk.checked) {
+    if (termsErr) termsErr.textContent = "Debés aceptar los términos y condiciones para continuar";
+    return;
+  }
+  if (termsErr) termsErr.textContent = "";
 
   State.loading = true;
   setLoading("btnRegStep2", true, "Registrando...");
@@ -654,10 +666,24 @@ window.descargarBoleta = async function(id, periodo) {
   try {
     const directUrl = btn?.dataset?.url;
     if (directUrl && directUrl !== "undefined" && directUrl.startsWith("http")) {
-      const a = Object.assign(document.createElement("a"), {
-        href:directUrl, download:`boleta-${periodo.replace(/\s+/g,"-")}.pdf`, target:"_blank"
-      });
-      a.click();
+      try {
+        // Descargar como blob para forzar descarga en Edge/Chrome
+        const resp = await fetch(directUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(new Blob([blob], { type:"application/pdf" }));
+        const a = Object.assign(document.createElement("a"), {
+          href:    blobUrl,
+          download:`boleta-${periodo.replace(/\s+/g,"-")}.pdf`,
+        });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } catch(fetchErr) {
+        // Fallback: abrir en nueva pestaña
+        window.open(directUrl, "_blank");
+      }
     } else {
       const resp = await fetch(`${CFG.backendUrl}/boleta/${id}`, {
         headers:{ Authorization:`Bearer ${State.user?.id||""}` },
@@ -688,9 +714,83 @@ window.descargarBoleta = async function(id, periodo) {
 };
 
 // ════════════════════════════════════════════════════
+//  TÉRMINOS Y CONDICIONES
+// ════════════════════════════════════════════════════
+
+// Deshabilitar/habilitar botones de pago según términos
+window.togglePagoButtons = function(aceptado) {
+  const btnMP    = $("btnMP");
+  const btnCopy  = $("btnCopy");
+  const termsErr = $("err-terms");
+
+  if (btnMP) {
+    btnMP.style.opacity    = aceptado ? "1" : "0.4";
+    btnMP.style.filter     = aceptado ? "" : "grayscale(0.5)";
+    btnMP.style.cursor     = aceptado ? "pointer" : "not-allowed";
+  }
+  if (btnCopy) {
+    btnCopy.style.opacity  = aceptado ? "1" : "0.4";
+    btnCopy.style.cursor   = aceptado ? "pointer" : "not-allowed";
+  }
+  if (termsErr && aceptado) termsErr.textContent = "";
+};
+
+// Inicializar botones como deshabilitados al cargar el paso 2
+function initPagoStep() {
+  togglePagoButtons(false);
+}
+$("btnVerTerminos")?.addEventListener("click", e => {
+  e.preventDefault();
+  $("modalTerminos")?.classList.remove("hidden");
+});
+$("btnCloseTerminos")?.addEventListener("click", () => {
+  $("modalTerminos")?.classList.add("hidden");
+});
+$("btnAceptarTerminos")?.addEventListener("click", () => {
+  $("modalTerminos")?.classList.add("hidden");
+  const chk = $("termsCheck");
+  if (chk) chk.checked = true;
+  const err = $("err-terms");
+  if (err) err.textContent = "";
+});
+$("modalTerminos")?.addEventListener("click", e => {
+  if (e.target === $("modalTerminos")) $("modalTerminos").classList.add("hidden");
+});
+
+// ════════════════════════════════════════════════════
+//  COPIAR NÚMERO BILLETERA
+// ════════════════════════════════════════════════════
+const NUMERO_BILLETERA = "2995565339";
+
+$("btnPayLink")?.addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(NUMERO_BILLETERA); }
+  catch {
+    const tmp = Object.assign(document.createElement("input"), { value: NUMERO_BILLETERA });
+    document.body.appendChild(tmp); tmp.select(); document.execCommand("copy"); tmp.remove();
+  }
+  const btn = $("btnPayLink");
+  if (btn) {
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<svg viewBox="0 0 20 20" fill="none" style="width:14px;height:14px"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> ¡Copiado!`;
+    setTimeout(() => { btn.innerHTML = orig; }, 2500);
+  }
+  toast(`Número ${NUMERO_BILLETERA} copiado ✓`, "success");
+});
+
+// ════════════════════════════════════════════════════
 //  COPIAR ALIAS
 // ════════════════════════════════════════════════════
 $("btnCopy")?.addEventListener("click", async () => {
+  const termsChk = $("termsCheck");
+  if (termsChk && !termsChk.checked) {
+    const err = $("err-terms");
+    if (err) {
+      err.textContent = "Debés aceptar los términos y condiciones antes de pagar";
+      err.scrollIntoView({ behavior:"smooth", block:"center" });
+    }
+    toast("Primero aceptá los términos y condiciones", "error");
+    return;
+  }
   try { await navigator.clipboard.writeText(CFG.alias); }
   catch {
     const tmp=Object.assign(document.createElement("input"),{value:CFG.alias});
@@ -704,9 +804,19 @@ $("btnCopy")?.addEventListener("click", async () => {
 });
 
 // ════════════════════════════════════════════════════
-//  MERCADO PAGO
+//  MERCADO PAGO — bloqueado si no aceptó términos
 // ════════════════════════════════════════════════════
 $("btnMP")?.addEventListener("click", () => {
+  const termsChk = $("termsCheck");
+  if (termsChk && !termsChk.checked) {
+    const err = $("err-terms");
+    if (err) {
+      err.textContent = "Debés aceptar los términos y condiciones antes de pagar";
+      err.scrollIntoView({ behavior:"smooth", block:"center" });
+    }
+    toast("Primero aceptá los términos y condiciones", "error");
+    return;
+  }
   const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if (isMobile) window.location.href = CFG.mpLink;
   else           window.open(CFG.mpLink, "_blank", "noopener,noreferrer");
