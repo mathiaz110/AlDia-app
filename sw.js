@@ -3,9 +3,9 @@
 //  Service Worker: cache + offline + install prompt
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME    = "aldia-v5.0.0";
-const CACHE_STATIC  = "aldia-static-v5";
-const CACHE_DYNAMIC = "aldia-dynamic-v5";
+const CACHE_NAME    = "aldia-v1.0.6";
+const CACHE_STATIC  = "aldia-static-v1.0.6";
+const CACHE_DYNAMIC = "aldia-dynamic-v1.0.6";
 
 // Recursos que se cachean al instalar (shell de la app)
 const STATIC_ASSETS = [
@@ -90,9 +90,17 @@ self.addEventListener("fetch", event => {
   // Nunca cachear estas URLs (siempre ir a la red)
   if (NEVER_CACHE.some(nc => request.url.includes(nc))) return;
 
-  // Para navegación (HTML) → Network First con fallback offline
-  if (request.mode === "navigate") {
+  // HTML siempre desde la red (para detectar actualizaciones)
+  if (request.mode === "navigate" ||
+      request.url.endsWith(".html") ||
+      request.url.endsWith("/")) {
     event.respondWith(networkFirstWithOfflineFallback(request));
+    return;
+  }
+
+  // JS y CSS con versión — Cache First (el ?v= garantiza frescura)
+  if (request.url.includes("?v=")) {
+    event.respondWith(cacheFirst(request));
     return;
   }
 

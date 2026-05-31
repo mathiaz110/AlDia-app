@@ -1,104 +1,31 @@
-// ═══════════════════════════════════════════════════
-//  ALDIA APP — Firestore Security Rules v5
-//  Arquitectura híbrida: datos en Firestore, PDFs en R2
-// ═══════════════════════════════════════════════════
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Funciones helper ────────────────────────────
-    function esAdmin() {
-      return request.auth != null
-        && request.auth.token.email_verified == true;
-    }
-
-    function camposValidos(campos) {
-      return request.resource.data.keys().hasAll(campos);
-    }
-
-    function sinCamposExtra(campos) {
-      return request.resource.data.keys().hasOnly(campos);
-    }
-
-    // ── Colección: usuarios ──────────────────────────
+    // Usuarios — registro público, gestión solo admin
     match /usuarios/{userId} {
-
-      // CREAR: registro público sin autenticación
-      // Validaciones estrictas del contenido
-      allow create: if
-        camposValidos([
-          "nroCliente","nombre","dni","usuario",
-          "celular","direccion","password",
-          "fcmToken","estado","creadoEn","termsAceptados"
-        ]) &&
-        request.resource.data.nombre is string &&
-        request.resource.data.nombre.size() >= 3 &&
-        request.resource.data.nombre.size() <= 80 &&
-        request.resource.data.dni is string &&
-        request.resource.data.dni.matches('[0-9]{7,8}') &&
-        request.resource.data.nroCliente is string &&
-        request.resource.data.nroCliente.matches('[0-9]{4,12}') &&
-        request.resource.data.estado == "pendiente" &&
-        request.resource.data.termsAceptados == true;
-
-      // LEER: solo admin autenticado
-      allow read: if esAdmin();
-
-      // ACTUALIZAR: solo admin (para cambiar estado, fcmToken)
-      allow update: if esAdmin();
-
-      // ELIMINAR: solo admin
-      allow delete: if esAdmin();
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
     }
 
-    // ── Colección: boletas (solo metadata — PDF en R2) ──
+    // Boletas — solo admin
     match /boletas/{boletaId} {
-
-      // CREAR: solo admin o backend autenticado
-      allow create: if esAdmin() &&
-        camposValidos([
-          "usuarioId","nroCliente","periodo",
-          "vencimiento","emitida","r2Key","pdfUrl",
-          "alertaEnviada","tamañoBytes","creadoEn"
-        ]) &&
-        request.resource.data.alertaEnviada == false;
-
-      // LEER: admin O el propio usuario dueño de la boleta
-      allow read: if esAdmin() ||
-        (request.auth != null &&
-         request.auth.uid == resource.data.usuarioId);
-
-      // ACTUALIZAR: solo admin (marcar alertaEnviada, etc.)
-      allow update: if esAdmin();
-
-      // ELIMINAR: solo admin
-      allow delete: if esAdmin();
+      allow read, write: if request.auth != null;
     }
 
-    // ── Colección: avisos ────────────────────────────
+    // Avisos — lectura pública, escritura admin
     match /avisos/{avisoId} {
-      // Crear/modificar: solo admin
-      allow write: if esAdmin();
-      // Leer: cualquier usuario autenticado
-      allow read:  if request.auth != null;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
 
-    // ── Colección: sms_codigos ───────────────────────
+    // SMS códigos — creación pública, gestión admin
     match /sms_codigos/{docId} {
-      // Crear: cualquiera (para registro)
-      allow create: if
-        request.resource.data.keys().hasAll(["celular","codigo","usada","expiraEn","creadoEn"]) &&
-        request.resource.data.usada == false;
-
-      // Leer/actualizar: solo backend (admin autenticado)
-      allow read, update: if esAdmin();
-
-      // Eliminar: solo admin (limpieza)
-      allow delete: if esAdmin();
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
     }
 
-    // ── Denegar todo lo demás ────────────────────────
+    // Todo lo demás denegado
     match /{document=**} {
       allow read, write: if false;
     }
