@@ -668,7 +668,7 @@ app.post("/usuarios/:id/activar", async (req, res) => {
 // ════════════════════════════════════════════════════
 
 // ─── POST /login — autenticación de usuario ─────────
-app.post("/login", authLimiter, async (req, res) => {
+app.post("/login", auth, async (req, res) => {
   const { usuario, password, fcmToken } = req.body;
   if (!usuario || !password) {
     return res.status(400).json({ error: "Usuario y contraseña requeridos" });
