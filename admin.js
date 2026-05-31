@@ -96,6 +96,33 @@ function showDashboard(user) {
   if ($("adminName"))   $("adminName").textContent   = name;
   if ($("adminAvatar")) $("adminAvatar").textContent = name[0].toUpperCase();
   loadUsers();
+  // Guardar token FCM del admin para recibir notificaciones de nuevos registros
+  registrarTokenAdmin();
+}
+
+async function registrarTokenAdmin() {
+  try {
+    if (!("Notification" in window)) return;
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return;
+
+    // Importar Firebase Messaging para el admin
+    const { getMessaging, getToken } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js");
+    const messaging = getMessaging();
+    const token = await getToken(messaging, {
+      vapidKey: "BCTslJPoTqAMsjQS_J6obznv5ZUDo2o3dYbRNK6cnMJokpsOv0cPKHZNNtPOZ7QbpLFTpu4IfH6UMHhrlo3r0ao"
+    });
+    if (!token) return;
+
+    await fetch(`${BACKEND_URL}/admin/token`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ fcmToken: token }),
+    });
+    console.log("[Admin] Token FCM registrado");
+  } catch(e) {
+    console.warn("[Admin FCM]", e.message);
+  }
 }
 
 // ════════════════════════════════════════════════════

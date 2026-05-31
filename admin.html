@@ -203,5 +203,13 @@
   <div id="toast" class="toast"></div>
 
   <script type="module" src="admin.js"></script>
+  <script>
+    // Registrar Service Worker para notificaciones push en el admin
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/firebase-messaging-sw.js")
+        .then(r => console.log("[Admin SW] Registrado"))
+        .catch(e => console.warn("[Admin SW]", e));
+    }
+  </script>
 </body>
 </html>

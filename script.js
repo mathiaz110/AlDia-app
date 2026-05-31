@@ -1,18 +1,11 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — script.js v5
-//  + Onboarding 3 pasos
-//  + Stepper registro (Datos → Pago → Verificar)
-//  + SMS boxes individuales con auto-avance
-//  + Skeleton loading dashboard
-//  + Membresia progress bar
-//  + Copy feedback visual
-//  + Animación éxito post-registro
+//  ALDIA APP — script.js v6
+//  Fix completo notificaciones push + auto-refresh
 // ═══════════════════════════════════════════════════
 
 import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs,
-  doc, updateDoc, query, where
+  getFirestore, collection, getDocs, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getMessaging, getToken, onMessage
@@ -38,7 +31,7 @@ const CFG = Object.freeze({
   backendUrl: "https://aldia-app-production.up.railway.app",
   empresaUrl: "https://www.edenor.com.ar/pagos",
   soporteWA:  "5491112345678",
-  sessionKey: "aldia_user_v5",
+  sessionKey: "aldia_user_v6",
   dlKey:      "aldia_descargas_v4",
   obKey:      "aldia_ob_done",
 });
@@ -56,9 +49,9 @@ const DEMO = Object.freeze({
   venc:      { fecha:"10/02/2025", dias:"8 días" },
   inicioMem: "01/01/2025",
   novedades: [
-    { id:"n3", tipo:"alerta", titulo:"Corte programado",       cuerpo:"El día 28/01 de 9:00 a 13:00 hs habrá un corte en el barrio Centro para tareas de mantenimiento.", fecha:"20/01/2025" },
-    { id:"n2", tipo:"aviso",  titulo:"Actualización de tarifas",cuerpo:"A partir de febrero se aplica el nuevo cuadro tarifario. Tu próxima boleta reflejará los nuevos valores.", fecha:"15/01/2025" },
-    { id:"n1", tipo:"info",   titulo:"Nueva función: descarga", cuerpo:"Ya podés descargar tus últimas 4 boletas en PDF desde la app en cualquier momento.", fecha:"01/01/2025" },
+    { id:"n3", tipo:"alerta", titulo:"Corte programado",        cuerpo:"El día 28/01 de 9:00 a 13:00 hs habrá un corte en el barrio Centro.", fecha:"20/01/2025" },
+    { id:"n2", tipo:"aviso",  titulo:"Actualización de tarifas",cuerpo:"A partir de febrero se aplica el nuevo cuadro tarifario.", fecha:"15/01/2025" },
+    { id:"n1", tipo:"info",   titulo:"Nueva función: descarga", cuerpo:"Ya podés descargar tus últimas 4 boletas en PDF desde la app.", fecha:"01/01/2025" },
   ],
 });
 
@@ -73,23 +66,23 @@ try {
 } catch(e) { console.warn("[AlDía] Demo mode:", e.message); }
 
 // ════════════════════════════════════════════════════
-//  ESTADO
+//  ESTADO GLOBAL
 // ════════════════════════════════════════════════════
 const State = {
-  user:      null,
-  fcmToken:  null,
-  loading:   false,
-  regStep:   1,          // 1=datos 2=pago 3=sms
-  smsCode:   null,
-  obSlide:   0,
-  forgotStep:1,
+  user:        null,
+  fcmToken:    null,
+  loading:     false,
+  regStep:     1,
+  obSlide:     0,
+  forgotStep:  1,
   forgotSmsCode: null,
+  refreshTimer:  null,
 };
 
 // ════════════════════════════════════════════════════
-//  DOM
+//  DOM HELPERS
 // ════════════════════════════════════════════════════
-const $ = id => document.getElementById(id);
+const $  = id => document.getElementById(id);
 const SCREENS = {
   onboarding: $("screen-onboarding"),
   benefits:   $("screen-benefits"),
@@ -106,21 +99,82 @@ function goTo(name) {
 }
 
 // ════════════════════════════════════════════════════
+//  FCM TOKEN — obtener y guardar
+// ════════════════════════════════════════════════════
+async function obtenerFCMToken() {
+  if (State.fcmToken) return State.fcmToken;
+  if (!messaging) return null;
+  try {
+    // Primero registrar el SW
+    let swReg = null;
+    if ("serviceWorker" in navigator) {
+      try {
+        swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+        await navigator.serviceWorker.ready;
+      } catch(e) { console.warn("[SW FCM]", e.message); }
+    }
+
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") {
+      console.warn("[FCM] Permiso denegado");
+      return null;
+    }
+
+    const token = await getToken(messaging, {
+      vapidKey:        CFG.vapidKey,
+      serviceWorkerRegistration: swReg || undefined,
+    });
+
+    if (token) {
+      State.fcmToken = token;
+      console.info("[FCM] Token obtenido:", token.substring(0,20) + "…");
+    }
+    return token;
+  } catch(e) {
+    console.warn("[FCM] Error:", e.message);
+    return null;
+  }
+}
+
+async function actualizarTokenBackend(usuarioId, token) {
+  if (!usuarioId || !token || token.length < 100) return;
+  try {
+    await fetch(`${CFG.backendUrl}/usuario/${usuarioId}/token`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ fcmToken: token }),
+      signal:  AbortSignal.timeout(5000),
+    });
+    console.info("[FCM] Token actualizado en backend");
+  } catch(e) { console.warn("[FCM] No se pudo actualizar token:", e.message); }
+}
+
+// ════════════════════════════════════════════════════
 //  SPLASH + ARRANQUE
 // ════════════════════════════════════════════════════
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
   const aliasEl = $("aliasDisplay");
   if (aliasEl) aliasEl.textContent = CFG.alias;
 
-  // Sesión activa → dashboard directo
   const saved = loadSession();
   if (saved) {
     State.user = saved;
-    setTimeout(() => { hideSplash(); showDashboard(saved); }, 700);
+    setTimeout(async () => {
+      hideSplash();
+      // Verificar estado actualizado
+      const actualizado = await verificarEstadoUsuario(saved);
+      State.user = actualizado;
+      saveSession(actualizado);
+      showDashboard(actualizado);
+      // Actualizar FCM token si cambió
+      const token = await obtenerFCMToken();
+      if (token && token !== actualizado.fcmToken) {
+        actualizarTokenBackend(actualizado.id, token);
+      }
+    }, 700);
     return;
   }
 
-  // Onboarding ya visto → beneficios
   const obDone = localStorage.getItem(CFG.obKey);
   setTimeout(() => {
     hideSplash();
@@ -138,26 +192,60 @@ function hideSplash() {
 }
 
 // ════════════════════════════════════════════════════
+//  VERIFICAR ESTADO USUARIO — desde backend
+// ════════════════════════════════════════════════════
+async function verificarEstadoUsuario(user) {
+  if (!user?.id || user.id.startsWith("demo-")) return user;
+  try {
+    const resp = await fetch(`${CFG.backendUrl}/usuario/${user.id}`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) return user;
+    const data = await resp.json();
+    if (data.usuario) return { ...user, ...data.usuario };
+  } catch(e) { console.warn("[Estado]", e.message); }
+  return user;
+}
+
+// ════════════════════════════════════════════════════
+//  AUTO-REFRESH — verifica estado cada 30s si pendiente
+// ════════════════════════════════════════════════════
+function startPendingCheck() {
+  stopPendingCheck();
+  State.refreshTimer = setInterval(async () => {
+    if (!State.user?.id || State.user.estado === "activo") {
+      stopPendingCheck(); return;
+    }
+    const actualizado = await verificarEstadoUsuario(State.user);
+    if (actualizado.estado === "activo") {
+      State.user = actualizado;
+      saveSession(actualizado);
+      stopPendingCheck();
+      renderDashboard(actualizado);
+      toast("✅ Tu cuenta fue activada", "success", 5000);
+    }
+  }, 30000);
+}
+
+function stopPendingCheck() {
+  if (State.refreshTimer) { clearInterval(State.refreshTimer); State.refreshTimer = null; }
+}
+
+// ════════════════════════════════════════════════════
 //  ONBOARDING
 // ════════════════════════════════════════════════════
 $("btnObNext")?.addEventListener("click", () => {
-  if (State.obSlide < 2) {
-    goToObSlide(State.obSlide + 1);
-  } else {
-    finishOnboarding();
-  }
+  if (State.obSlide < 2) goToObSlide(State.obSlide + 1);
+  else finishOnboarding();
 });
 $("btnObSkip")?.addEventListener("click", finishOnboarding);
 
 function goToObSlide(idx) {
-  // Ocultar slide actual
   $(`ob${State.obSlide}`)?.classList.remove("active");
   $(`od${State.obSlide}`)?.classList.remove("active");
-  // Mostrar nuevo
   State.obSlide = idx;
   $(`ob${idx}`)?.classList.add("active");
   $(`od${idx}`)?.classList.add("active");
-  // Actualizar botón
   const lbl = $("btnObLabel");
   if (lbl) lbl.textContent = idx === 2 ? "¡Empezar ahora!" : "Siguiente";
 }
@@ -170,14 +258,18 @@ function finishOnboarding() {
 // ════════════════════════════════════════════════════
 //  NAVEGACIÓN
 // ════════════════════════════════════════════════════
-$("btnGoRegister")?.addEventListener("click", () => { goTo("auth"); switchTab("register"); requestFCM(); });
+$("btnGoRegister")?.addEventListener("click", () => {
+  goTo("auth"); switchTab("register");
+  obtenerFCMToken(); // pedir permiso notificaciones al registrarse
+});
 $("btnGoLogin")?.addEventListener("click",    () => { goTo("auth"); switchTab("login"); });
 $("btnBackAuth")?.addEventListener("click",   () => goTo("benefits"));
 $("btnBackNov")?.addEventListener("click",    () => goTo("dashboard"));
-$("btnGoToDash")?.addEventListener("click",   () => { showDashboard(State.user); });
+$("btnGoToDash")?.addEventListener("click",   () => showDashboard(State.user));
 
 $("btnLogoutUser")?.addEventListener("click", () => {
-  clearSession(); State.user = null; State.fcmToken = null;
+  clearSession(); stopPendingCheck();
+  State.user = null; State.fcmToken = null;
   goTo("benefits"); toast("Sesión cerrada", "");
 });
 $("btnNovAvisos")?.addEventListener("click", () => {
@@ -200,7 +292,7 @@ window.switchTab = function(tab) {
   $("tabRegister")?.classList.toggle("active",  tab === "register");
   $("loginForm")?.classList.toggle("hidden",    tab !== "login");
   $("registerForm")?.classList.toggle("hidden", tab !== "register");
-  if (tab === "register") { resetStepper(); requestFCM(); }
+  if (tab === "register") { resetStepper(); obtenerFCMToken(); }
 };
 
 // ════════════════════════════════════════════════════
@@ -211,7 +303,7 @@ $("btnEyeLogin")?.addEventListener("click", () => eyeToggle("loginPass"));
 $("btnEyeReg")?.addEventListener("click",   () => eyeToggle("password"));
 
 // ════════════════════════════════════════════════════
-//  LOGIN
+//  LOGIN — via backend
 // ════════════════════════════════════════════════════
 $("btnLogin")?.addEventListener("click", handleLogin);
 $("loginPass")?.addEventListener("keydown", e => { if (e.key==="Enter") handleLogin(); });
@@ -227,25 +319,21 @@ async function handleLogin() {
   State.loading = true;
   setLoading("btnLogin", true, "Ingresando...");
   try {
-    // Login via backend Railway — evita problemas de permisos Firestore
+    // Obtener token FCM antes del login
+    const token = await obtenerFCMToken();
+
     const resp = await fetch(`${CFG.backendUrl}/login`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        usuario,
-        password: pass,
-        fcmToken: State.fcmToken || "no-token",
-      }),
-      signal: AbortSignal.timeout(15000),
+      body:    JSON.stringify({ usuario, password: pass, fcmToken: token || "no-token" }),
+      signal:  AbortSignal.timeout(15000),
     });
     const data = await resp.json();
-    if (!resp.ok) {
-      if (errEl) errEl.textContent = data.error || "Error al ingresar";
-      return;
-    }
-    const found = data.usuario;
-    State.user = found; saveSession(found);
-    showDashboard(found);
+    if (!resp.ok) { if(errEl) errEl.textContent = data.error || "Error al ingresar"; return; }
+
+    State.user = data.usuario;
+    saveSession(data.usuario);
+    showDashboard(data.usuario);
     toast("Bienvenido ✓", "success");
   } catch(e) {
     console.error("[Login]", e);
@@ -257,10 +345,10 @@ async function handleLogin() {
 }
 
 // ════════════════════════════════════════════════════
-//  STEPPER REGISTRO — 3 pasos
+//  STEPPER REGISTRO
 // ════════════════════════════════════════════════════
 function resetStepper() {
-  State.regStep = 1; State.smsCode = null;
+  State.regStep = 1;
   showRegStep(1);
 }
 
@@ -269,39 +357,39 @@ function showRegStep(step) {
   [$("regStep1"), $("regStep2"), $("regStep3")].forEach((el,i) => {
     if (el) el.classList.toggle("hidden", i+1 !== step);
   });
-  // Actualizar fill de la barra
   const fill = $("regStepFill");
   if (fill) fill.style.width = `${Math.round((step/3)*100)}%`;
-  // Actualizar círculos
   [0,1,2].forEach(i => {
-    const circ = $(`rcirc${i}`), step_el = $(`rstep${i}`);
-    if (!circ || !step_el) return;
+    const step_el = $(`rstep${i}`);
+    if (!step_el) return;
     step_el.classList.remove("active","done");
-    if (i+1 === step)       step_el.classList.add("active");
-    else if (i+1 < step)    step_el.classList.add("done");
+    if (i+1 === step)    step_el.classList.add("active");
+    else if (i+1 < step) step_el.classList.add("done");
   });
 }
 
-// PASO 1 → 2
 $("btnRegStep1")?.addEventListener("click", () => {
   if (!validateForm()) return;
   showRegStep(2);
 });
 
-// PASO 2 → 3 + envío SMS
-// PASO 2 → Registrar directamente (sin verificación SMS)
+// PASO 2 → Registrar directamente
 $("btnRegStep2")?.addEventListener("click", handleRegister);
 $("btnRegister")?.addEventListener("click", handleRegister);
 
 async function handleRegister() {
   if (State.loading) return;
-  // Usar el error del paso 1 (registerError2 fue eliminado con el paso SMS)
-  const errEl = $("registerError") || $("registerError2");
+  const errEl = $("registerError2") || $("registerError");
   if (errEl) errEl.textContent = "";
 
   State.loading = true;
-  setLoading("btnRegister", true, "Registrando...");
+  setLoading("btnRegStep2", true, "Registrando...");
+
   try {
+    // Obtener FCM token ANTES de registrar
+    const token = await obtenerFCMToken();
+    console.info("[Registro] FCM Token:", token ? token.substring(0,20)+"…" : "NO TOKEN");
+
     const payload = {
       nroCliente: $("nroCliente")?.value.trim()  || "",
       nombre:     $("nombre")?.value.trim()      || "",
@@ -310,27 +398,28 @@ async function handleRegister() {
       celular:    $("celular")?.value.trim()     || "",
       direccion:  $("direccion")?.value.trim()   || "",
       password:   $("password")?.value          || "",
-      fcmToken:   State.fcmToken || "no-token",
-      estado:     "pendiente",
-      creadoEn:   new Date().toISOString(),
-      termsAceptados: true,
+      fcmToken:   token || "no-token",
     };
-    // Registrar via backend Railway — Admin SDK sin restricciones de permisos
+
     const resp = await fetch(`${CFG.backendUrl}/registro`, {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15000),
+      body:    JSON.stringify(payload),
+      signal:  AbortSignal.timeout(15000),
     });
     const data = await resp.json();
     if (!resp.ok) {
       if (errEl) errEl.textContent = data.error || "Error al registrar. Intentá de nuevo.";
       return;
     }
-    payload.id = data.usuarioId;
-    State.user = payload; saveSession(payload);
+
+    State.user = { ...payload, id: data.usuarioId, estado: "pendiente" };
+    saveSession(State.user);
     goTo("pending");
     toast("¡Registro exitoso!", "success");
+    // Iniciar verificación de estado
+    startPendingCheck();
+
   } catch(e) {
     console.error("[Registro]", e);
     if(errEl) errEl.textContent = "Error al registrar. Intentá de nuevo.";
@@ -340,8 +429,6 @@ async function handleRegister() {
     setLoading("btnRegister", false, "Confirmar y registrar");
   }
 }
-
-// SMS verificación desactivada — se activa manualmente por el admin
 
 // ════════════════════════════════════════════════════
 //  RECUPERAR CONTRASEÑA
@@ -369,14 +456,13 @@ $("btnForgotAction")?.addEventListener("click", async () => {
     const cel=$("forgotCelular")?.value.trim()||"";
     if (!/^\d{8,15}$/.test(cel)) { if(err) err.textContent="Ingresá un número válido"; return; }
     State.forgotSmsCode = String(Math.floor(1000+Math.random()*9000));
-    toast(`Código enviado (demo: ${State.forgotSmsCode})`, "success");
+    toast(`Código demo: ${State.forgotSmsCode}`, "success");
     $("forgotCodeGroup").style.display="block";
-    initSmsBoxes("fsms", 4);
     if(btn) btn.querySelector("span").textContent="Confirmar código";
     State.forgotStep=2;
   } else if (State.forgotStep===2) {
     const cod=[0,1,2,3].map(i=>$(`fsms${i}`)?.value||"").join("");
-    if(cod!==State.forgotSmsCode){ if(err) err.textContent="Código incorrecto"; shakeSmsBoxes("fsms"); return; }
+    if(cod!==State.forgotSmsCode){ if(err) err.textContent="Código incorrecto"; return; }
     $("forgotNewPassGroup").style.display="block";
     if(btn) btn.querySelector("span").textContent="Cambiar contraseña";
     State.forgotStep=3;
@@ -389,40 +475,18 @@ $("btnForgotAction")?.addEventListener("click", async () => {
 });
 
 // ════════════════════════════════════════════════════
-//  DASHBOARD — skeleton → contenido real
+//  DASHBOARD
 // ════════════════════════════════════════════════════
 function showDashboard(user) {
   goTo("dashboard");
   $("dashSkeleton") && ($("dashSkeleton").style.display = "");
   $("dashContent")  && ($("dashContent").style.display  = "none");
 
-  // Verificar estado actualizado desde el backend
-  verificarEstadoUsuario(user).then(userActualizado => {
+  setTimeout(() => {
     $("dashSkeleton") && ($("dashSkeleton").style.display = "none");
     $("dashContent")  && ($("dashContent").style.display  = "");
-    renderDashboard(userActualizado);
-  });
-}
-
-async function verificarEstadoUsuario(user) {
-  if (!user?.id || user.id.startsWith("demo-")) return user;
-  try {
-    const resp = await fetch(`${CFG.backendUrl}/usuario/${user.id}`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!resp.ok) return user;
-    const data = await resp.json();
-    if (data.usuario) {
-      // Actualizar sesión con el estado más reciente
-      const actualizado = { ...user, ...data.usuario };
-      saveSession(actualizado);
-      State.user = actualizado;
-      return actualizado;
-    }
-  } catch(e) {
-    console.warn("[Estado]", e.message);
-  }
-  return user;
+    renderDashboard(user);
+  }, 600);
 }
 
 function renderDashboard(user) {
@@ -447,38 +511,28 @@ function renderDashboard(user) {
   if(payLink) payLink.style.display = activo?"":"none";
 
   if (activo) {
-    // Mostrar progress card de membresía en lugar del venc-card
-    if(memCard) memCard.style.display = "";
-    if(vencCard) vencCard.style.display = "none";
-
-    // Datos de membresía
-    const diasNum = 8; // en prod: calcular desde Firestore
-    const pct     = Math.round((1 - diasNum/30) * 100);
-    $("mcDias")      && ($("mcDias").textContent      = `${diasNum} días`);
-    $("mcFechaInicio")&&($("mcFechaInicio").textContent= DEMO.inicioMem);
-    $("mcFechaVenc") && ($("mcFechaVenc").textContent  = DEMO.venc.fecha);
-    // Animar la barra con delay
-    setTimeout(() => {
-      const bar=$("mcBarFill"); if(bar) bar.style.width=`${pct}%`;
-    }, 300);
-
-    $("statTotal")   && ($("statTotal").textContent   = DEMO.boletas.length);
-    $("statDias")    && ($("statDias").textContent     = `${diasNum} días`);
-    $("statVencDias")&& ($("statVencDias").textContent = DEMO.venc.fecha);
-    // En producción: cargar boletas reales desde backend (Firestore + R2)
-    if (db && user.id && !user.id.startsWith("demo-")) {
-      cargarBoletasReales(user.id);
-    } else {
-      renderBoletas(DEMO.boletas);
-    }
+    stopPendingCheck();
+    if(memCard) memCard.style.display="";
+    if(vencCard) vencCard.style.display="none";
+    const diasNum = 8;
+    const pct = Math.round((1 - diasNum/30) * 100);
+    $("mcDias")       && ($("mcDias").textContent       = `${diasNum} días`);
+    $("mcFechaInicio")&& ($("mcFechaInicio").textContent = DEMO.inicioMem);
+    $("mcFechaVenc")  && ($("mcFechaVenc").textContent   = DEMO.venc.fecha);
+    setTimeout(() => { const bar=$("mcBarFill"); if(bar) bar.style.width=`${pct}%`; }, 300);
+    $("statTotal")    && ($("statTotal").textContent    = DEMO.boletas.length);
+    $("statDias")     && ($("statDias").textContent     = `${diasNum} días`);
+    $("statVencDias") && ($("statVencDias").textContent = DEMO.venc.fecha);
+    renderBoletas(user);
     checkNovedades();
   } else {
-    if(memCard) memCard.style.display = "none";
-    if(vencCard) vencCard.style.display = "";
+    if(memCard) memCard.style.display="none";
+    if(vencCard) vencCard.style.display="";
     $("vencDate")   && ($("vencDate").textContent   = "—");
     $("vencDays")   && ($("vencDays").textContent   = "Pendiente de activación");
     $("vencAmount") && ($("vencAmount").textContent = "—");
-    renderBoletas([]);
+    renderBoletas(null);
+    startPendingCheck(); // verificar cada 30s
   }
 }
 
@@ -511,90 +565,47 @@ function renderNovedades() {
 }
 
 // ════════════════════════════════════════════════════
-//  BOLETAS
+//  BOLETAS — carga real desde backend
 // ════════════════════════════════════════════════════
-function renderBoletas(boletas) {
+function renderBoletas(user) {
   const list=$("boletasList"), count=$("boletasCount");
   if(!list) return;
-  if(!boletas.length) {
+
+  if(!user || user.estado !== "activo") {
     if(count) count.textContent="—";
-    list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚡</div><div><div class="pb-title">Sin boletas aún</div><div class="pb-sub">Una vez activa tu cuenta verás tus boletas aquí y las recibirás por WhatsApp.</div></div></div>`;
+    list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚡</div><div><div class="pb-title">Sin boletas aún</div><div class="pb-sub">Una vez activa tu cuenta verás tus boletas aquí.</div></div></div>`;
     return;
   }
-  if(count) count.textContent=`${boletas.length} disponibles`;
-  const dl=getDescargas();
-  list.innerHTML = boletas.map(b=>{
-    const desc=!!dl[b.id];
-    return `
-    <div class="boleta-card-expanded" id="bcard-${b.id}">
-      <div class="boleta-card-header" onclick="toggleBoleta('${b.id}')">
-        <div class="boleta-icon" style="font-size:19px;width:36px;height:36px;background:rgba(57,255,143,.08);border:1px solid rgba(57,255,143,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">⚡</div>
-        <div class="boleta-info" style="flex:1;min-width:0">
-          <div class="boleta-periodo">${escHtml(b.periodo)}</div>
-          <div class="boleta-fecha">Vence: ${b.vencimiento}</div>
-        </div>
-        <span class="boleta-estado ${desc?"estado-descargada":"estado-nueva"}">${desc?"✓ Descargada":"Nueva"}</span>
-        <div class="boleta-chevron"><svg viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      </div>
-      <div class="boleta-detail">
-        <div class="boleta-detail-row"><span>Período</span><span>${escHtml(b.periodo)}</span></div>
-        <div class="boleta-detail-row"><span>Fecha de emisión</span><span>${b.emitida}</span></div>
-        <div class="boleta-detail-row"><span>Vencimiento</span><span>${b.vencimiento}</span></div>
-        <div class="boleta-detail-row"><span>Estado</span><span id="estado-txt-${b.id}" style="color:${desc?"var(--green)":"var(--text-2)"};${desc?"font-weight:600":""}">${desc?"✓ Descargada":"Disponible para descargar"}</span></div>
-        <div class="boleta-detail-actions">
-          <button class="${desc?"btn-ver-boleta":"btn-descargar-boleta"}" id="btn-dl-${b.id}" onclick="descargarBoleta('${b.id}','${escHtml(b.periodo)}')">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            ${desc?"Descargar de nuevo":"Descargar PDF"}
-          </button>
-        </div>
-      </div>
-    </div>`;
-  }).join("");
+
+  // Cargar boletas reales del backend
+  if(count) count.textContent="Cargando...";
+  list.innerHTML=`<div class="sk-item"></div><div class="sk-item"></div><div class="sk-item"></div>`;
+
+  cargarBoletasReales(user.id);
 }
 
-// ════════════════════════════════════════════════════
-//  CARGA REAL DE BOLETAS — Firestore metadata + R2 PDF
-// ════════════════════════════════════════════════════
 async function cargarBoletasReales(usuarioId) {
-  const list  = $("boletasList");
-  const count = $("boletasCount");
-  if (!list) return;
-
-  // Mostrar skeleton mientras carga
-  if (count) count.textContent = "Cargando...";
-  list.innerHTML = `
-    <div class="sk-item"></div>
-    <div class="sk-item"></div>
-    <div class="sk-item"></div>
-    <div class="sk-item"></div>`;
+  const list=$("boletasList"), count=$("boletasCount");
+  if(!list) return;
 
   try {
     const resp = await fetch(`${CFG.backendUrl}/boletas/${usuarioId}`, {
-      headers: { Authorization: `Bearer ${State.user?.id || ""}` },
-      signal: AbortSignal.timeout(8000), // timeout 8s
+      headers: { Authorization: `Bearer ${State.user?.id||""}` },
+      signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const { boletas } = await resp.json();
 
     if (!boletas?.length) {
-      renderBoletas([]);
+      if(count) count.textContent="0 disponibles";
+      list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚡</div><div><div class="pb-title">Sin boletas todavía</div><div class="pb-sub">Tu proveedor aún no subió boletas a tu cuenta.</div></div></div>`;
       return;
     }
 
-    // Mapear al formato interno
-    const mapped = boletas.map(b => ({
-      id:          b.id,
-      periodo:     b.periodo,
-      vencimiento: b.vencimiento,
-      emitida:     b.emitida,
-      pdfUrl:      b.pdfUrl,   // URL firmada de R2
-    }));
-
-    if (count) count.textContent = `${mapped.length} disponibles`;
-    const dl = getDescargas();
-
-    list.innerHTML = mapped.map(b => {
-      const desc = !!dl[b.id];
+    if(count) count.textContent=`${boletas.length} disponibles`;
+    const dl=getDescargas();
+    list.innerHTML = boletas.map(b=>{
+      const desc=!!dl[b.id];
       return `
       <div class="boleta-card-expanded" id="bcard-${b.id}">
         <div class="boleta-card-header" onclick="toggleBoleta('${b.id}')">
@@ -608,7 +619,7 @@ async function cargarBoletasReales(usuarioId) {
         </div>
         <div class="boleta-detail">
           <div class="boleta-detail-row"><span>Período</span><span>${escHtml(b.periodo)}</span></div>
-          <div class="boleta-detail-row"><span>Fecha de emisión</span><span>${b.emitida}</span></div>
+          <div class="boleta-detail-row"><span>Emisión</span><span>${b.emitida}</span></div>
           <div class="boleta-detail-row"><span>Vencimiento</span><span>${b.vencimiento}</span></div>
           <div class="boleta-detail-row"><span>Estado</span>
             <span id="estado-txt-${b.id}" style="color:${desc?"var(--green)":"var(--text-2)"};${desc?"font-weight:600":""}">
@@ -616,15 +627,10 @@ async function cargarBoletasReales(usuarioId) {
             </span>
           </div>
           <div class="boleta-detail-actions">
-            <button
-              class="${desc?"btn-ver-boleta":"btn-descargar-boleta"}"
-              id="btn-dl-${b.id}"
-              data-url="${escHtml(b.pdfUrl)}"
-              onclick="descargarBoleta('${b.id}','${escHtml(b.periodo)}')">
-              <svg viewBox="0 0 20 20" fill="none">
-                <path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
+            <button class="${desc?"btn-ver-boleta":"btn-descargar-boleta"}" id="btn-dl-${b.id}"
+                    data-url="${escHtml(b.pdfUrl||"")}"
+                    onclick="descargarBoleta('${b.id}','${escHtml(b.periodo)}')">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
               ${desc?"Descargar de nuevo":"Descargar PDF"}
             </button>
           </div>
@@ -633,10 +639,9 @@ async function cargarBoletasReales(usuarioId) {
     }).join("");
 
   } catch(e) {
-    console.error("[Boletas R2]", e);
-    // Fallback a datos demo si falla el backend
-    toast("Sin conexión al servidor. Mostrando datos de ejemplo.", "");
-    renderBoletas(DEMO.boletas);
+    console.error("[Boletas]", e);
+    if(count) count.textContent="—";
+    list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚠️</div><div><div class="pb-title">Error al cargar boletas</div><div class="pb-sub">Intentá de nuevo en unos segundos.</div></div></div>`;
   }
 }
 
@@ -647,37 +652,24 @@ window.descargarBoleta = async function(id, periodo) {
   if(btn){ btn.disabled=true; btn.innerHTML=`<span style="opacity:.7">Descargando…</span>`; }
   toast("Preparando PDF…","");
   try {
-    // Intentar usar URL de R2 directa (guardada en data-url)
     const directUrl = btn?.dataset?.url;
-
-    if (directUrl && directUrl !== "undefined") {
-      // Descargar directo desde Cloudflare R2 (más rápido, sin pasar por backend)
+    if (directUrl && directUrl !== "undefined" && directUrl.startsWith("http")) {
       const a = Object.assign(document.createElement("a"), {
-        href:     directUrl,
-        download: `boleta-${periodo.replace(/\s+/g,"-")}.pdf`,
-        target:   "_blank",
+        href:directUrl, download:`boleta-${periodo.replace(/\s+/g,"-")}.pdf`, target:"_blank"
       });
       a.click();
-    } else if (db && State.user?.id && !State.user.id.startsWith("demo-")) {
-      // Fallback: pedir URL al backend
-      const resp = await fetch(`${CFG.backendUrl}/boleta/${id}`, {
-        headers: { Authorization: `Bearer ${State.user.id}` },
-        signal:  AbortSignal.timeout(10000),
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      // El backend redirige → blob
-      const blob = await resp.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = Object.assign(document.createElement("a"),{
-        href:url, download:`boleta-${periodo.replace(/\s+/g,"-")}.pdf`
-      });
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(url), 10000);
     } else {
-      // Demo mode: simular descarga
-      await new Promise(r=>setTimeout(r,1100));
+      const resp = await fetch(`${CFG.backendUrl}/boleta/${id}`, {
+        headers:{ Authorization:`Bearer ${State.user?.id||""}` },
+        signal: AbortSignal.timeout(10000),
+      });
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob=await resp.blob();
+      const url=URL.createObjectURL(blob);
+      const a=Object.assign(document.createElement("a"),{href:url,download:`boleta-${periodo.replace(/\s+/g,"-")}.pdf`});
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
     }
-
     saveDescarga(id);
     const badge=document.querySelector(`#bcard-${id} .boleta-estado`);
     if(badge){ badge.className="boleta-estado estado-descargada"; badge.textContent="✓ Descargada"; }
@@ -696,7 +688,7 @@ window.descargarBoleta = async function(id, periodo) {
 };
 
 // ════════════════════════════════════════════════════
-//  COPIAR ALIAS — con feedback visual
+//  COPIAR ALIAS
 // ════════════════════════════════════════════════════
 $("btnCopy")?.addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(CFG.alias); }
@@ -704,17 +696,15 @@ $("btnCopy")?.addEventListener("click", async () => {
     const tmp=Object.assign(document.createElement("input"),{value:CFG.alias});
     document.body.appendChild(tmp); tmp.select(); document.execCommand("copy"); tmp.remove();
   }
-  // Feedback en el botón
   const sp=$("btnCopy")?.querySelector("span");
   if(sp){ sp.textContent="¡Copiado!"; setTimeout(()=>sp.textContent="Copiar",2200); }
-  // Feedback visual debajo de la card de pago
   const cs=$("copySuccess");
   if(cs){ cs.classList.add("show"); setTimeout(()=>cs.classList.remove("show"),2500); }
   toast("Alias copiado ✓","success");
 });
 
 // ════════════════════════════════════════════════════
-//  BOTÓN MERCADO PAGO
+//  MERCADO PAGO
 // ════════════════════════════════════════════════════
 $("btnMP")?.addEventListener("click", () => {
   const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -729,11 +719,11 @@ function validateForm() {
   const rules=[
     {id:"nroCliente",errId:"err-nroCliente",fn:v=>/^\d{4,12}$/.test(v.trim()),msg:"Solo números, entre 4 y 12 dígitos"},
     {id:"nombre",    errId:"err-nombre",    fn:v=>v.trim().length>=3&&v.trim().length<=80,msg:"Entre 3 y 80 caracteres"},
-    {id:"dni",       errId:"err-dni",       fn:v=>/^\d{7,8}$/.test(v.trim()),             msg:"7 u 8 dígitos sin puntos"},
-    {id:"usuario",   errId:"err-usuario",   fn:v=>/^[a-z0-9_.]{3,20}$/i.test(v.trim()),   msg:"3-20 caracteres, sin espacios"},
+    {id:"dni",       errId:"err-dni",       fn:v=>/^\d{7,8}$/.test(v.trim()),msg:"7 u 8 dígitos sin puntos"},
+    {id:"usuario",   errId:"err-usuario",   fn:v=>/^[a-z0-9_.]{3,20}$/i.test(v.trim()),msg:"3-20 caracteres, sin espacios"},
     {id:"celular",   errId:"err-celular",   fn:v=>/^\d{8,15}$/.test(v.replace(/[\s\-()]/g,"")),msg:"Número válido, solo dígitos"},
     {id:"direccion", errId:"err-direccion", fn:v=>v.trim().length>=5&&v.trim().length<=120,msg:"Entre 5 y 120 caracteres"},
-    {id:"password",  errId:"err-password",  fn:v=>v.length>=6&&v.length<=72,              msg:"Entre 6 y 72 caracteres"},
+    {id:"password",  errId:"err-password",  fn:v=>v.length>=6&&v.length<=72,msg:"Entre 6 y 72 caracteres"},
   ];
   let ok=true;
   rules.forEach(({id,errId,fn,msg})=>{
@@ -745,24 +735,22 @@ function validateForm() {
 }
 
 // ════════════════════════════════════════════════════
-//  FCM
+//  FCM — mensajes en foreground
 // ════════════════════════════════════════════════════
-async function requestFCM() {
-  if(!messaging||State.fcmToken) return;
-  try {
-    const perm=await Notification.requestPermission();
-    if(perm!=="granted") return;
-    State.fcmToken=await getToken(messaging,{vapidKey:CFG.vapidKey});
-  } catch(e){ console.warn("[FCM]",e.message); }
-}
 if(messaging){
-  onMessage(messaging,payload=>{
+  onMessage(messaging, payload=>{
     const{title="AlDía",body=""}=payload.notification||{};
     toast(`${title}: ${body}`,"success",5000);
-    if(State.user&&State.user.estado!=="activo"){
-      State.user.estado="activo"; saveSession(State.user); renderDashboard(State.user);
+    // Si se activó la cuenta, actualizar dashboard
+    if(payload.data?.tipo==="cuenta-activada" && State.user){
+      State.user.estado="activo";
+      saveSession(State.user);
+      stopPendingCheck();
+      renderDashboard(State.user);
     }
-    if(["aviso","alerta"].includes(payload.data?.tipo)){
+    // Si hay nueva boleta, recargar lista
+    if(payload.data?.tipo==="nueva-boleta" && State.user?.estado==="activo"){
+      cargarBoletasReales(State.user.id);
       const nd=$("notifDot"); if(nd) nd.style.display="";
     }
   });
@@ -787,7 +775,7 @@ function toast(msg,type="",ms=3200){
 }
 
 const cap     = s => s?s[0].toUpperCase()+s.slice(1):"";
-const escHtml = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const escHtml = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 function saveSession(u)  { try{sessionStorage.setItem(CFG.sessionKey,JSON.stringify(u));}catch{} }
 function loadSession()   { try{return JSON.parse(sessionStorage.getItem(CFG.sessionKey));}catch{return null;} }
 function clearSession()  { sessionStorage.removeItem(CFG.sessionKey); }
@@ -797,146 +785,34 @@ function saveDescarga(id){ try{const d=getDescargas();d[id]=new Date().toISOStri
 // ════════════════════════════════════════════════════
 //  SERVICE WORKER
 // ════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════
-//  PWA — Instalación y actualizaciones
-// ════════════════════════════════════════════════════
-
-const INSTALL_DISMISSED_KEY = "aldia_install_dismissed";
-let deferredInstallPrompt   = null; // guardamos el evento beforeinstallprompt
-
-// ── Capturar el evento de instalación (Android/Chrome) ──
-window.addEventListener("beforeinstallprompt", e => {
-  e.preventDefault(); // evitar el prompt automático del browser
-  deferredInstallPrompt = e;
-
-  // Solo mostrar si el usuario no lo descartó antes
-  const dismissed = localStorage.getItem(INSTALL_DISMISSED_KEY);
-  if (!dismissed) {
-    // Mostrar banner después de 3 segundos (no interrumpir la llegada)
-    setTimeout(() => showInstallBanner(), 3000);
-  }
-});
-
-// ── Detectar cuando la app fue instalada ────────────────
-window.addEventListener("appinstalled", () => {
-  deferredInstallPrompt = null;
-  hideInstallBanner();
-  toast("✅ AlDía instalada en tu pantalla de inicio", "success", 4000);
-  localStorage.removeItem(INSTALL_DISMISSED_KEY);
-  console.info("[PWA] App instalada correctamente");
-});
-
-// ── Botón Instalar ───────────────────────────────────────
-$("btnInstallAccept")?.addEventListener("click", async () => {
-  if (!deferredInstallPrompt) return;
-  const { outcome } = await deferredInstallPrompt.prompt();
-  console.info("[PWA] Resultado install prompt:", outcome);
-  if (outcome === "accepted") {
-    hideInstallBanner();
-  }
-  deferredInstallPrompt = null;
-});
-
-// ── Botón Descartar ──────────────────────────────────────
-$("btnInstallDismiss")?.addEventListener("click", () => {
-  hideInstallBanner();
-  // No volver a mostrar por 7 días
-  const expires = Date.now() + 7 * 24 * 60 * 60 * 1000;
-  localStorage.setItem(INSTALL_DISMISSED_KEY, String(expires));
-});
-
-function showInstallBanner() {
-  // Verificar que el dismiss no esté vigente
-  const ts = parseInt(localStorage.getItem(INSTALL_DISMISSED_KEY) || "0");
-  if (ts > Date.now()) return;
-  $("installBanner")?.classList.remove("hidden");
-}
-function hideInstallBanner() {
-  $("installBanner")?.classList.add("hidden");
-}
-
-// ── Detección iOS — mostrar guía manual ─────────────────
-function detectiOS() {
-  const isIOS        = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isSafari     = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-  const isStandalone = window.navigator.standalone === true;
-  return isIOS && isSafari && !isStandalone;
-}
-
-// Mostrar guía iOS si aplica (primera visita, no instalada)
-window.addEventListener("DOMContentLoaded", () => {
-  if (detectiOS()) {
-    const dismissed = localStorage.getItem("aldia_ios_dismissed");
-    const ts        = parseInt(dismissed || "0");
-    if (!dismissed || ts < Date.now()) {
-      setTimeout(() => $("iosBanner")?.classList.remove("hidden"), 4000);
-    }
-  }
-});
-
-$("btnIosClose")?.addEventListener("click", () => {
-  $("iosBanner")?.classList.add("hidden");
-  // No volver a mostrar por 3 días
-  localStorage.setItem("aldia_ios_dismissed", String(Date.now() + 3*24*60*60*1000));
-});
-
-// ── Detectar si ya está instalada como PWA ───────────────
-function isInstalledPWA() {
-  return window.matchMedia("(display-mode: standalone)").matches
-    || window.navigator.standalone === true;
-}
-
-// Si ya está instalada, no mostrar ningún banner
-if (isInstalledPWA()) {
-  localStorage.setItem(INSTALL_DISMISSED_KEY, String(Date.now() + 365*24*60*60*1000));
-}
-
-// ════════════════════════════════════════════════════
-//  SERVICE WORKER
-// ════════════════════════════════════════════════════
 if("serviceWorker"in navigator){
   window.addEventListener("load",()=>{
     navigator.serviceWorker.register("/sw.js")
       .then(reg=>{
-        console.info("[SW] Registrado:", reg.scope);
-
-        // ── Detectar nueva versión disponible ────────
-        reg.addEventListener("updatefound", () => {
-          const newWorker = reg.installing;
-          newWorker?.addEventListener("statechange", () => {
-            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-              // Hay una actualización lista → mostrar banner
+        reg.addEventListener("updatefound",()=>{
+          const nw=reg.installing;
+          nw?.addEventListener("statechange",()=>{
+            if(nw.state==="installed"&&navigator.serviceWorker.controller){
               $("updateBanner")?.classList.remove("hidden");
             }
           });
         });
-
-        // ── Escuchar mensajes del SW ─────────────────
-        navigator.serviceWorker.addEventListener("message", e => {
-          if (e.data?.type === "ACCOUNT_ACTIVATED" && State.user) {
-            State.user.estado = "activo";
+        navigator.serviceWorker.addEventListener("message",e=>{
+          if(e.data?.type==="ACCOUNT_ACTIVATED"&&State.user){
+            State.user.estado="activo";
             saveSession(State.user);
+            stopPendingCheck();
             showDashboard(State.user);
-            toast("Tu cuenta fue activada ✅", "success", 5000);
-          }
-          if (e.data?.type === "NOTIFICATION_CLICKED") {
-            // Navegar a la sección correspondiente
-            if (State.user) showDashboard(State.user);
+            toast("Tu cuenta fue activada ✅","success",5000);
           }
         });
-
-      }).catch(e => console.warn("[SW] Error:", e));
+      }).catch(e=>console.warn("[SW]",e));
   });
 
-  // ── Botón actualizar app ─────────────────────────
-  $("btnUpdateAccept")?.addEventListener("click", async () => {
-    const reg = await navigator.serviceWorker.getRegistration();
-    if (reg?.waiting) {
-      // Decirle al nuevo SW que tome control
-      reg.waiting.postMessage({ type: "SKIP_WAITING" });
-    }
+  $("btnUpdateAccept")?.addEventListener("click",async()=>{
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(reg?.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
     $("updateBanner")?.classList.add("hidden");
-    // Recargar para aplicar la actualización
-    setTimeout(() => window.location.reload(), 300);
+    setTimeout(()=>window.location.reload(),300);
   });
 }

@@ -644,6 +644,7 @@ app.post("/usuarios/:id/activar", async (req, res) => {
 
     // Push de activación
     const { fcmToken, nombre="Cliente" } = snap.data();
+    console.log(`[Activar] ${nombre} | fcmToken: ${fcmToken?.substring(0,20) || "NO TOKEN"}...`);
     if (fcmToken && fcmToken !== "no-token" && fcmToken.length > 100) {
       await messaging.send({
         token: fcmToken,
@@ -707,6 +708,33 @@ app.post("/login", auth, async (req, res) => {
   } catch(e) { handleError(res, e, "login"); }
 });
 
+// ─── POST /usuario/:id/token — actualizar FCM token ──
+app.post("/usuario/:id/token", async (req, res) => {
+  const { id } = req.params;
+  const { fcmToken } = req.body;
+  if (!fcmToken || fcmToken.length < 100) {
+    return res.status(400).json({ error: "Token inválido" });
+  }
+  try {
+    await db.collection("usuarios").doc(id).update({ fcmToken });
+    console.log(`[Token] Actualizado para ${id.substring(0,8)}...`);
+    res.json({ success: true });
+  } catch(e) { handleError(res, e, "usuario/token"); }
+});
+
+// ─── POST /admin/token — guardar token FCM del admin ─
+app.post("/admin/token", async (req, res) => {
+  const { fcmToken } = req.body;
+  if (!fcmToken || fcmToken.length < 100) {
+    return res.status(400).json({ error: "Token inválido" });
+  }
+  try {
+    await db.collection("admins").doc("config").set({ fcmToken }, { merge: true });
+    console.log(`[Admin] Token FCM guardado: ${fcmToken.substring(0,20)}...`);
+    res.json({ success: true });
+  } catch(e) { handleError(res, e, "admin/token"); }
+});
+
 // ─── GET /usuario/:id — obtener estado actualizado ──
 app.get("/usuario/:id", async (req, res) => {
   const { id } = req.params;
@@ -753,7 +781,25 @@ app.post("/registro", async (req, res) => {
       termsAceptados: true,
     });
 
-    console.log(`[Registro] ${usuario} → ${ref.id}`);
+    console.log(`[Registro] ${usuario} → ${ref.id} | fcmToken: ${fcmToken?.substring(0,20) || "NO TOKEN"}...`);
+    
+    // Notificar al admin que hay un nuevo registro
+    try {
+      const adminSnap = await db.collection("admins").doc("config").get();
+      const adminToken = adminSnap.exists ? adminSnap.data()?.fcmToken : null;
+      if (adminToken && adminToken.length > 100) {
+        await messaging.send({
+          token: adminToken,
+          notification: {
+            title: "📋 Nuevo registro pendiente",
+            body:  `${nombre} se registró y está esperando activación.`,
+          },
+          webpush: { fcmOptions: { link: "/admin.html" } },
+          data: { tipo: "nuevo-registro", usuarioId: ref.id },
+        }).catch(e => console.warn("[Push admin]", e.code));
+      }
+    } catch(e) { /* silencioso si no hay config admin */ }
+
     res.json({ success: true, usuarioId: ref.id });
 
   } catch(e) { handleError(res, e, "registro"); }
