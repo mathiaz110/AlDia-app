@@ -379,24 +379,22 @@ async function uploadBoleta() {
 async function activateUser(user) {
   setLoading("btnActivate", true, "Activando...");
   try {
-    // Actualizar Firestore
-    await updateDoc(doc(db,"usuarios",user.id), {
-      estado:     "activo",
-      activadoEn: serverTimestamp(),
+    // Activar via backend — actualiza Firestore Y envía push notification
+    const resp = await fetch(`${BACKEND_URL}/usuarios/${user.id}/activar`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
     });
 
-    // Push via backend
-    if (user.fcmToken && user.fcmToken !== "no-token" && user.fcmToken.length > 100) {
-      await fetch(`${BACKEND_URL}/usuarios/${user.id}/activar`, {
-        method:  "POST",
-        headers: { "Content-Type":"application/json" },
-      }).catch(e => console.warn("[Activar push]", e));
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error || "Error al activar");
     }
 
-    showToast(`✅ ${user.nombre} activado`, "success");
+    showToast(`✅ ${user.nombre} activado y notificado`, "success");
     closeModal();
   } catch(e) {
-    showToast("Error al activar", "error");
+    console.error("[Activar]", e);
+    showToast("Error al activar: " + e.message, "error");
     setLoading("btnActivate", false, "Activar cuenta y notificar");
   }
 }

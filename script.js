@@ -393,15 +393,36 @@ $("btnForgotAction")?.addEventListener("click", async () => {
 // ════════════════════════════════════════════════════
 function showDashboard(user) {
   goTo("dashboard");
-  // Mostrar skeleton
   $("dashSkeleton") && ($("dashSkeleton").style.display = "");
   $("dashContent")  && ($("dashContent").style.display  = "none");
-  // Simular carga (en prod: esperar Firestore)
-  setTimeout(() => {
+
+  // Verificar estado actualizado desde el backend
+  verificarEstadoUsuario(user).then(userActualizado => {
     $("dashSkeleton") && ($("dashSkeleton").style.display = "none");
     $("dashContent")  && ($("dashContent").style.display  = "");
-    renderDashboard(user);
-  }, db ? 800 : 600);
+    renderDashboard(userActualizado);
+  });
+}
+
+async function verificarEstadoUsuario(user) {
+  if (!user?.id || user.id.startsWith("demo-")) return user;
+  try {
+    const resp = await fetch(`${CFG.backendUrl}/usuario/${user.id}`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) return user;
+    const data = await resp.json();
+    if (data.usuario) {
+      // Actualizar sesión con el estado más reciente
+      const actualizado = { ...user, ...data.usuario };
+      saveSession(actualizado);
+      State.user = actualizado;
+      return actualizado;
+    }
+  } catch(e) {
+    console.warn("[Estado]", e.message);
+  }
+  return user;
 }
 
 function renderDashboard(user) {

@@ -707,6 +707,20 @@ app.post("/login", auth, async (req, res) => {
   } catch(e) { handleError(res, e, "login"); }
 });
 
+// ─── GET /usuario/:id — obtener estado actualizado ──
+app.get("/usuario/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!id || id.length > 100) return res.status(400).json({ error:"ID inválido" });
+  try {
+    const snap = await db.collection("usuarios").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const data = snap.data();
+    // No devolver la contraseña
+    const { password, ...resto } = data;
+    res.json({ success:true, usuario:{ id:snap.id, ...resto } });
+  } catch(e) { handleError(res, e, "usuario/get"); }
+});
+
 // ─── POST /registro — nuevo usuario desde el frontend ──
 app.post("/registro", async (req, res) => {
   const { nroCliente, nombre, dni, usuario, celular,
