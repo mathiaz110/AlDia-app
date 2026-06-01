@@ -526,15 +526,49 @@ function renderDashboard(user) {
     stopPendingCheck();
     if(memCard) memCard.style.display="";
     if(vencCard) vencCard.style.display="none";
-    const diasNum = 8;
-    const pct = Math.round((1 - diasNum/30) * 100);
-    $("mcDias")       && ($("mcDias").textContent       = `${diasNum} días`);
-    $("mcFechaInicio")&& ($("mcFechaInicio").textContent = DEMO.inicioMem);
-    $("mcFechaVenc")  && ($("mcFechaVenc").textContent   = DEMO.venc.fecha);
+
+    // ── Calcular fechas reales de membresía ──────────
+    const hoy       = new Date();
+    const finMes    = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0); // último día del mes
+    const diasNum   = Math.ceil((finMes - hoy) / (1000*60*60*24)) + 1;
+    const diasMes   = finMes.getDate(); // total de días del mes
+
+    // Fecha de inicio: fecha de registro real o hoy si no está disponible
+    let fechaInicio = hoy;
+    if (user.creadoEn) {
+      // creadoEn puede ser string ISO o Timestamp de Firestore
+      try {
+        fechaInicio = user.creadoEn?.toDate
+          ? user.creadoEn.toDate()
+          : new Date(user.creadoEn);
+        // Si la fecha de registro es de otro mes, usar el 1 del mes actual
+        if (fechaInicio.getMonth() !== hoy.getMonth() ||
+            fechaInicio.getFullYear() !== hoy.getFullYear()) {
+          fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        }
+      } catch(e) {
+        fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      }
+    } else {
+      fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    }
+
+    // Formatear fechas en español
+    const fmtDate = d => d.toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric" });
+    const fechaInicioStr = fmtDate(fechaInicio);
+    const fechaVencStr   = fmtDate(finMes);
+
+    // Porcentaje del mes transcurrido
+    const diaActual = hoy.getDate();
+    const pct = Math.round((diaActual / diasMes) * 100);
+
+    $("mcDias")       && ($("mcDias").textContent       = `${diasNum} día${diasNum!==1?"s":""}`);
+    $("mcFechaInicio")&& ($("mcFechaInicio").textContent = fechaInicioStr);
+    $("mcFechaVenc")  && ($("mcFechaVenc").textContent   = fechaVencStr);
     setTimeout(() => { const bar=$("mcBarFill"); if(bar) bar.style.width=`${pct}%`; }, 300);
-    $("statTotal")    && ($("statTotal").textContent    = DEMO.boletas.length);
-    $("statDias")     && ($("statDias").textContent     = `${diasNum} días`);
-    $("statVencDias") && ($("statVencDias").textContent = DEMO.venc.fecha);
+    $("statTotal")    && ($("statTotal").textContent    = "—");
+    $("statDias")     && ($("statDias").textContent     = `${diasNum} día${diasNum!==1?"s":""}`);
+    $("statVencDias") && ($("statVencDias").textContent = fechaVencStr);
     renderBoletas(user);
     checkNovedades();
     // Mostrar card de instalación
