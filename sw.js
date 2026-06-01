@@ -3,9 +3,9 @@
 //  Service Worker: cache + offline + install prompt
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME    = "aldia-v1.0.9";
-const CACHE_STATIC  = "aldia-static-v1.0.9";
-const CACHE_DYNAMIC = "aldia-dynamic-v1.0.9";
+const CACHE_NAME    = "aldia-v1.0.6";
+const CACHE_STATIC  = "aldia-static-v1.0.6";
+const CACHE_DYNAMIC = "aldia-dynamic-v1.0.6";
 
 // Recursos que se cachean al instalar (shell de la app)
 const STATIC_ASSETS = [
@@ -267,7 +267,25 @@ self.addEventListener("sync", event => {
 });
 
 // ════════════════════════════════════════════════════
-//  MENSAJE DESDE LA APP — comunicación bidireccional
+//  ACTIVACIÓN AUTOMÁTICA — sin esperar al usuario
+// ════════════════════════════════════════════════════
+// El nuevo SW toma control inmediatamente sin mostrar banner
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE_STATIC)
+      .then(cache => cache.addAll(
+        STATIC_ASSETS.map(url => new Request(url, { cache: "reload" }))
+      ))
+      .then(() => {
+        console.log("[SW] Instalado - activando inmediatamente");
+        return self.skipWaiting(); // sin esperar
+      })
+      .catch(err => console.warn("[SW] Error en install:", err))
+  );
+});
+
+// ════════════════════════════════════════════════════
+//  MENSAJE DESDE LA APP
 // ════════════════════════════════════════════════════
 self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") {
