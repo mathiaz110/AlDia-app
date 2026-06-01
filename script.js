@@ -1004,19 +1004,11 @@ if("serviceWorker"in navigator){
           const nw=reg.installing;
           nw?.addEventListener("statechange",()=>{
             if(nw.state==="installed"&&navigator.serviceWorker.controller){
-              // Activar automáticamente sin mostrar banner
-              nw.postMessage({ type:"SKIP_WAITING" });
+              // Solo mostrar banner si hay actualización real
+              // No recargar automáticamente para evitar loops
+              $("updateBanner")?.classList.remove("hidden");
             }
           });
-        });
-
-        // Cuando el nuevo SW toma control, recargar la página automáticamente
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-          }
         });
         navigator.serviceWorker.addEventListener("message",e=>{
           if(e.data?.type==="ACCOUNT_ACTIVATED"&&State.user){

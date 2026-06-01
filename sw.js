@@ -267,24 +267,6 @@ self.addEventListener("sync", event => {
 });
 
 // ════════════════════════════════════════════════════
-//  ACTIVACIÓN AUTOMÁTICA — sin esperar al usuario
-// ════════════════════════════════════════════════════
-// El nuevo SW toma control inmediatamente sin mostrar banner
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_STATIC)
-      .then(cache => cache.addAll(
-        STATIC_ASSETS.map(url => new Request(url, { cache: "reload" }))
-      ))
-      .then(() => {
-        console.log("[SW] Instalado - activando inmediatamente");
-        return self.skipWaiting(); // sin esperar
-      })
-      .catch(err => console.warn("[SW] Error en install:", err))
-  );
-});
-
-// ════════════════════════════════════════════════════
 //  MENSAJE DESDE LA APP
 // ════════════════════════════════════════════════════
 self.addEventListener("message", event => {
