@@ -163,9 +163,14 @@
       <div class="users-section">
         <div class="section-header">
           <h2>Usuarios registrados</h2>
-          <button class="btn-refresh" id="btnRefresh" title="Actualizar">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-activate" id="btnEditarAviso" style="padding:8px 14px;font-size:12px">
+              ✏️ Aviso general
+            </button>
+            <button class="btn-refresh" id="btnRefresh" title="Actualizar">
             <svg viewBox="0 0 20 20" fill="none"><path d="M4 4v5h5M16 16v-5h-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.6 8A8 8 0 105.7 16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </button>
+          </div>
         </div>
 
         <div id="usersLoading" class="loading-state">
@@ -199,10 +204,59 @@
     </div>
   </div>
 
+  <!-- MODAL AVISO -->
+  <div id="modalAviso" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>✏️ Editar aviso general</h3>
+        <button class="btn-close" id="btnCloseAviso">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--text-3);margin-bottom:12px">
+          Este aviso aparece en el dashboard de todos los clientes activos.
+        </p>
+        <div class="field-group">
+          <label class="field-label">Tipo</label>
+          <select id="avisoTipo" class="field-input" style="cursor:pointer">
+            <option value="alerta">🚨 Alerta (corte de luz, urgente)</option>
+            <option value="aviso">⚠️ Aviso (información importante)</option>
+            <option value="info">ℹ️ Info (novedades generales)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Título</label>
+          <div class="field-wrap">
+            <input type="text" id="avisoTitulo" class="field-input" placeholder="Ej: Corte programado"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Mensaje</label>
+          <textarea id="avisoCuerpo" class="field-input"
+            style="min-height:100px;resize:vertical;padding:10px"
+            placeholder="Ej: El día 15/06 de 9:00 a 13:00 hs habrá un corte en el barrio Centro..."></textarea>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <input type="checkbox" id="avisoActivo" checked style="accent-color:var(--green);width:18px;height:18px"/>
+          <label for="avisoActivo" style="font-size:13px;color:var(--text-2);cursor:pointer">Mostrar aviso a los clientes</label>
+        </div>
+        <div class="auth-error" id="avisoError"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-activate" id="btnGuardarAviso">
+          <svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Guardar y publicar
+        </button>
+        <button class="btn-reject" id="btnBorrarAviso">Quitar aviso</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="toast"></div>
 
-  <script type="module" src="admin.js?v=1.0.9"></script>
+  <script type="module" src="admin.js?v=1.0.6"></script>
   <script>
     // Registrar Service Worker para notificaciones push en el admin
     if ("serviceWorker" in navigator) {

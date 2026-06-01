@@ -508,6 +508,76 @@ function closeModal() {
 // ════════════════════════════════════════════════════
 //  REFRESH + MOBILE MENU
 // ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
+//  AVISOS GENERALES — editar desde admin
+// ════════════════════════════════════════════════════
+$("btnEditarAviso")?.addEventListener("click", async () => {
+  // Cargar aviso actual
+  try {
+    const resp = await fetch(`${BACKEND_URL}/avisos/activo`);
+    const data = await resp.json();
+    if (data.aviso) {
+      const a = data.aviso;
+      if ($("avisoTipo"))   $("avisoTipo").value   = a.tipo   || "aviso";
+      if ($("avisoTitulo")) $("avisoTitulo").value = a.titulo || "";
+      if ($("avisoCuerpo")) $("avisoCuerpo").value = a.cuerpo || "";
+      if ($("avisoActivo")) $("avisoActivo").checked = a.activo !== false;
+    }
+  } catch(e) { console.warn("[Aviso]", e); }
+  $("modalAviso")?.classList.remove("hidden");
+});
+
+$("btnCloseAviso")?.addEventListener("click", () => {
+  $("modalAviso")?.classList.add("hidden");
+});
+$("modalAviso")?.addEventListener("click", e => {
+  if (e.target === $("modalAviso")) $("modalAviso").classList.add("hidden");
+});
+
+$("btnGuardarAviso")?.addEventListener("click", async () => {
+  const titulo = $("avisoTitulo")?.value.trim();
+  const cuerpo = $("avisoCuerpo")?.value.trim();
+  const tipo   = $("avisoTipo")?.value  || "aviso";
+  const activo = $("avisoActivo")?.checked !== false;
+  const errEl  = $("avisoError");
+
+  if (!titulo || !cuerpo) {
+    if (errEl) errEl.textContent = "Completá título y mensaje";
+    return;
+  }
+  if (errEl) errEl.textContent = "";
+
+  try {
+    const resp = await fetch(`${BACKEND_URL}/avisos/activo`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ tipo, titulo, cuerpo, activo }),
+    });
+    if (!resp.ok) throw new Error("Error al guardar");
+    const data = await resp.json();
+    $("modalAviso")?.classList.add("hidden");
+    const msg = data.notificados > 0
+      ? `✅ Aviso publicado · ${data.notificados} cliente${data.notificados!==1?"s":""} notificado${data.notificados!==1?"s":""}`
+      : "✅ Aviso guardado (sin clientes activos aún)";
+    showToast(msg, "success");
+  } catch(e) {
+    if (errEl) errEl.textContent = "Error al guardar. Intentá de nuevo.";
+  }
+});
+
+$("btnBorrarAviso")?.addEventListener("click", async () => {
+  if (!confirm("¿Quitar el aviso? Los clientes dejarán de verlo.")) return;
+  try {
+    await fetch(`${BACKEND_URL}/avisos/activo`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ tipo:"info", titulo:"", cuerpo:"", activo:false }),
+    });
+    $("modalAviso")?.classList.add("hidden");
+    showToast("Aviso quitado", "");
+  } catch(e) { showToast("Error al quitar aviso", "error"); }
+});
+
 $("btnRefresh")?.addEventListener("click", () => {
   $("btnRefresh")?.classList.add("spinning");
   loadUsers();

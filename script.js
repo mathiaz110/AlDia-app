@@ -550,14 +550,35 @@ function renderDashboard(user) {
   }
 }
 
-function checkNovedades() {
-  const nov=DEMO.novedades[0], ban=$("novedadesBanner");
-  if(!nov||!ban) return;
-  ban.style.display="";
-  $("novTitle") && ($("novTitle").textContent = nov.titulo);
-  $("novSub")   && ($("novSub").textContent   = nov.cuerpo.substring(0,90)+"…");
-  $("notifDot") && ($("notifDot").style.display="");
-  $("novClose")?.addEventListener("click",()=>{ ban.style.display="none"; },{ once:true });
+async function checkNovedades() {
+  const ban = $("novedadesBanner");
+  if (!ban) return;
+
+  try {
+    // Cargar aviso real desde el backend
+    const resp = await fetch(`${CFG.backendUrl}/avisos/activo`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) throw new Error("Sin aviso");
+    const { aviso } = await resp.json();
+
+    if (aviso && aviso.activo && aviso.titulo && aviso.cuerpo) {
+      ban.style.display = "";
+      // Ícono según tipo
+      const iconos = { alerta:"🚨", aviso:"⚠️", info:"ℹ️", novedad:"📢" };
+      const novIcon = ban.querySelector(".nov-icon");
+      if (novIcon) novIcon.textContent = iconos[aviso.tipo] || "📢";
+      $("novTitle") && ($("novTitle").textContent = aviso.titulo);
+      $("novSub")   && ($("novSub").textContent   = aviso.cuerpo.substring(0, 90) + (aviso.cuerpo.length > 90 ? "…" : ""));
+      $("notifDot") && ($("notifDot").style.display = "");
+      $("novClose")?.addEventListener("click", () => { ban.style.display = "none"; }, { once:true });
+    } else {
+      ban.style.display = "none";
+    }
+  } catch(e) {
+    // Si no hay aviso configurado, ocultar el banner
+    ban.style.display = "none";
+  }
 }
 
 // ════════════════════════════════════════════════════
@@ -666,38 +687,22 @@ window.descargarBoleta = async function(id, periodo) {
   if(btn){ btn.disabled=true; btn.innerHTML=`<span style="opacity:.7">Descargando…</span>`; }
   toast("Preparando PDF…","");
   try {
-    const directUrl = btn?.dataset?.url;
-    if (directUrl && directUrl !== "undefined" && directUrl.startsWith("http")) {
-      try {
-        // Descargar como blob para forzar descarga en Edge/Chrome
-        const resp = await fetch(directUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const blob = await resp.blob();
-        const blobUrl = URL.createObjectURL(new Blob([blob], { type:"application/pdf" }));
-        const a = Object.assign(document.createElement("a"), {
-          href:    blobUrl,
-          download:`boleta-${periodo.replace(/\s+/g,"-")}.pdf`,
-        });
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      } catch(fetchErr) {
-        // Fallback: abrir en nueva pestaña
-        window.open(directUrl, "_blank");
-      }
-    } else {
-      const resp = await fetch(`${CFG.backendUrl}/boleta/${id}`, {
-        headers:{ Authorization:`Bearer ${State.user?.id||""}` },
-        signal: AbortSignal.timeout(10000),
-      });
-      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const blob=await resp.blob();
-      const url=URL.createObjectURL(blob);
-      const a=Object.assign(document.createElement("a"),{href:url,download:`boleta-${periodo.replace(/\s+/g,"-")}.pdf`});
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(url),10000);
-    }
+    // Siempre descargar via backend — el backend sirve el PDF
+    // con Content-Disposition: attachment que fuerza descarga en todos los dispositivos
+    const resp = await fetch(`${CFG.backendUrl}/boleta/${id}`, {
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const blob    = await resp.blob();
+    const blobUrl = URL.createObjectURL(new Blob([blob], { type:"application/pdf" }));
+    const a = Object.assign(document.createElement("a"), {
+      href:     blobUrl,
+      download: `boleta-${periodo.replace(/\s+/g,"-")}.pdf`,
+    });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
     saveDescarga(id);
     const badge=document.querySelector(`#bcard-${id} .boleta-estado`);
     if(badge){ badge.className="boleta-estado estado-descargada"; badge.textContent="✓ Descargada"; }

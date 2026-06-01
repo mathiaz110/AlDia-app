@@ -260,28 +260,35 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
 
 /**
  * GET /boleta/:id
- * Cliente descarga su boleta — redirige a R2
+ * Cliente descarga su boleta — stream con headers de descarga forzada
  */
 app.get("/boleta/:id", async (req, res) => {
   const { id } = req.params;
-  if (!id || id.length > 100) return res.status(400).json({ error:"ID inválido" });
+  if (!id || id.length > 100) return res.status(400).json({ error:"ID invalido" });
 
   try {
     const snap = await db.collection("boletas").doc(id).get();
     if (!snap.exists) return res.status(404).json({ error:"Boleta no encontrada" });
 
-    const { r2Key: key, pdfUrl } = snap.data();
+    const { r2Key: key, periodo } = snap.data();
+    const fileName = "boleta-" + (periodo || "sin-periodo").replace(/\s+/g, "-") + ".pdf";
 
-    // Si tenemos dominio público, redirigir directo
-    if (R2_PUB_URL) return res.redirect(302, `${R2_PUB_URL}/${key}`);
+    // Obtener PDF de R2 y hacer stream al cliente
+    const r2Resp = await R2.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
 
-    // Si no, generar URL firmada fresca (7 días)
-    const signedUrl = await getSignedUrl(
-      R2,
-      new GetObjectCommand({ Bucket:R2_BUCKET, Key:key }),
-      { expiresIn: 604800 }
-    );
-    res.redirect(302, signedUrl);
+    // Headers que fuerzan descarga en todos los navegadores y dispositivos
+    res.setHeader("Content-Type",        "application/octet-stream");
+    res.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+    res.setHeader("Cache-Control",       "no-cache");
+
+    if (r2Resp.ContentLength) {
+      res.setHeader("Content-Length", r2Resp.ContentLength);
+    }
+
+    // Stream directo sin cargar todo en memoria
+    r2Resp.Body.pipe(res);
+
+    console.log("[Boleta] Descarga: " + fileName);
 
   } catch(e) { handleError(res, e, "boleta/get"); }
 });
@@ -829,6 +836,74 @@ app.delete("/boleta/:id", async (req, res) => {
     console.log(`[Boleta] Eliminada: ${id}`);
     res.json({ success:true, deleted:id });
   } catch(e) { handleError(res, e, "boleta/delete"); }
+});
+
+// ─── GET /avisos/activo — obtener aviso activo ───────
+app.get("/avisos/activo", async (req, res) => {
+  try {
+    const snap = await db.collection("avisos_config").doc("activo").get();
+    if (!snap.exists) return res.json({ aviso: null });
+    res.json({ aviso: snap.data() });
+  } catch(e) { handleError(res, e, "avisos/activo"); }
+});
+
+// ─── POST /avisos/activo — admin actualiza aviso + push ─
+app.post("/avisos/activo", async (req, res) => {
+  const { tipo, titulo, cuerpo, activo } = req.body;
+  try {
+    // Guardar aviso
+    await db.collection("avisos_config").doc("activo").set({
+      tipo:      tipo    || "aviso",
+      titulo:    titulo  || "",
+      cuerpo:    cuerpo  || "",
+      activo:    activo !== false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`[Aviso] Actualizado: ${titulo}`);
+
+    // Notificar a todos los clientes activos si el aviso está activo
+    if (activo !== false && titulo && cuerpo) {
+      const iconos = { alerta:"🚨", aviso:"⚠️", info:"ℹ️", novedad:"📢" };
+      const icono  = iconos[tipo] || "📢";
+
+      const snap   = await db.collection("usuarios").where("estado","==","activo").get();
+      const tokens = snap.docs
+        .map(d => d.data().fcmToken)
+        .filter(t => t && t !== "no-token" && t.length > 50);
+
+      let enviados = 0;
+      for (let i = 0; i < tokens.length; i += 500) {
+        try {
+          const resp = await messaging.sendEachForMulticast({
+            tokens: tokens.slice(i, i+500),
+            notification: {
+              title: `${icono} ${titulo}`,
+              body:  cuerpo.substring(0, 200),
+            },
+            android:  { priority: "high" },
+            webpush: {
+              notification: {
+                icon:    "/icons/notification-icon.png",
+                badge:   "/icons/notification-icon.png",
+                vibrate: [200, 100, 200],
+              },
+              fcmOptions: { link: "/" },
+            },
+            data: { tipo: tipo || "aviso", ts: Date.now().toString() },
+          });
+          enviados += resp.successCount;
+          console.log(`[Push Aviso] Lote ${i/500+1}: ${resp.successCount} OK, ${resp.failureCount} fail`);
+        } catch(pushErr) {
+          console.error("[Push Aviso Error]", pushErr.message);
+        }
+      }
+      console.log(`[Aviso] Push enviado a ${enviados}/${tokens.length} clientes`);
+      res.json({ success: true, notificados: enviados, total: tokens.length });
+    } else {
+      res.json({ success: true, notificados: 0 });
+    }
+
+  } catch(e) { handleError(res, e, "avisos/activo/post"); }
 });
 
 // ─── GET /admin/boletas/:usuarioId — boletas de un cliente ─
