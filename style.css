@@ -2600,3 +2600,7 @@ body::before {
   color: #a78bfa;
 }
 .iac-pc:hover { background: rgba(167,139,250,0.2); }
+
+/* Update banner — oculto por defecto, visible solo con .show */
+#updateBanner { display: none !important; }
+#updateBanner.show { display: flex !important; }

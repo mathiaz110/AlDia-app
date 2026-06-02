@@ -1083,9 +1083,12 @@ if("serviceWorker"in navigator){
           const nw=reg.installing;
           nw?.addEventListener("statechange",()=>{
             if(nw.state==="installed"&&navigator.serviceWorker.controller){
-              // Solo mostrar banner si hay actualización real
-              // No recargar automáticamente para evitar loops
-              $("updateBanner")?.classList.remove("hidden");
+              // Mostrar banner solo cuando hay actualización real
+              const banner = $("updateBanner");
+              if (banner) {
+                banner.style.display = "";
+                banner.classList.add("show");
+              }
             }
           });
         });
@@ -1104,7 +1107,8 @@ if("serviceWorker"in navigator){
   $("btnUpdateAccept")?.addEventListener("click",async()=>{
     const reg=await navigator.serviceWorker.getRegistration();
     if(reg?.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
-    $("updateBanner")?.classList.add("hidden");
+    const ub = $("updateBanner");
+    if (ub) { ub.classList.remove("show"); ub.style.display = "none"; }
     setTimeout(()=>window.location.reload(),300);
   });
 }
