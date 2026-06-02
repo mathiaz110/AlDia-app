@@ -692,6 +692,8 @@ async function cargarBoletasReales(usuarioId) {
 
     // Mostrar período de la última boleta en el contador
     if(count) count.textContent = boletas[0]?.periodo || `${boletas.length} disponibles`;
+    // Actualizar stat card con cantidad real
+    $("statTotal") && ($("statTotal").textContent = boletas.length);
     console.info("[Boletas] Renderizando:", boletas.length, "boletas");
     const dl=getDescargas();
     list.innerHTML = boletas.map(b=>{
