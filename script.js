@@ -30,7 +30,7 @@ const CFG = Object.freeze({
   vapidKey:   "BCTslJPoTqAMsjQS_J6obznv5ZUDo2o3dYbRNK6cnMJokpsOv0cPKHZNNtPOZ7QbpLFTpu4IfH6UMHhrlo3r0ao",
   backendUrl: "https://aldia-app-production.up.railway.app",
   empresaUrl: "https://www.edenor.com.ar/pagos",
-  soporteWA:  "5491112345678",
+  soporteWA:  "5492995348617",
   sessionKey: "aldia_user_v6",
   dlKey:      "aldia_descargas_v4",
   obKey:      "aldia_ob_done",
@@ -761,19 +761,36 @@ function initInstallCard() {
   const card = $("installAppCard");
   if (!card) return;
 
-  const isAndroid = /Android/i.test(navigator.userAgent);
-  const isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isPC      = !isAndroid && !isIOS;
+  const isAndroid   = /Android/i.test(navigator.userAgent);
+  const isIOS       = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isInstalled = window.matchMedia("(display-mode: standalone)").matches
                    || window.navigator.standalone === true;
 
-  // No mostrar si ya está instalada
   if (isInstalled) { card.style.display = "none"; return; }
-
   card.classList.add("visible");
 
-  // Botón Android — usa deferredInstallPrompt
+  // ── Android ──────────────────────────────────────
   $("btnInstallAndroid")?.addEventListener("click", async () => {
+    if (deferredInstallPrompt) {
+      // Intento directo de instalación
+      const { outcome } = await deferredInstallPrompt.prompt();
+      if (outcome === "accepted") {
+        card.style.display = "none";
+        deferredInstallPrompt = null;
+      }
+    } else {
+      // Guía paso a paso si no hay prompt disponible
+      showInstallGuide("android");
+    }
+  });
+
+  // ── iOS ──────────────────────────────────────────
+  $("btnInstallIOS")?.addEventListener("click", () => {
+    showInstallGuide("ios");
+  });
+
+  // ── PC / Windows ─────────────────────────────────
+  $("btnInstallPC")?.addEventListener("click", async () => {
     if (deferredInstallPrompt) {
       const { outcome } = await deferredInstallPrompt.prompt();
       if (outcome === "accepted") {
@@ -781,38 +798,100 @@ function initInstallCard() {
         deferredInstallPrompt = null;
       }
     } else {
-      // Instrucciones manuales
-      toast("Tocá los 3 puntitos del navegador → Agregar a pantalla de inicio", "", 5000);
+      showInstallGuide("pc");
     }
   });
 
-  // Botón iOS — mostrar guía
-  $("btnInstallIOS")?.addEventListener("click", () => {
-    $("iosBanner")?.classList.remove("hidden");
-  });
-
-  // Botón PC — instrucciones
-  $("btnInstallPC")?.addEventListener("click", () => {
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-    } else {
-      toast("En Edge/Chrome: clic en los 3 puntitos → Aplicaciones → Instalar este sitio como aplicación", "", 6000);
-    }
-  });
-
-  // Ocultar botones que no corresponden al dispositivo actual
-  // pero mostrar todos para que el usuario pueda compartir instrucciones
+  // Resaltar el botón del dispositivo actual
   if (isAndroid) {
-    $("btnInstallIOS")?.style && ($("btnInstallIOS").style.opacity = "0.5");
-    $("btnInstallPC")?.style  && ($("btnInstallPC").style.opacity  = "0.5");
+    $("btnInstallIOS")?.style && ($("btnInstallIOS").style.opacity = "0.45");
+    $("btnInstallPC")?.style  && ($("btnInstallPC").style.opacity  = "0.45");
   } else if (isIOS) {
-    $("btnInstallAndroid")?.style && ($("btnInstallAndroid").style.opacity = "0.5");
-    $("btnInstallPC")?.style      && ($("btnInstallPC").style.opacity      = "0.5");
+    $("btnInstallAndroid")?.style && ($("btnInstallAndroid").style.opacity = "0.45");
+    $("btnInstallPC")?.style      && ($("btnInstallPC").style.opacity      = "0.45");
   } else {
-    $("btnInstallAndroid")?.style && ($("btnInstallAndroid").style.opacity = "0.5");
-    $("btnInstallIOS")?.style     && ($("btnInstallIOS").style.opacity     = "0.5");
+    $("btnInstallAndroid")?.style && ($("btnInstallAndroid").style.opacity = "0.45");
+    $("btnInstallIOS")?.style     && ($("btnInstallIOS").style.opacity     = "0.45");
   }
 }
+
+// ── Guías de instalación por plataforma ──────────────
+function showInstallGuide(plataforma) {
+  const modal  = $("modalInstall");
+  const title  = $("installModalTitle");
+  const body   = $("installModalBody");
+  if (!modal || !body) return;
+
+  const guias = {
+    android: {
+      titulo: "🤖 Instalar en Android",
+      pasos: [
+        { n:"1", txt:"Abrí <strong>Chrome</strong> en tu celular y entrá a <code>aldia-app1.web.app</code>" },
+        { n:"2", txt:"Tocá los <strong>3 puntitos</strong> ⋮ arriba a la derecha" },
+        { n:"3", txt:'Seleccioná <strong>"Agregar a pantalla de inicio"</strong>' },
+        { n:"4", txt:'Tocá <strong>"Agregar"</strong> en el cuadro que aparece' },
+        { n:"5", txt:"✅ El ícono de AlDía aparece en tu pantalla de inicio" },
+      ]
+    },
+    ios: {
+      titulo: "🍎 Instalar en iPhone / iPad",
+      pasos: [
+        { n:"1", txt:"Abrí <strong>Safari</strong> (no Chrome) y entrá a <code>aldia-app1.web.app</code>" },
+        { n:"2", txt:"Tocá el ícono de compartir <strong>□↑</strong> en la barra inferior" },
+        { n:"3", txt:'Deslizá hacia abajo y tocá <strong>"Agregar a pantalla de inicio"</strong>' },
+        { n:"4", txt:'Tocá <strong>"Agregar"</strong> arriba a la derecha' },
+        { n:"5", txt:"✅ El ícono de AlDía aparece en tu pantalla de inicio" },
+      ]
+    },
+    pc: {
+      titulo: "💻 Instalar en PC / Windows",
+      pasos: [
+        { n:"1", txt:"Abrí <strong>Edge o Chrome</strong> y entrá a <code>aldia-app1.web.app</code>" },
+        { n:"2", txt:"Hacé clic en los <strong>3 puntitos</strong> ··· arriba a la derecha" },
+        { n:"3", txt:'Buscá <strong>"Aplicaciones"</strong> o <strong>"Apps"</strong>' },
+        { n:"4", txt:'Clic en <strong>"Instalar este sitio como aplicación"</strong>' },
+        { n:"5", txt:'Clic en <strong>"Instalar"</strong> en el cuadro que aparece' },
+        { n:"6", txt:"✅ AlDía aparece como app en el escritorio de Windows" },
+      ]
+    }
+  };
+
+  const guia = guias[plataforma];
+  if (!guia) return;
+
+  if (title) title.textContent = guia.titulo;
+  body.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+      ${guia.pasos.map(p => `
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="min-width:28px;height:28px;border-radius:50%;
+                      background:linear-gradient(135deg,var(--green),var(--blue));
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:12px;font-weight:800;color:var(--bg-0);flex-shrink:0">
+            ${p.n}
+          </div>
+          <div style="font-size:13px;color:var(--text-2);line-height:1.6;padding-top:4px">
+            ${p.txt}
+          </div>
+        </div>
+      `).join("")}
+      <div style="margin-top:4px;padding:12px;background:rgba(57,255,143,0.06);
+                  border:1px solid rgba(57,255,143,0.2);border-radius:10px;
+                  font-size:12px;color:var(--text-3);text-align:center">
+        URL de la app: <strong style="color:var(--green)">aldia-app1.web.app</strong>
+      </div>
+    </div>`;
+
+  modal.classList.remove("hidden");
+}
+
+// Cerrar modal de instalación
+$("btnCloseInstall")?.addEventListener("click", () => {
+  $("modalInstall")?.classList.add("hidden");
+});
+$("modalInstall")?.addEventListener("click", e => {
+  if (e.target === $("modalInstall")) $("modalInstall").classList.add("hidden");
+});
 
 // ════════════════════════════════════════════════════
 //  TÉRMINOS Y CONDICIONES
