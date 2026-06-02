@@ -3,9 +3,9 @@
 //  Service Worker: cache + offline + install prompt
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME    = "aldia-v1.0.12";
-const CACHE_STATIC  = "aldia-static-v1.0.12";
-const CACHE_DYNAMIC = "aldia-dynamic-v1.0.12";
+const CACHE_NAME    = "aldia-v1.0.13";
+const CACHE_STATIC  = "aldia-static-v1.0.13";
+const CACHE_DYNAMIC = "aldia-dynamic-v1.0.13";
 
 // Recursos que se cachean al instalar (shell de la app)
 const STATIC_ASSETS = [

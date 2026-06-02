@@ -234,10 +234,12 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
           token: fcmToken,
           notification: {
             title: "⚡ Nueva boleta disponible",
-            body:  `Tu boleta de ${periodo} está lista. Vence el ${vencimiento}.`,
+            body:  `Tu boleta de ${periodo} ya está lista para descargar. Vence el ${vencimiento}.`,
           },
+          android: { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
+          apns:    { payload: { aps: { badge:1, sound:"default" } } },
           webpush: {
-            notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png" },
+            notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
             fcmOptions:   { link:"/" },
           },
           data: { tipo:"nueva-boleta", boletaId:boletaRef.id },
@@ -530,13 +532,14 @@ app.post("/alertas-vencimiento", async (req, res) => {
           await messaging.send({
             token: fcmToken,
             notification: {
-              title: "⚠️ Tu boleta vence en 3 días",
-              body:  `Hola ${nombre.split(" ")[0]}, la boleta de ${periodo} vence el ${vencimiento}.`,
+              title: "⚠️ Boleta próxima a vencer",
+              body:  `Hola ${nombre.split(" ")[0]}, tu boleta de ${periodo} vence en 3 días (${vencimiento}). ¡No te olvides de pagarla!`,
             },
             data:     { tipo:"alerta-vencimiento", boletaId:boletaDoc.id },
-            android:  { priority:"high" },
+            android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#f59e0b" } },
+            apns:     { payload: { aps: { badge:1, sound:"default" } } },
             webpush:  {
-              notification: { icon:"/icons/notification-icon.png" },
+              notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
               fcmOptions:   { link:"/" },
             },
           });
@@ -658,9 +661,10 @@ app.post("/usuarios/:id/activar", async (req, res) => {
           token: fcmToken,
           notification: {
             title: "✅ Cuenta activada",
-            body:  `¡Hola ${nombre.split(" ")[0]}! Tu cuenta AlDía ya está activa. Ya podés ver tus boletas.`,
+            body:  `¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa. Podés ver y descargar tus boletas de luz.`,
           },
-          android:  { priority: "high" },
+          android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
+          apns:     { payload: { aps: { badge:1, sound:"default" } } },
           webpush: {
             notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
             fcmOptions: { link:"/" },
@@ -806,10 +810,15 @@ app.post("/registro", async (req, res) => {
         await messaging.send({
           token: adminToken,
           notification: {
-            title: "📋 Nuevo registro pendiente",
-            body:  `${nombre} se registró y está esperando activación.`,
+            title: "📋 Nuevo cliente registrado",
+            body:  `${nombre} (DNI: ${dni}) se registró y está esperando activación de su cuenta.`,
           },
-          webpush: { fcmOptions: { link: "/admin.html" } },
+          android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#00c2ff" } },
+          apns:     { payload: { aps: { badge:1, sound:"default" } } },
+          webpush: {
+            notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png" },
+            fcmOptions: { link: "/admin.html" }
+          },
           data: { tipo: "nuevo-registro", usuarioId: ref.id },
         }).catch(e => console.warn("[Push admin]", e.code));
       }
@@ -880,7 +889,8 @@ app.post("/avisos/activo", async (req, res) => {
               title: `${icono} ${titulo}`,
               body:  cuerpo.substring(0, 200),
             },
-            android:  { priority: "high" },
+            android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#f59e0b" } },
+            apns:     { payload: { aps: { badge:1, sound:"default" } } },
             webpush: {
               notification: {
                 icon:    "/icons/notification-icon.png",
