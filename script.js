@@ -690,8 +690,9 @@ async function cargarBoletasReales(usuarioId) {
       return;
     }
 
-    if(count) count.textContent=`${boletas.length} disponibles`;
-    console.info("[Boletas] Renderizando en elemento:", list?.id, "existe:", !!list);
+    // Mostrar período de la última boleta en el contador
+    if(count) count.textContent = boletas[0]?.periodo || `${boletas.length} disponibles`;
+    console.info("[Boletas] Renderizando:", boletas.length, "boletas");
     const dl=getDescargas();
     list.innerHTML = boletas.map(b=>{
       const desc=!!dl[b.id];
@@ -726,8 +727,6 @@ async function cargarBoletasReales(usuarioId) {
         </div>
       </div>`;
     }).join("");
-    list.innerHTML = html;
-    console.info("[Boletas] HTML length:", list.innerHTML.length);
 
   } catch(e) {
     console.error("[Boletas]", e);
