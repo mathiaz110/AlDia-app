@@ -221,8 +221,9 @@ function startPendingCheck() {
       State.user = actualizado;
       saveSession(actualizado);
       stopPendingCheck();
-      renderDashboard(actualizado);
-      toast("✅ Tu cuenta fue activada", "success", 5000);
+      // Ir directo al dashboard sin quedarse en la pantalla pendiente
+      showDashboard(actualizado);
+      toast("✅ Tu cuenta fue activada. ¡Bienvenido!", "success", 5000);
     }
   }, 30000);
 }
@@ -542,23 +543,15 @@ function renderDashboard(user) {
     const diasMes   = finMes.getDate(); // total de días del mes
 
     // Fecha de inicio: fecha de registro real o hoy si no está disponible
+    // Fecha de inicio: fecha de activación real o fecha actual
     let fechaInicio = hoy;
-    if (user.creadoEn) {
-      // creadoEn puede ser string ISO o Timestamp de Firestore
+    // Intentar con activadoEn primero, luego creadoEn
+    const fechaStr = user.activadoEn || user.creadoEn;
+    if (fechaStr) {
       try {
-        fechaInicio = user.creadoEn?.toDate
-          ? user.creadoEn.toDate()
-          : new Date(user.creadoEn);
-        // Si la fecha de registro es de otro mes, usar el 1 del mes actual
-        if (fechaInicio.getMonth() !== hoy.getMonth() ||
-            fechaInicio.getFullYear() !== hoy.getFullYear()) {
-          fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-        }
-      } catch(e) {
-        fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-      }
-    } else {
-      fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        const f = fechaStr?.toDate ? fechaStr.toDate() : new Date(fechaStr);
+        if (!isNaN(f.getTime())) fechaInicio = f;
+      } catch(e) { /* usar hoy */ }
     }
 
     // Formatear fechas en español
@@ -908,6 +901,9 @@ function showInstallGuide(plataforma) {
   modal.classList.remove("hidden");
 }
 
+// Fix 6 — Cuando llega notificación de cuenta activada, redirigir automáticamente
+// (ya manejado en onMessage, pero también en el auto-refresh)
+
 // Cerrar modal de instalación
 $("btnCloseInstall")?.addEventListener("click", () => {
   $("modalInstall")?.classList.add("hidden");
@@ -1122,6 +1118,16 @@ if("serviceWorker"in navigator){
             stopPendingCheck();
             showDashboard(State.user);
             toast("Tu cuenta fue activada ✅","success",5000);
+          }
+          // Fix 9 — notificación clickeada → ir al dashboard si hay sesión
+          if(e.data?.type==="NOTIFICATION_CLICKED"){
+            const user = loadSession();
+            if (user) {
+              State.user = user;
+              showDashboard(user);
+            } else {
+              goTo("benefits");
+            }
           }
         });
       }).catch(e=>console.warn("[SW]",e));

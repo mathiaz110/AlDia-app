@@ -3,9 +3,9 @@
 //  Service Worker: cache + offline + install prompt
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME    = "aldia-v1.0.13";
-const CACHE_STATIC  = "aldia-static-v1.0.13";
-const CACHE_DYNAMIC = "aldia-dynamic-v1.0.13";
+const CACHE_NAME    = "aldia-v1.0.6";
+const CACHE_STATIC  = "aldia-static-v1.0.6";
+const CACHE_DYNAMIC = "aldia-dynamic-v1.0.6";
 
 // Recursos que se cachean al instalar (shell de la app)
 const STATIC_ASSETS = [
@@ -239,18 +239,22 @@ self.addEventListener("notificationclick", event => {
   event.notification.close();
   if (event.action === "dismiss") return;
 
-  const url = event.notification.data?.url || "/";
+  const tipo = event.notification.data?.tipo || "";
+  // Según el tipo de notificación, ir a la pantalla correcta
+  let url = "/";
+  if (tipo === "nuevo-registro") url = "/admin.html";
+
   event.waitUntil(
     clients.matchAll({ type:"window", includeUncontrolled:true })
       .then(clientList => {
-        // Si hay una pestaña abierta → enfocarla y mandar mensaje
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && "focus" in client) {
-            client.postMessage({ type:"NOTIFICATION_CLICKED", url });
+            // Mandar mensaje para que la app navegue al dashboard
+            client.postMessage({ type:"NOTIFICATION_CLICKED", url, tipo });
             return client.focus();
           }
         }
-        // Si no → abrir nueva ventana
+        // Si la app no está abierta → abrirla
         return clients.openWindow(url);
       })
   );
