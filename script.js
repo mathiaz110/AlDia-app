@@ -650,7 +650,15 @@ function renderBoletas(user) {
   if(count) count.textContent="Cargando...";
   list.innerHTML=`<div class="sk-item"></div><div class="sk-item"></div><div class="sk-item"></div>`;
 
-  cargarBoletasReales(user.id);
+  // Usar el ID del usuario actual del State si user.id no está disponible
+  const uid = user.id || State.user?.id;
+  console.info("[Boletas] Cargando para usuario:", uid);
+  if (!uid) {
+    if(count) count.textContent="—";
+    list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚠️</div><div><div class="pb-title">Error al cargar</div><div class="pb-sub">Cerrá sesión y volvé a ingresar.</div></div></div>`;
+    return;
+  }
+  cargarBoletasReales(uid);
 }
 
 async function cargarBoletasReales(usuarioId) {
@@ -658,12 +666,15 @@ async function cargarBoletasReales(usuarioId) {
   if(!list) return;
 
   try {
+    console.info("[Boletas] Fetching:", CFG.backendUrl + "/boletas/" + usuarioId);
     const resp = await fetch(`${CFG.backendUrl}/boletas/${usuarioId}`, {
       headers: { Authorization: `Bearer ${State.user?.id||""}` },
       signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const { boletas } = await resp.json();
+    const data = await resp.json();
+    const boletas = data.boletas;
+    console.info("[Boletas] Recibidas:", boletas?.length || 0, "boletas");
 
     if (!boletas?.length) {
       if(count) count.textContent="0 disponibles";
