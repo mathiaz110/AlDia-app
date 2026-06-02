@@ -491,14 +491,22 @@ $("btnForgotAction")?.addEventListener("click", async () => {
 // ════════════════════════════════════════════════════
 function showDashboard(user) {
   goTo("dashboard");
-  $("dashSkeleton") && ($("dashSkeleton").style.display = "");
-  $("dashContent")  && ($("dashContent").style.display  = "none");
+
+  // Mostrar skeleton
+  const skel = $("dashSkeleton");
+  const cont = $("dashContent");
+  if (skel) { skel.style.display = ""; skel.style.visibility = "visible"; }
+  if (cont) { cont.style.display = "none"; }
 
   setTimeout(() => {
-    $("dashSkeleton") && ($("dashSkeleton").style.display = "none");
-    $("dashContent")  && ($("dashContent").style.display  = "");
+    if (skel) { skel.style.display = "none"; }
+    if (cont) {
+      cont.style.display = "block";
+      cont.style.visibility = "visible";
+      cont.style.opacity = "1";
+    }
     renderDashboard(user);
-  }, 600);
+  }, 400);
 }
 
 function renderDashboard(user) {
@@ -718,6 +726,8 @@ async function cargarBoletasReales(usuarioId) {
         </div>
       </div>`;
     }).join("");
+    list.innerHTML = html;
+    console.info("[Boletas] HTML length:", list.innerHTML.length);
 
   } catch(e) {
     console.error("[Boletas]", e);

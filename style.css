@@ -2604,3 +2604,18 @@ body::before {
 /* Update banner — oculto por defecto, visible solo con .show */
 #updateBanner { display: none !important; }
 #updateBanner.show { display: flex !important; }
+
+/* Fix dashContent visibility */
+#dashContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 20px 40px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+#dashContent[style*="display: none"],
+#dashContent[style*="display:none"] {
+  display: none !important;
+}
