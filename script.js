@@ -683,6 +683,7 @@ async function cargarBoletasReales(usuarioId) {
     }
 
     if(count) count.textContent=`${boletas.length} disponibles`;
+    console.info("[Boletas] Renderizando en elemento:", list?.id, "existe:", !!list);
     const dl=getDescargas();
     list.innerHTML = boletas.map(b=>{
       const desc=!!dl[b.id];
