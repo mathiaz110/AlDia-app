@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=1.0.8"/>
+  <link rel="stylesheet" href="style.css?v=1.0.7"/>
 </head>
 <body>
 
@@ -471,6 +471,19 @@
 
 <div id="toast" class="toast"></div>
 <script type="module" src="script.js"></script>
+
+<!-- ══ MODAL GUÍA INSTALACIÓN ══ -->
+<div id="modalInstall" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="installModalTitle">Instalar AlDía App</h3>
+      <button class="btn-close" id="btnCloseInstall">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="installModalBody"></div>
+  </div>
+</div>
 
 <!-- ══ MODAL TÉRMINOS Y CONDICIONES ══ -->
 <div id="modalTerminos" class="modal-overlay hidden">
