@@ -1,13 +1,11 @@
 // ═══════════════════════════════════════════════════
 //  ALDIA APP — firebase-messaging-sw.js
 //  Maneja push notifications en BACKGROUND
-//  (debe estar en la raíz del proyecto)
 // ═══════════════════════════════════════════════════
 
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
 
-// REEMPLAZAR con tu config
 firebase.initializeApp({
   apiKey:            "AIzaSyB2vua5gMe7hspIMtVunPAmWWkUB3-nt5A",
   authDomain:        "aldia-app1.firebaseapp.com",
@@ -20,26 +18,31 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Maneja mensajes en background (cuando la app está cerrada/minimizada)
+// onBackgroundMessage solo se llama cuando el mensaje NO tiene
+// campo "notification" (data-only messages).
+// Si el mensaje tiene "notification", FCM lo muestra automáticamente
+// sin necesidad de llamar showNotification — evita duplicados.
 messaging.onBackgroundMessage((payload) => {
-  console.log("[FCM Background]", payload);
-
-  const { title, body, icon } = payload.notification || {};
-
-  self.registration.showNotification(title || "AlDía", {
-    body:    body || "Tenés una notificación nueva",
-    icon:    icon || "/icons/notification-icon.png",
-    badge:   "/icons/notification-icon.png",
-    tag:     "aldia-bg",
-    vibrate: [200, 100, 200],
-    data: payload.data || {},
-    actions: [
-      { action: "open", title: "Abrir AlDía" }
-    ]
-  });
+  console.log("[FCM Background] Mensaje data-only recibido:", payload.data);
+  // No llamar showNotification aquí para evitar duplicados.
+  // FCM ya muestra la notificación automáticamente con el campo notification.
 });
 
+// Click en notificación — abrir la app
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow("/"));
+  const tipo = event.notification.data?.tipo || "";
+  const url  = tipo === "nuevo-registro" ? "/admin.html" : "/";
+  event.waitUntil(
+    clients.matchAll({ type:"window", includeUncontrolled:true })
+      .then(list => {
+        for (const c of list) {
+          if (c.url.includes(self.location.origin) && "focus" in c) {
+            c.postMessage({ type:"NOTIFICATION_CLICKED", url, tipo });
+            return c.focus();
+          }
+        }
+        return clients.openWindow(url);
+      })
+  );
 });
