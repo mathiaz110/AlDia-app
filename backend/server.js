@@ -517,6 +517,50 @@ app.post("/usuario/:id/token", async (req, res) => {
   } catch(e) { handleError(res, e, "usuario/token"); }
 });
 
+// ─── POST /usuarios/:id/activar — activar cuenta ─────
+app.post("/usuarios/:id/activar", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const userRef = db.collection("usuarios").doc(id);
+    const snap    = await userRef.get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+
+    await userRef.update({
+      estado:     "activo",
+      activadoEn: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    const { fcmToken, nombre="Cliente" } = snap.data();
+    console.log(`[Activar] ${nombre} | fcmToken: ${fcmToken?.substring(0,20) || "NO TOKEN"}... | largo: ${fcmToken?.length}`);
+
+    if (fcmToken && fcmToken !== "no-token" && fcmToken.length > 50) {
+      try {
+        const msgId = await messaging.send({
+          token: fcmToken,
+          notification: {
+            title: "✅ Cuenta AlDía activada",
+            body:  `¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa. Podés ver y descargar tus boletas de luz.`,
+          },
+          android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
+          apns:     { payload: { aps: { badge:1, sound:"default" } } },
+          webpush: {
+            notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
+            fcmOptions: { link:"/" },
+          },
+          data: { tipo:"cuenta-activada" },
+        });
+        console.log(`[Push OK] Cuenta activada enviada: ${msgId.substring(0,20)}...`);
+      } catch(pushErr) {
+        console.error("[Push ERROR activar]", pushErr.code, pushErr.message);
+      }
+    } else {
+      console.warn(`[Push SKIP] Token inválido para ${nombre}`);
+    }
+
+    res.json({ success:true, mensaje:`Cuenta de ${nombre} activada` });
+  } catch(e) { handleError(res, e, "usuarios/activar"); }
+});
+
 // ─── POST /admin/token — guardar token FCM del admin ─
 app.post("/admin/token", async (req, res) => {
   const { fcmToken } = req.body;
