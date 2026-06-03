@@ -293,11 +293,11 @@ window.openModal = function(userId) {
             <input type="text" id="uploadEmitida" class="field-input" placeholder="01/01/2025"/>
           </div>
         </div>
-        <div class="upload-pdf-drop" id="uploadDrop" onclick="$('uploadPdfInput').click()">
-          <input type="file" id="uploadPdfInput" accept=".pdf" style="display:none" onchange="onPdfSelected(this)"/>
-          <svg viewBox="0 0 40 40" fill="none" style="width:32px;height:32px;opacity:.4"><path d="M20 8v16M12 16l8-8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 30h24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <div class="upload-drop-text" id="uploadDropText">Arrastrá el PDF o tocá para elegir</div>
-          <div class="upload-drop-sub">Máximo 5 MB · Solo archivos PDF</div>
+        <div class="upload-pdf-drop" id="uploadDrop" style="position:relative;overflow:hidden">
+          <input type="file" id="uploadPdfInput" accept=".pdf,application/pdf" style="position:absolute;opacity:0;width:100%;height:100%;top:0;left:0;cursor:pointer;z-index:10" onchange="onPdfSelected(this)"/>
+          <svg viewBox="0 0 40 40" fill="none" style="width:32px;height:32px;opacity:.4;pointer-events:none"><path d="M20 8v16M12 16l8-8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 30h24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <div class="upload-drop-text" id="uploadDropText" style="pointer-events:none">Tocá aquí para elegir el PDF</div>
+          <div class="upload-drop-sub" style="pointer-events:none">Máximo 5 MB · Solo archivos PDF</div>
         </div>
         <div class="upload-error" id="uploadError"></div>
         <button class="btn-activate" id="btnUploadBoleta" disabled>
