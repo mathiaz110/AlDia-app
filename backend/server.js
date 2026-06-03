@@ -538,9 +538,24 @@ app.get("/usuario/:id", async (req, res) => {
     const snap = await db.collection("usuarios").doc(id).get();
     if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
     const data = snap.data();
-    // No devolver la contraseña
     const { password, ...resto } = data;
-    res.json({ success:true, usuario:{ id:snap.id, ...resto } });
+
+    // Convertir Timestamps de Firestore a strings ISO para el frontend
+    const convertTimestamp = (val) => {
+      if (!val) return null;
+      if (val._seconds) return new Date(val._seconds * 1000).toISOString();
+      if (val.toDate)   return val.toDate().toISOString();
+      return val;
+    };
+
+    const usuario = {
+      id:         snap.id,
+      ...resto,
+      creadoEn:   convertTimestamp(resto.creadoEn),
+      activadoEn: convertTimestamp(resto.activadoEn),
+    };
+
+    res.json({ success:true, usuario });
   } catch(e) { handleError(res, e, "usuario/get"); }
 });
 
