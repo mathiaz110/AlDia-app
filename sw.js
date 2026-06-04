@@ -72,7 +72,12 @@ self.addEventListener("activate", event => {
       ))
       .then(() => {
         console.log("[SW] Activado. Tomando control de clientes.");
-        return self.clients.claim(); // toma control sin recargar
+        return self.clients.claim();
+      }).then(() => {
+        // Notificar a todos los clientes que el SW se actualizó
+        return self.clients.matchAll({ type:"window" }).then(clients => {
+          clients.forEach(c => c.postMessage({ type:"SW_UPDATED" }));
+        });
       })
   );
 });

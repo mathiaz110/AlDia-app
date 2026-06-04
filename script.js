@@ -1156,6 +1156,11 @@ if("serviceWorker"in navigator){
           });
         });
         navigator.serviceWorker.addEventListener("message",e=>{
+          // SW actualizado — recargar para aplicar cambios
+          if(e.data?.type==="SW_UPDATED"){
+            window.location.reload();
+            return;
+          }
           if(e.data?.type==="ACCOUNT_ACTIVATED"&&State.user){
             State.user.estado="activo";
             saveSession(State.user);
