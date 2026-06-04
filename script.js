@@ -1107,18 +1107,21 @@ function saveSession(u)  {
 function loadSession() {
   try {
     const raw = localStorage.getItem(CFG.sessionKey);
-    if (!raw) return null;
+    if (!raw) { console.info("[Sesión] No hay sesión guardada"); return null; }
     const data = JSON.parse(raw);
+    console.info("[Sesión] Encontrada para:", data.usuario, "| Expira:", data._expira);
     // Verificar si la membresía venció
     if (data._expira && new Date() > new Date(data._expira)) {
-      // Sesión vencida — cerrar y pedir que renueve
       localStorage.removeItem(CFG.sessionKey);
       console.info("[Sesión] Membresía vencida — cerrando sesión");
       return null;
     }
     const { _expira, ...user } = data;
     return user;
-  } catch { return null; }
+  } catch(e) {
+    console.error("[Sesión] Error al cargar:", e);
+    return null;
+  }
 }
 function clearSession()  { localStorage.removeItem(CFG.sessionKey); }
 function getDescargas()  { try{return JSON.parse(localStorage.getItem(CFG.dlKey)||"{}");}catch{return{};} }
