@@ -256,6 +256,11 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
           console.log(`[Push OK] Nueva boleta enviada a ${nombre}: ${msgId.substring(0,20)}...`);
         } catch(pushErr) {
           console.error("[Push ERROR boleta]", pushErr.code, pushErr.message);
+          // Si el token es inválido, eliminarlo de Firestore
+          if (pushErr.code === "messaging/registration-token-not-registered") {
+            await db.collection("usuarios").doc(usuarioId).update({ fcmToken: "no-token" });
+            console.log(`[Token] Eliminado token vencido de ${nombre}`);
+          }
         }
       } else {
         console.warn(`[Push SKIP] Token inválido para ${nombre}`);
@@ -746,6 +751,15 @@ app.post("/avisos/activo", async (req, res) => {
           });
           enviados += resp.successCount;
           console.log(`[Push Aviso] Lote ${i/500+1}: ${resp.successCount} OK, ${resp.failureCount} fail`);
+          // Limpiar tokens inválidos
+          resp.responses.forEach((r, idx) => {
+            if (!r.success && r.error?.code === "messaging/registration-token-not-registered") {
+              const tokenVencido = tokens.slice(i, i+500)[idx];
+              db.collection("usuarios").where("fcmToken","==",tokenVencido).limit(1).get()
+                .then(s => s.forEach(d => d.ref.update({ fcmToken:"no-token" })))
+                .catch(() => {});
+            }
+          });
         } catch(pushErr) {
           console.error("[Push Aviso Error]", pushErr.message);
         }

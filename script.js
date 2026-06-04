@@ -572,7 +572,7 @@ function renderDashboard(user) {
     $("statVencDias") && ($("statVencDias").textContent = fechaVencStr);
     renderBoletas(user);
     checkNovedades();
-    // Mostrar card de instalación
+    checkVencimientoMembresia();
     setTimeout(initInstallCard, 500);
   } else {
     if(memCard) memCard.style.display="none";
@@ -582,6 +582,16 @@ function renderDashboard(user) {
     $("vencAmount") && ($("vencAmount").textContent = "—");
     renderBoletas(null);
     startPendingCheck(); // verificar cada 30s
+  }
+}
+
+function checkVencimientoMembresia() {
+  const hoy    = new Date();
+  const finMes = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0);
+  const diasRestantes = Math.ceil((finMes - hoy) / (1000*60*60*24));
+
+  if (diasRestantes <= 3 && diasRestantes > 0) {
+    toast(`⚠️ Tu membresía vence en ${diasRestantes} día${diasRestantes!==1?"s":""}. Renovála para seguir accediendo.`, "error", 8000);
   }
 }
 
@@ -1085,9 +1095,32 @@ function toast(msg,type="",ms=3200){
 
 const cap     = s => s?s[0].toUpperCase()+s.slice(1):"";
 const escHtml = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-function saveSession(u)  { try{sessionStorage.setItem(CFG.sessionKey,JSON.stringify(u));}catch{} }
-function loadSession()   { try{return JSON.parse(sessionStorage.getItem(CFG.sessionKey));}catch{return null;} }
-function clearSession()  { sessionStorage.removeItem(CFG.sessionKey); }
+function saveSession(u)  {
+  try {
+    // Guardar con fecha de fin de mes como expiración
+    const hoy    = new Date();
+    const finMes = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0, 23, 59, 59);
+    const data   = { ...u, _expira: finMes.toISOString() };
+    localStorage.setItem(CFG.sessionKey, JSON.stringify(data));
+  } catch{}
+}
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(CFG.sessionKey);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    // Verificar si la membresía venció
+    if (data._expira && new Date() > new Date(data._expira)) {
+      // Sesión vencida — cerrar y pedir que renueve
+      localStorage.removeItem(CFG.sessionKey);
+      console.info("[Sesión] Membresía vencida — cerrando sesión");
+      return null;
+    }
+    const { _expira, ...user } = data;
+    return user;
+  } catch { return null; }
+}
+function clearSession()  { localStorage.removeItem(CFG.sessionKey); }
 function getDescargas()  { try{return JSON.parse(localStorage.getItem(CFG.dlKey)||"{}");}catch{return{};} }
 function saveDescarga(id){ try{const d=getDescargas();d[id]=new Date().toISOString();localStorage.setItem(CFG.dlKey,JSON.stringify(d));}catch{} }
 
