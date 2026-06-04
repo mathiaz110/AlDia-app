@@ -251,7 +251,7 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
               notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
               fcmOptions:   { link:"/" },
             },
-            data: { tipo:"nueva-boleta", boletaId:boletaRef.id },
+            data: { tipo:"nueva-boleta", boletaId:boletaRef.id, titulo:"⚡ Nueva boleta disponible", cuerpo:`Tu boleta de ${periodo} ya está lista para descargar. Vence el ${vencimiento}.` },
           });
           console.log(`[Push OK] Nueva boleta enviada a ${nombre}: ${msgId.substring(0,20)}...`);
         } catch(pushErr) {
@@ -566,7 +566,7 @@ app.post("/usuarios/:id/activar", async (req, res) => {
             },
             fcmOptions: { link:"/" },
           },
-          data: { tipo:"cuenta-activada" },
+          data: { tipo:"cuenta-activada", titulo:"✅ Cuenta AlDía activada", cuerpo:`¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa. Podés ver y descargar tus boletas de luz.` },
         });
         console.log(`[Push OK] Cuenta activada enviada: ${msgId.substring(0,20)}...`);
       } catch(pushErr) {
@@ -739,23 +739,16 @@ app.post("/avisos/activo", async (req, res) => {
         try {
           const resp = await messaging.sendEachForMulticast({
             tokens: tokens.slice(i, i+500),
-            notification: {
-              title: `${icono} ${titulo}`,
-              body:  cuerpo.substring(0, 200),
-            },
-            android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#f59e0b", title:`${icono} ${titulo}`, body:cuerpo.substring(0,200) } },
-            apns:     { payload: { aps: { badge:1, sound:"default", alert:{ title:`${icono} ${titulo}`, body:cuerpo.substring(0,200) } } } },
             webpush: {
-              notification: {
-                title:   `${icono} ${titulo}`,
-                body:    cuerpo.substring(0, 200),
-                icon:    "/icons/notification-icon.png",
-                badge:   "/icons/notification-icon.png",
-                vibrate: [200, 100, 200],
-              },
+              headers: { Urgency: "high" },
               fcmOptions: { link: "/" },
             },
-            data: { tipo: tipo || "aviso", titulo: `${icono} ${titulo}`, cuerpo: cuerpo.substring(0,200), ts: Date.now().toString() },
+            data: {
+              tipo:   tipo || "aviso",
+              titulo: `${icono} ${titulo}`,
+              cuerpo: cuerpo.substring(0, 200),
+              ts:     Date.now().toString(),
+            },
           });
           enviados += resp.successCount;
           console.log(`[Push Aviso] Lote ${i/500+1}: ${resp.successCount} OK, ${resp.failureCount} fail`);
