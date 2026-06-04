@@ -241,17 +241,8 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
         try {
           const msgId = await messaging.send({
             token: fcmToken,
-            notification: {
-              title: "⚡ Nueva boleta disponible",
-              body:  `Tu boleta de ${periodo} ya está lista para descargar. Vence el ${vencimiento}.`,
-            },
-            android: { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
-            apns:    { payload: { aps: { badge:1, sound:"default" } } },
-            webpush: {
-              notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
-              fcmOptions:   { link:"/" },
-            },
-            data: { tipo:"nueva-boleta", boletaId:boletaRef.id, titulo:"⚡ Nueva boleta disponible", cuerpo:`Tu boleta de ${periodo} ya está lista para descargar. Vence el ${vencimiento}.` },
+            webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
+            data: { tipo:"nueva-boleta", boletaId:boletaRef.id, titulo:"⚡ Nueva boleta disponible", cuerpo:`Tu boleta de ${periodo} ya está lista. Vence el ${vencimiento}.` },
           });
           console.log(`[Push OK] Nueva boleta enviada a ${nombre}: ${msgId.substring(0,20)}...`);
         } catch(pushErr) {
@@ -427,15 +418,8 @@ app.post("/notificar", notifs, async (req, res) => {
   try {
     const msgId = await messaging.send({
       token,
-      notification: { title:titulo.substring(0,100), body:mensaje.substring(0,500) },
-      android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
-      apns:     { headers:{ "apns-priority":"10" }, payload:{ aps:{ badge:1, sound:"default" } } },
-      webpush:  {
-        headers: { Urgency:"high" },
-        notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
-        fcmOptions: { link:"/" },
-      },
-      data: { tipo:"general", ...data, ts:Date.now().toString() },
+      webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
+      data: { tipo:"general", ...data, titulo:titulo.substring(0,100), cuerpo:mensaje.substring(0,200), ts:Date.now().toString() },
     });
     res.json({ success:true, messageId:msgId, ts:new Date().toISOString() });
   } catch(e) { handleError(res, e, "notificar"); }
@@ -456,12 +440,8 @@ app.post("/notificar-masivo", notifs, async (req, res) => {
       const lote = tokens.slice(i, i+500);
       const resp = await messaging.sendEachForMulticast({
         tokens: lote,
-        notification: { title:titulo, body:mensaje.substring(0,200) },
-        webpush: {
-          notification: { icon:"/icons/notification-icon.png" },
-          fcmOptions:   { link:"/" },
-        },
-        data: { tipo:"masivo", ts:Date.now().toString() },
+        webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
+        data: { tipo: tipo || "aviso", titulo:`${icono} ${titulo}`, cuerpo:cuerpo.substring(0,200), ts:Date.now().toString() },
       });
       enviados += resp.successCount;
       fallidos += resp.failureCount;
@@ -550,23 +530,8 @@ app.post("/usuarios/:id/activar", async (req, res) => {
       try {
         const msgId = await messaging.send({
           token: fcmToken,
-          notification: {
-            title: "✅ Cuenta AlDía activada",
-            body:  `¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa. Podés ver y descargar tus boletas de luz.`,
-          },
-          android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
-          apns:     { payload: { aps: { badge:1, sound:"default" } } },
-          webpush: {
-            notification: {
-              title:   "✅ Cuenta AlDía activada",
-              body:    `¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa. Podés ver y descargar tus boletas de luz.`,
-              icon:    "/icons/notification-icon.png",
-              badge:   "/icons/notification-icon.png",
-              vibrate: [200,100,200],
-            },
-            fcmOptions: { link:"/" },
-          },
-          data: { tipo:"cuenta-activada", titulo:"✅ Cuenta AlDía activada", cuerpo:`¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa. Podés ver y descargar tus boletas de luz.` },
+          webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
+          data: { tipo:"cuenta-activada", titulo:"✅ Cuenta AlDía activada", cuerpo:`¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa.` },
         });
         console.log(`[Push OK] Cuenta activada enviada: ${msgId.substring(0,20)}...`);
       } catch(pushErr) {
@@ -663,17 +628,8 @@ app.post("/registro", async (req, res) => {
       if (adminToken && adminToken.length > 100) {
         await messaging.send({
           token: adminToken,
-          notification: {
-            title: "📋 Nuevo cliente registrado",
-            body:  `${nombre} (DNI: ${dni}) se registró y está esperando activación de su cuenta.`,
-          },
-          android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#00c2ff" } },
-          apns:     { payload: { aps: { badge:1, sound:"default" } } },
-          webpush: {
-            notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png" },
-            fcmOptions: { link: "/admin.html" }
-          },
-          data: { tipo: "nuevo-registro", usuarioId: ref.id },
+          webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/admin.html" } },
+          data: { tipo:"nuevo-registro", usuarioId:ref.id, titulo:"📋 Nuevo cliente registrado", cuerpo:`${nombre} se registró y está esperando activación.` },
         }).catch(e => console.warn("[Push admin]", e.code));
       }
     } catch(e) { /* silencioso si no hay config admin */ }
