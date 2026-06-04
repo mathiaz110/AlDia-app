@@ -557,7 +557,13 @@ app.post("/usuarios/:id/activar", async (req, res) => {
           android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
           apns:     { payload: { aps: { badge:1, sound:"default" } } },
           webpush: {
-            notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
+            notification: {
+              title:   "✅ Cuenta AlDía activada",
+              body:    `¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa. Podés ver y descargar tus boletas de luz.`,
+              icon:    "/icons/notification-icon.png",
+              badge:   "/icons/notification-icon.png",
+              vibrate: [200,100,200],
+            },
             fcmOptions: { link:"/" },
           },
           data: { tipo:"cuenta-activada" },
@@ -737,17 +743,19 @@ app.post("/avisos/activo", async (req, res) => {
               title: `${icono} ${titulo}`,
               body:  cuerpo.substring(0, 200),
             },
-            android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#f59e0b" } },
-            apns:     { payload: { aps: { badge:1, sound:"default" } } },
+            android:  { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#f59e0b", title:`${icono} ${titulo}`, body:cuerpo.substring(0,200) } },
+            apns:     { payload: { aps: { badge:1, sound:"default", alert:{ title:`${icono} ${titulo}`, body:cuerpo.substring(0,200) } } } },
             webpush: {
               notification: {
+                title:   `${icono} ${titulo}`,
+                body:    cuerpo.substring(0, 200),
                 icon:    "/icons/notification-icon.png",
                 badge:   "/icons/notification-icon.png",
                 vibrate: [200, 100, 200],
               },
               fcmOptions: { link: "/" },
             },
-            data: { tipo: tipo || "aviso", ts: Date.now().toString() },
+            data: { tipo: tipo || "aviso", titulo: `${icono} ${titulo}`, cuerpo: cuerpo.substring(0,200), ts: Date.now().toString() },
           });
           enviados += resp.successCount;
           console.log(`[Push Aviso] Lote ${i/500+1}: ${resp.successCount} OK, ${resp.failureCount} fail`);

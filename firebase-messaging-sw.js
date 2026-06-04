@@ -1,8 +1,3 @@
-// ═══════════════════════════════════════════════════
-//  ALDIA APP — firebase-messaging-sw.js
-//  Maneja push notifications en BACKGROUND
-// ═══════════════════════════════════════════════════
-
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
 
@@ -18,17 +13,28 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// onBackgroundMessage solo se llama cuando el mensaje NO tiene
-// campo "notification" (data-only messages).
-// Si el mensaje tiene "notification", FCM lo muestra automáticamente
-// sin necesidad de llamar showNotification — evita duplicados.
+// Cuando la app está en background — FCM muestra automáticamente
+// la notificación si tiene campo "notification".
+// onBackgroundMessage solo se llama para mensajes data-only (sin "notification")
 messaging.onBackgroundMessage((payload) => {
-  console.log("[FCM Background] Mensaje data-only recibido:", payload.data);
-  // No llamar showNotification aquí para evitar duplicados.
-  // FCM ya muestra la notificación automáticamente con el campo notification.
+  // Si ya tiene notification, FCM lo muestra solo — no hacer nada
+  if (payload.notification?.title) return;
+
+  // Solo mostrar manualmente si es data-only
+  const titulo = payload.data?.titulo || "AlDía";
+  const cuerpo = payload.data?.cuerpo || "Tenés una notificación nueva";
+
+  self.registration.showNotification(titulo, {
+    body:    cuerpo,
+    icon:    "/icons/notification-icon.png",
+    badge:   "/icons/notification-icon.png",
+    tag:     "aldia-notif",
+    vibrate: [200, 100, 200],
+    data:    payload.data || {},
+  });
 });
 
-// Click en notificación — abrir la app
+// Click en notificación
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const tipo = event.notification.data?.tipo || "";
