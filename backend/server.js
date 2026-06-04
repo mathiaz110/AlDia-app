@@ -236,21 +236,29 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
     const userDoc = await db.collection("usuarios").doc(usuarioId).get();
     if (userDoc.exists) {
       const { fcmToken, nombre = "Cliente" } = userDoc.data();
-      if (fcmToken && fcmToken !== "no-token" && fcmToken.length > 100) {
-        await messaging.send({
-          token: fcmToken,
-          notification: {
-            title: "⚡ Nueva boleta disponible",
-            body:  `Tu boleta de ${periodo} ya está lista para descargar. Vence el ${vencimiento}.`,
-          },
-          android: { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
-          apns:    { payload: { aps: { badge:1, sound:"default" } } },
-          webpush: {
-            notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
-            fcmOptions:   { link:"/" },
-          },
-          data: { tipo:"nueva-boleta", boletaId:boletaRef.id },
-        }).catch(e => console.warn("[Push boleta]", e.code));
+      console.log(`[Push boleta] Token: ${fcmToken?.substring(0,20)}... largo: ${fcmToken?.length}`);
+      if (fcmToken && fcmToken !== "no-token" && fcmToken.length > 50) {
+        try {
+          const msgId = await messaging.send({
+            token: fcmToken,
+            notification: {
+              title: "⚡ Nueva boleta disponible",
+              body:  `Tu boleta de ${periodo} ya está lista para descargar. Vence el ${vencimiento}.`,
+            },
+            android: { priority:"high", notification:{ channelId:"aldia_main", sound:"default", color:"#39ff8f" } },
+            apns:    { payload: { aps: { badge:1, sound:"default" } } },
+            webpush: {
+              notification: { icon:"/icons/notification-icon.png", badge:"/icons/notification-icon.png", vibrate:[200,100,200] },
+              fcmOptions:   { link:"/" },
+            },
+            data: { tipo:"nueva-boleta", boletaId:boletaRef.id },
+          });
+          console.log(`[Push OK] Nueva boleta enviada a ${nombre}: ${msgId.substring(0,20)}...`);
+        } catch(pushErr) {
+          console.error("[Push ERROR boleta]", pushErr.code, pushErr.message);
+        }
+      } else {
+        console.warn(`[Push SKIP] Token inválido para ${nombre}`);
       }
     }
 
