@@ -225,7 +225,7 @@ function startPendingCheck() {
       showDashboard(actualizado);
       toast("✅ Tu cuenta fue activada. ¡Bienvenido!", "success", 5000);
     }
-  }, 30000);
+  }, 5000); // verificar cada 5 segundos
 }
 
 function stopPendingCheck() {
@@ -266,7 +266,15 @@ $("btnGoRegister")?.addEventListener("click", () => {
 $("btnGoLogin")?.addEventListener("click",    () => { goTo("auth"); switchTab("login"); });
 $("btnBackAuth")?.addEventListener("click",   () => goTo("benefits"));
 $("btnBackNov")?.addEventListener("click",    () => goTo("dashboard"));
-$("btnGoToDash")?.addEventListener("click",   () => showDashboard(State.user));
+$("btnGoToDash")?.addEventListener("click", async () => {
+  // Verificar estado actualizado antes de ir al dashboard
+  if (State.user?.id) {
+    const actualizado = await verificarEstadoUsuario(State.user);
+    State.user = actualizado;
+    saveSession(actualizado);
+  }
+  showDashboard(State.user);
+});
 
 $("btnLogoutUser")?.addEventListener("click", () => {
   clearSession(); stopPendingCheck();
@@ -430,7 +438,7 @@ async function handleRegister() {
     saveSession(State.user);
     goTo("pending");
     toast("¡Registro exitoso!", "success");
-    // Iniciar verificación de estado
+    // Iniciar verificación de estado cada 5 segundos
     startPendingCheck();
 
   } catch(e) {
