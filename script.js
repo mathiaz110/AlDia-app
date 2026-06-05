@@ -178,7 +178,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   const obDone = localStorage.getItem(CFG.obKey);
   setTimeout(() => {
     hideSplash();
-    if (obDone) goTo("benefits");
+    if (obDone) goTo("auth"); // Si ya vio el onboarding, ir directo al login
     else        goTo("onboarding");
   }, 1400);
 });
@@ -1142,24 +1142,11 @@ if("serviceWorker"in navigator){
   window.addEventListener("load",()=>{
     navigator.serviceWorker.register("/sw.js")
       .then(reg=>{
-        reg.addEventListener("updatefound",()=>{
-          const nw=reg.installing;
-          nw?.addEventListener("statechange",()=>{
-            if(nw.state==="installed"&&navigator.serviceWorker.controller){
-              // Mostrar banner solo cuando hay actualización real
-              const banner = $("updateBanner");
-              if (banner) {
-                banner.style.display = "";
-                banner.classList.add("show");
-              }
-            }
-          });
-        });
+        // No mostrar banner de actualización automáticamente
+        // Se actualiza en segundo plano sin molestar al usuario
         navigator.serviceWorker.addEventListener("message",e=>{
-          // SW actualizado — no recargar automáticamente para evitar loops
-          if(e.data?.type==="SW_UPDATED"){
-            return;
-          }
+          // SW actualizado — ignorar, el banner no se muestra automáticamente
+          if(e.data?.type==="SW_UPDATED") return;
           if(e.data?.type==="ACCOUNT_ACTIVATED"&&State.user){
             State.user.estado="activo";
             saveSession(State.user);
@@ -1181,11 +1168,11 @@ if("serviceWorker"in navigator){
       }).catch(e=>console.warn("[SW]",e));
   });
 
-  $("btnUpdateAccept")?.addEventListener("click",async()=>{
-    const reg=await navigator.serviceWorker.getRegistration();
-    if(reg?.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
+  $("btnUpdateAccept")?.addEventListener("click", async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg?.waiting) reg.waiting.postMessage({ type:"SKIP_WAITING" });
     const ub = $("updateBanner");
     if (ub) { ub.classList.remove("show"); ub.style.display = "none"; }
-    setTimeout(()=>window.location.reload(),300);
+    // No recargar — evita cerrar la sesión
   });
 }
