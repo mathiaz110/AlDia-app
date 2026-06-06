@@ -212,58 +212,10 @@ function offlinePage() {
 }
 
 // ════════════════════════════════════════════════════
-//  PUSH NOTIFICATIONS — foreground
+//  PUSH NOTIFICATIONS
+//  Manejadas por firebase-messaging-sw.js (FCM)
+//  No duplicar aquí para evitar notificaciones dobles
 // ════════════════════════════════════════════════════
-self.addEventListener("push", event => {
-  let data = { title:"AlDía", body:"Tenés una notificación nueva" };
-  try { data = event.data?.json() || data; }
-  catch { data.body = event.data?.text() || data.body; }
-
-  event.waitUntil(
-    self.registration.showNotification(data.title || "AlDía", {
-      body:    data.body,
-      icon:    "/icons/notification-icon.png",
-      badge:   "/icons/notification-icon.png",
-      tag:     "aldia-notif",
-      renotify: true,
-      vibrate: [200, 100, 200, 100, 200],
-      silent:  false,
-      data:    { url: data.url || "/" },
-      actions: [
-        { action:"open",    title:"Ver app" },
-        { action:"dismiss", title:"Cerrar"  },
-      ],
-    })
-  );
-});
-
-// ════════════════════════════════════════════════════
-//  NOTIFICATION CLICK
-// ════════════════════════════════════════════════════
-self.addEventListener("notificationclick", event => {
-  event.notification.close();
-  if (event.action === "dismiss") return;
-
-  const tipo = event.notification.data?.tipo || "";
-  // Según el tipo de notificación, ir a la pantalla correcta
-  let url = "/";
-  if (tipo === "nuevo-registro") url = "/admin.html";
-
-  event.waitUntil(
-    clients.matchAll({ type:"window", includeUncontrolled:true })
-      .then(clientList => {
-        for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && "focus" in client) {
-            // Mandar mensaje para que la app navegue al dashboard
-            client.postMessage({ type:"NOTIFICATION_CLICKED", url, tipo });
-            return client.focus();
-          }
-        }
-        // Si la app no está abierta → abrirla
-        return clients.openWindow(url);
-      })
-  );
-});
 
 // ════════════════════════════════════════════════════
 //  SYNC EN BACKGROUND — cuando vuelve la conexión

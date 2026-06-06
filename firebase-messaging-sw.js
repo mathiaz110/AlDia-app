@@ -13,22 +13,21 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Cuando la app está en background — FCM muestra automáticamente
-// la notificación si tiene campo "notification".
-// onBackgroundMessage solo se llama para mensajes data-only (sin "notification")
+// Todos los mensajes son data-only — siempre mostrar manualmente
+// con el título y cuerpo del campo data
 messaging.onBackgroundMessage((payload) => {
-  // Si ya tiene notification, FCM lo muestra solo — no hacer nada
-  if (payload.notification?.title) return;
+  const titulo = payload.data?.titulo || payload.notification?.title || "AlDía";
+  const cuerpo = payload.data?.cuerpo || payload.notification?.body  || "Tenés una notificación nueva";
+  const tipo   = payload.data?.tipo   || "";
 
-  // Solo mostrar manualmente si es data-only
-  const titulo = payload.data?.titulo || "AlDía";
-  const cuerpo = payload.data?.cuerpo || "Tenés una notificación nueva";
+  console.log("[FCM BG] Mostrando:", titulo, "|", cuerpo);
 
   self.registration.showNotification(titulo, {
     body:    cuerpo,
     icon:    "/icons/notification-icon.png",
     badge:   "/icons/notification-icon.png",
-    tag:     "aldia-notif",
+    tag:     "aldia-" + tipo,
+    renotify: true,
     vibrate: [200, 100, 200],
     data:    payload.data || {},
   });
