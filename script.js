@@ -104,31 +104,37 @@ function goTo(name) {
 async function obtenerFCMToken() {
   if (!messaging) return null;
   try {
-    // Siempre registrar el SW primero para garantizar token fresco
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") { console.warn("[FCM] Permiso denegado"); return null; }
+
+    // Limpiar SWs viejos de FCM y registrar uno fresco
     let swReg = null;
     if ("serviceWorker" in navigator) {
       try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          if (reg.active?.scriptURL?.includes("firebase-messaging-sw")) {
+            const esViejo = reg.scope.includes("firebase-cloud-messaging-push-scope");
+            if (esViejo) {
+              await reg.unregister();
+              console.info("[FCM] SW viejo eliminado");
+            }
+          }
+        }
         swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
         await navigator.serviceWorker.ready;
+        console.info("[FCM] SW registrado OK");
       } catch(e) { console.warn("[SW FCM]", e.message); }
     }
 
-    const perm = await Notification.requestPermission();
-    if (perm !== "granted") {
-      console.warn("[FCM] Permiso denegado");
-      return null;
-    }
-
-    // Siempre solicitar token fresco — no usar caché
     const token = await getToken(messaging, {
-      vapidKey:        CFG.vapidKey,
+      vapidKey: CFG.vapidKey,
       serviceWorkerRegistration: swReg || undefined,
     });
 
     if (token) {
-      // Solo actualizar si el token cambió
       if (token !== State.fcmToken) {
-        console.info("[FCM] Token nuevo/actualizado:", token.substring(0,20) + "…");
+        console.info("[FCM] Token nuevo:", token.substring(0,20) + "…");
         State.fcmToken = token;
       } else {
         console.info("[FCM] Token sin cambios:", token.substring(0,20) + "…");
@@ -349,15 +355,6 @@ async function handleLogin() {
     saveSession(data.usuario);
     showDashboard(data.usuario);
     toast("Bienvenido ✓", "success");
-
-    // Actualizar token FCM después del login (puede haber cambiado)
-    setTimeout(async () => {
-      const nuevoToken = await obtenerFCMToken();
-      if (nuevoToken && nuevoToken !== data.usuario.fcmToken) {
-        console.info("[FCM] Actualizando token post-login…");
-        actualizarTokenBackend(data.usuario.id, nuevoToken);
-      }
-    }, 2000);
   } catch(e) {
     console.error("[Login]", e);
     if(errEl) errEl.textContent = "Error al ingresar. Intentá de nuevo.";
