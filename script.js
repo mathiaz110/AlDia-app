@@ -102,10 +102,9 @@ function goTo(name) {
 //  FCM TOKEN — obtener y guardar
 // ════════════════════════════════════════════════════
 async function obtenerFCMToken() {
-  if (State.fcmToken) return State.fcmToken;
   if (!messaging) return null;
   try {
-    // Primero registrar el SW
+    // Siempre registrar el SW primero para garantizar token fresco
     let swReg = null;
     if ("serviceWorker" in navigator) {
       try {
@@ -120,14 +119,20 @@ async function obtenerFCMToken() {
       return null;
     }
 
+    // Siempre solicitar token fresco — no usar caché
     const token = await getToken(messaging, {
       vapidKey:        CFG.vapidKey,
       serviceWorkerRegistration: swReg || undefined,
     });
 
     if (token) {
-      State.fcmToken = token;
-      console.info("[FCM] Token obtenido:", token.substring(0,20) + "…");
+      // Solo actualizar si el token cambió
+      if (token !== State.fcmToken) {
+        console.info("[FCM] Token nuevo/actualizado:", token.substring(0,20) + "…");
+        State.fcmToken = token;
+      } else {
+        console.info("[FCM] Token sin cambios:", token.substring(0,20) + "…");
+      }
     }
     return token;
   } catch(e) {
@@ -344,6 +349,15 @@ async function handleLogin() {
     saveSession(data.usuario);
     showDashboard(data.usuario);
     toast("Bienvenido ✓", "success");
+
+    // Actualizar token FCM después del login (puede haber cambiado)
+    setTimeout(async () => {
+      const nuevoToken = await obtenerFCMToken();
+      if (nuevoToken && nuevoToken !== data.usuario.fcmToken) {
+        console.info("[FCM] Actualizando token post-login…");
+        actualizarTokenBackend(data.usuario.id, nuevoToken);
+      }
+    }, 2000);
   } catch(e) {
     console.error("[Login]", e);
     if(errEl) errEl.textContent = "Error al ingresar. Intentá de nuevo.";
