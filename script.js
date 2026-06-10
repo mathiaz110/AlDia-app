@@ -288,7 +288,7 @@ $("btnNovAvisos")?.addEventListener("click", () => {
 $("btnSupport")?.addEventListener("click", () => {
   const n = State.user?.nombre || "Cliente";
   const c = State.user?.nroCliente || "—";
-  window.open(`https://wa.me/${CFG.soporteWA}?text=${encodeURIComponent(`Hola AlDía Digital, soy ${n} (N° ${c}). Necesito ayuda con:`)}`, "_blank");
+  window.open(`https://wa.me/${CFG.soporteWA}?text=${encodeURIComponent(`Hola AlDía, soy ${n} (N° ${c}). Necesito ayuda con:`)}`, "_blank");
 });
 // btnPayLink ahora copia el número de billetera (ver sección COPIAR NÚMERO BILLETERA)
 
@@ -803,6 +803,13 @@ function initInstallCard() {
   if (isInstalled) { card.style.display = "none"; return; }
   card.classList.add("visible");
 
+  // Actualizar botones según si hay prompt disponible
+  const canInstall = !!deferredInstallPrompt;
+  const isAndroid  = /Android/i.test(navigator.userAgent);
+  const isIOS      = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (canInstall && isAndroid)    $("btnInstallAndroid") && ($("btnInstallAndroid").innerHTML = "⚡ Instalar ahora");
+  if (canInstall && !isAndroid && !isIOS) $("btnInstallPC") && ($("btnInstallPC").innerHTML = "⚡ Instalar ahora");
+
   // ── Android ──────────────────────────────────────
   $("btnInstallAndroid")?.addEventListener("click", async () => {
     if (deferredInstallPrompt) {
@@ -861,34 +868,36 @@ function showInstallGuide(plataforma) {
       titulo: "🤖 Instalar en Android",
       pasos: [
         { n:"1", txt:"Abrí <strong>Chrome</strong> en tu celular y entrá a <code>aldia-app1.web.app</code>" },
-        { n:"2", txt:"Tocá los <strong>3 puntitos</strong> ⋮ arriba a la derecha" },
-        { n:"3", txt:'Seleccioná <strong>"Agregar a pantalla de inicio"</strong>' },
-        { n:"4", txt:'Tocá <strong>"Agregar"</strong> en el cuadro que aparece' },
+        { n:"2", txt:"Tocá los <strong>3 puntitos ⋮</strong> arriba a la derecha del navegador" },
+        { n:"3", txt:"Tocá <strong>\"Agregar a pantalla de inicio\"</strong> o <strong>\"Instalar aplicación\"</strong>" },
+        { n:"4", txt:"Tocá <strong>\"Instalar\"</strong> en el cuadro que aparece" },
         { n:"5", txt:"✅ El ícono de AlDía Digital aparece en tu pantalla de inicio" },
+        { n:"💡", txt:"<em>Para que las notificaciones funcionen siempre: Ajustes → Apps → AlDía Digital → Batería → Sin restricciones</em>" },
       ]
     },
     ios: {
       titulo: "🍎 Instalar en iPhone / iPad",
       pasos: [
-        { n:"1", txt:"Abrí <strong>Safari</strong> (no Chrome) y entrá a <code>aldia-app1.web.app</code>" },
-        { n:"2", txt:"Tocá el ícono de compartir <strong>□↑</strong> en la barra inferior" },
-        { n:"3", txt:'Deslizá hacia abajo y tocá <strong>"Agregar a pantalla de inicio"</strong>' },
-        { n:"4", txt:'Tocá <strong>"Agregar"</strong> arriba a la derecha' },
-        { n:"5", txt:"✅ El ícono de AlDía Digital aparece en tu pantalla de inicio" },
+        { n:"1", txt:"Abrí <strong>Safari</strong> — no funciona con Chrome en iPhone" },
+        { n:"2", txt:"Entrá a <code>aldia-app1.web.app</code>" },
+        { n:"3", txt:"Tocá el botón compartir <strong>□↑</strong> en la barra inferior de Safari" },
+        { n:"4", txt:"Deslizá la lista y tocá <strong>\"Agregar a pantalla de inicio\"</strong>" },
+        { n:"5", txt:"Escribí el nombre y tocá <strong>\"Agregar\"</strong> arriba a la derecha" },
+        { n:"6", txt:"✅ El ícono de AlDía Digital aparece en tu pantalla de inicio" },
+        { n:"⚠️", txt:"<em>Notificaciones push requieren iOS 16.4 o superior con la app instalada desde Safari</em>" },
       ]
     },
     pc: {
       titulo: "💻 Instalar en PC / Windows",
       pasos: [
-        { n:"1", txt:"Abrí <strong>Edge o Chrome</strong> y entrá a <code>aldia-app1.web.app</code>" },
-        { n:"2", txt:"Hacé clic en los <strong>3 puntitos</strong> ··· arriba a la derecha" },
-        { n:"3", txt:'Buscá <strong>"Aplicaciones"</strong> o <strong>"Apps"</strong>' },
-        { n:"4", txt:'Clic en <strong>"Instalar este sitio como aplicación"</strong>' },
-        { n:"5", txt:'Clic en <strong>"Instalar"</strong> en el cuadro que aparece' },
-        { n:"6", txt:"✅ AlDía Digital aparece como app en el escritorio de Windows" },
+        { n:"1", txt:"Abrí <strong>Chrome o Edge</strong> y entrá a <code>aldia-app1.web.app</code>" },
+        { n:"2", txt:"Buscá el ícono <strong>⊕</strong> en la barra de direcciones (derecha)" },
+        { n:"3", txt:"Si no aparece: clic en <strong>3 puntitos ···</strong> → <strong>\"Instalar AlDía Digital\"</strong>" },
+        { n:"4", txt:"Clic en <strong>\"Instalar\"</strong> en el cuadro que aparece" },
+        { n:"5", txt:"✅ AlDía Digital aparece como app en tu escritorio de Windows" },
       ]
     }
-  };
+  };;
 
   const guia = guias[plataforma];
   if (!guia) return;
@@ -1066,7 +1075,7 @@ function validateForm() {
 // ════════════════════════════════════════════════════
 if(messaging){
   onMessage(messaging, payload=>{
-    const{title="AlDía Digital",body=""}=payload.notification||{};
+    const{title="AlDía",body=""}=payload.notification||{};
     toast(`${title}: ${body}`,"success",5000);
     // Si se activó la cuenta, actualizar dashboard
     if(payload.data?.tipo==="cuenta-activada" && State.user){
