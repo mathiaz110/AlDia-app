@@ -805,6 +805,8 @@ function initInstallCard() {
 
   // Actualizar botones según si hay prompt disponible
   const canInstall = !!deferredInstallPrompt;
+  const isAndroid  = /Android/i.test(navigator.userAgent);
+  const isIOS      = /iPad|iPhone|iPod/.test(navigator.userAgent);
   if (canInstall && isAndroid)    $("btnInstallAndroid") && ($("btnInstallAndroid").innerHTML = "⚡ Instalar ahora");
   if (canInstall && !isAndroid && !isIOS) $("btnInstallPC") && ($("btnInstallPC").innerHTML = "⚡ Instalar ahora");
 
