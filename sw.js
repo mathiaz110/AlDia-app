@@ -3,9 +3,9 @@
 //  Service Worker: cache + offline + install prompt
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME    = "aldia-v1.0.6";
-const CACHE_STATIC  = "aldia-static-v1.0.6";
-const CACHE_DYNAMIC = "aldia-dynamic-v1.0.6";
+const CACHE_NAME    = "aldia-v1.0.10";
+const CACHE_STATIC  = "aldia-static-v1.0.10";
+const CACHE_DYNAMIC = "aldia-dynamic-v1.0.10";
 
 // Recursos que se cachean al instalar (shell de la app)
 const STATIC_ASSETS = [
@@ -41,7 +41,7 @@ const NEVER_CACHE = [
 //  INSTALL — pre-cachear shell de la app
 // ════════════════════════════════════════════════════
 self.addEventListener("install", event => {
-  console.log("[SW] Instalando v5...");
+  console.log("[SW] Instalando v1.0.10...");
   event.waitUntil(
     caches.open(CACHE_STATIC)
       .then(cache => cache.addAll(
@@ -59,7 +59,7 @@ self.addEventListener("install", event => {
 //  ACTIVATE — limpiar caches viejas
 // ════════════════════════════════════════════════════
 self.addEventListener("activate", event => {
-  console.log("[SW] Activando v5...");
+  console.log("[SW] Activando v1.0.10...");
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
@@ -188,7 +188,7 @@ function offlinePage() {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>AlDía — Sin conexión</title>
+  <title>AlDía Digital — Sin conexión</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:sans-serif;background:#070b14;color:#f0f4ff;
