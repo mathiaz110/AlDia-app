@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=1.0.11" />
 </head>
 <body class="admin-body">
 
@@ -144,14 +144,6 @@
           <div class="stat-value" id="statActive">—</div>
           <div class="stat-label">Activos</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="--c:#f59e0b">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 4v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="10" r="2" fill="currentColor"/></svg>
-          </div>
-          <div class="stat-value" id="statIngresos" style="font-size:13px">—</div>
-          <div class="stat-label">Ingresos/mes</div>
-          <div style="font-size:10px;color:var(--text-3);margin-top:2px">$2.247,25 × activos</div>
-        </div>
       </div>
 
       <!-- FILTERS & SEARCH -->
@@ -264,7 +256,7 @@
   <!-- TOAST -->
   <div id="toast" class="toast"></div>
 
-  <script type="module" src="admin.js?v=1.0.32"></script>
+  <script type="module" src="admin.js?v=1.0.11"></script>
   <script>
     // Registrar Service Worker para notificaciones push en el admin
     if ("serviceWorker" in navigator) {
