@@ -288,7 +288,7 @@ $("btnNovAvisos")?.addEventListener("click", () => {
 $("btnSupport")?.addEventListener("click", () => {
   const n = State.user?.nombre || "Cliente";
   const c = State.user?.nroCliente || "—";
-  window.open(`https://wa.me/${CFG.soporteWA}?text=${encodeURIComponent(`Hola AlDía, soy ${n} (N° ${c}). Necesito ayuda con:`)}`, "_blank");
+  window.open(`https://wa.me/${CFG.soporteWA}?text=${encodeURIComponent(`Hola AlDía Digital, soy ${n} (N° ${c}). Necesito ayuda con:`)}`, "_blank");
 });
 // btnPayLink ahora copia el número de billetera (ver sección COPIAR NÚMERO BILLETERA)
 
@@ -864,7 +864,7 @@ function showInstallGuide(plataforma) {
         { n:"2", txt:"Tocá los <strong>3 puntitos</strong> ⋮ arriba a la derecha" },
         { n:"3", txt:'Seleccioná <strong>"Agregar a pantalla de inicio"</strong>' },
         { n:"4", txt:'Tocá <strong>"Agregar"</strong> en el cuadro que aparece' },
-        { n:"5", txt:"✅ El ícono de AlDía aparece en tu pantalla de inicio" },
+        { n:"5", txt:"✅ El ícono de AlDía Digital aparece en tu pantalla de inicio" },
       ]
     },
     ios: {
@@ -874,7 +874,7 @@ function showInstallGuide(plataforma) {
         { n:"2", txt:"Tocá el ícono de compartir <strong>□↑</strong> en la barra inferior" },
         { n:"3", txt:'Deslizá hacia abajo y tocá <strong>"Agregar a pantalla de inicio"</strong>' },
         { n:"4", txt:'Tocá <strong>"Agregar"</strong> arriba a la derecha' },
-        { n:"5", txt:"✅ El ícono de AlDía aparece en tu pantalla de inicio" },
+        { n:"5", txt:"✅ El ícono de AlDía Digital aparece en tu pantalla de inicio" },
       ]
     },
     pc: {
@@ -885,7 +885,7 @@ function showInstallGuide(plataforma) {
         { n:"3", txt:'Buscá <strong>"Aplicaciones"</strong> o <strong>"Apps"</strong>' },
         { n:"4", txt:'Clic en <strong>"Instalar este sitio como aplicación"</strong>' },
         { n:"5", txt:'Clic en <strong>"Instalar"</strong> en el cuadro que aparece' },
-        { n:"6", txt:"✅ AlDía aparece como app en el escritorio de Windows" },
+        { n:"6", txt:"✅ AlDía Digital aparece como app en el escritorio de Windows" },
       ]
     }
   };
@@ -1066,7 +1066,7 @@ function validateForm() {
 // ════════════════════════════════════════════════════
 if(messaging){
   onMessage(messaging, payload=>{
-    const{title="AlDía",body=""}=payload.notification||{};
+    const{title="AlDía Digital",body=""}=payload.notification||{};
     toast(`${title}: ${body}`,"success",5000);
     // Si se activó la cuenta, actualizar dashboard
     if(payload.data?.tipo==="cuenta-activada" && State.user){
