@@ -159,6 +159,10 @@ function updateStats() {
   if ($("statTotal"))   $("statTotal").textContent   = allUsers.length;
   if ($("statPending")) $("statPending").textContent = allUsers.filter(u=>u.estado==="pendiente").length;
   if ($("statActive"))  $("statActive").textContent  = allUsers.filter(u=>u.estado==="activo").length;
+  // Contador de ingresos
+  const activos = allUsers.filter(u=>u.estado==="activo").length;
+  const ingresos = activos * 2247.25;
+  if ($("statIngresos")) $("statIngresos").textContent = "$" + ingresos.toLocaleString("es-AR", {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
 // ════════════════════════════════════════════════════

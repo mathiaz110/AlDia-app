@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>AlDía Digital — Panel Admin</title>
+  <title>AlDía — Panel Admin</title>
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
   <meta name="theme-color" content="#0a0e1a" />
@@ -114,7 +114,7 @@
               <defs><linearGradient id="tbg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs>
             </svg>
           </div>
-          <span>AlDía Digital Admin</span>
+          <span>AlDía Admin</span>
         </div>
         <button class="btn-logout-mob" id="btnLogoutMob" title="Salir">
           <svg viewBox="0 0 20 20" fill="none"><path d="M7 3H4a1 1 0 00-1 1v12a1 1 0 001 1h3M13 15l4-5-4-5M17 10H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -143,6 +143,14 @@
           </div>
           <div class="stat-value" id="statActive">—</div>
           <div class="stat-label">Activos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="--c:#f59e0b">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 4v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="10" r="2" fill="currentColor"/></svg>
+          </div>
+          <div class="stat-value" id="statIngresos" style="font-size:13px">—</div>
+          <div class="stat-label">Ingresos/mes</div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px">$2.247,25 × activos</div>
         </div>
       </div>
 
@@ -256,7 +264,7 @@
   <!-- TOAST -->
   <div id="toast" class="toast"></div>
 
-  <script type="module" src="admin.js?v=1.0.35"></script>
+  <script type="module" src="admin.js?v=1.0.32"></script>
   <script>
     // Registrar Service Worker para notificaciones push en el admin
     if ("serviceWorker" in navigator) {

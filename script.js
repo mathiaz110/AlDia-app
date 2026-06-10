@@ -25,7 +25,7 @@ const CFG = Object.freeze({
     measurementId:     "G-28VQ7VM4KS",
   },
   alias:      "contrerassmathias",
-  monto:      "$2.200",
+  monto:      "$2.500",
   mpLink:     "https://mpago.la/2bugXHU",
   vapidKey:   "BCTslJPoTqAMsjQS_J6obznv5ZUDo2o3dYbRNK6cnMJokpsOv0cPKHZNNtPOZ7QbpLFTpu4IfH6UMHhrlo3r0ao",
   backendUrl: "https://aldia-app-production.up.railway.app",
