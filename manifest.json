@@ -1,7 +1,7 @@
 {
-  "name": "AlDía App",
-  "short_name": "AlDía",
-  "description": "Tu boleta de luz siempre al día. Recibila por WhatsApp y descargala cuando quieras.",
+  "name": "AlDía Digital",
+  "short_name": "AlDía Digital",
+  "description": "Tu boleta de luz siempre al día. Descargala cuando quieras con AlDía Digital.",
   "start_url": "/?pwa=1",
   "id": "/",
   "display": "standalone",
@@ -60,7 +60,7 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Pantalla de inicio AlDía App"
+      "label": "Pantalla de inicio AlDía Digital"
     }
   ],
 

@@ -102,43 +102,32 @@ function goTo(name) {
 //  FCM TOKEN — obtener y guardar
 // ════════════════════════════════════════════════════
 async function obtenerFCMToken() {
+  if (State.fcmToken) return State.fcmToken;
   if (!messaging) return null;
   try {
-    const perm = await Notification.requestPermission();
-    if (perm !== "granted") { console.warn("[FCM] Permiso denegado"); return null; }
-
-    // Limpiar SWs viejos de FCM y registrar uno fresco
+    // Primero registrar el SW
     let swReg = null;
     if ("serviceWorker" in navigator) {
       try {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        for (const reg of regs) {
-          if (reg.active?.scriptURL?.includes("firebase-messaging-sw")) {
-            const esViejo = reg.scope.includes("firebase-cloud-messaging-push-scope");
-            if (esViejo) {
-              await reg.unregister();
-              console.info("[FCM] SW viejo eliminado");
-            }
-          }
-        }
         swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
         await navigator.serviceWorker.ready;
-        console.info("[FCM] SW registrado OK");
       } catch(e) { console.warn("[SW FCM]", e.message); }
     }
 
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") {
+      console.warn("[FCM] Permiso denegado");
+      return null;
+    }
+
     const token = await getToken(messaging, {
-      vapidKey: CFG.vapidKey,
+      vapidKey:        CFG.vapidKey,
       serviceWorkerRegistration: swReg || undefined,
     });
 
     if (token) {
-      if (token !== State.fcmToken) {
-        console.info("[FCM] Token nuevo:", token.substring(0,20) + "…");
-        State.fcmToken = token;
-      } else {
-        console.info("[FCM] Token sin cambios:", token.substring(0,20) + "…");
-      }
+      State.fcmToken = token;
+      console.info("[FCM] Token obtenido:", token.substring(0,20) + "…");
     }
     return token;
   } catch(e) {
