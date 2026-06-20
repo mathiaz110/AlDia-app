@@ -443,7 +443,13 @@ async function handleRegister() {
 
   } catch(e) {
     console.error("[Registro]", e);
-    if(errEl) errEl.textContent = "Error al registrar. Intentá de nuevo.";
+    // Detectar error de conexión segura (típico en Android viejo con certificados desactualizados)
+    const esErrorRed = e.name === "TypeError" || e.message?.includes("Failed to fetch") || e.message?.includes("NetworkError");
+    if(errEl) {
+      errEl.textContent = esErrorRed
+        ? "No se pudo conectar al servidor. Si tu celular es muy antiguo, probá actualizarlo o usar otro dispositivo."
+        : "Error al registrar. Intentá de nuevo.";
+    }
   } finally {
     State.loading = false;
     setLoading("btnRegStep2", false, "Ya pagué — Registrarme");
