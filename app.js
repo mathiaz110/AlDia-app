@@ -79,6 +79,18 @@ const State = {
   refreshTimer:  null,
 };
 
+// ── Instalación PWA — capturar evento beforeinstallprompt ──
+let deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  console.info("[Install] beforeinstallprompt capturado — instalación directa disponible");
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  console.info("[Install] App instalada");
+});
+
 // ════════════════════════════════════════════════════
 //  DOM HELPERS
 // ════════════════════════════════════════════════════
