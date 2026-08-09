@@ -536,6 +536,111 @@ function showDashboard(user) {
   }, 400);
 }
 
+// ════════════════════════════════════════════════════
+//  BANNER TELEGRAM
+// ════════════════════════════════════════════════════
+function mostrarBannerTelegram() {
+  // Solo para clientes activos, solo una vez
+  if (localStorage.getItem("telegramBannerVisto")) return;
+
+  // Detectar si ya tiene Telegram instalado (no es posible saberlo con certeza,
+  // pero intentamos abrir el deep link y si falla mostramos la tienda)
+  const esAndroid = /android/i.test(navigator.userAgent);
+  const esIOS     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  // Links directos a las tiendas
+  const urlAndroid = "https://play.google.com/store/apps/details?id=org.telegram.messenger";
+  const urlIOS     = "https://apps.apple.com/app/telegram-messenger/id686449807";
+
+  // Crear banner
+  const banner = document.createElement("div");
+  banner.id = "telegramBanner";
+  banner.style.cssText = `
+    margin: 0 0 16px 0;
+    background: linear-gradient(135deg, rgba(39,174,226,.12), rgba(0,194,255,.08));
+    border: 1px solid rgba(39,174,226,.3);
+    border-radius: 16px;
+    padding: 16px;
+    animation: slideDown .3s ease;
+  `;
+
+  banner.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:38px;height:38px;border-radius:12px;background:rgba(39,174,226,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">
+          ✈️
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:2px">Recibí novedades al instante</div>
+          <div style="font-size:12px;color:var(--text-3);line-height:1.4">Verificá la app diariamente o descargá Telegram para recibir avisos y boletas sin entrar.</div>
+        </div>
+      </div>
+      <button id="btnCerrarTelegram" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer;padding:2px;flex-shrink:0;line-height:1">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${esIOS ? `
+        <a href="${urlIOS}" target="_blank" rel="noopener" style="
+          flex:1;min-width:130px;display:flex;align-items:center;justify-content:center;gap:7px;
+          padding:10px 14px;border-radius:10px;text-decoration:none;
+          background:rgba(39,174,226,.15);border:1px solid rgba(39,174,226,.35);
+          color:#29aee2;font-size:12px;font-weight:700;
+        ">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          Descargar para iPhone
+        </a>
+      ` : `
+        <a href="${urlAndroid}" target="_blank" rel="noopener" style="
+          flex:1;min-width:130px;display:flex;align-items:center;justify-content:center;gap:7px;
+          padding:10px 14px;border-radius:10px;text-decoration:none;
+          background:rgba(39,174,226,.15);border:1px solid rgba(39,174,226,.35);
+          color:#29aee2;font-size:12px;font-weight:700;
+        ">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M17.523 15.341l-4.31-4.31 4.31-4.31c.39-.39.39-1.02 0-1.41-.39-.39-1.02-.39-1.41 0l-4.31 4.31-4.31-4.31c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41l4.31 4.31-4.31 4.31c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l4.31-4.31 4.31 4.31c.39.39 1.02.39 1.41 0 .38-.39.38-1.03 0-1.42zM6 17.5a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4zM3.18 6.03L1.5 2H0v2h1.5l3.18 7.03L3.5 13c-.25.48-.25 1.02 0 1.5C3.83 15.17 4.58 15.5 5.5 15.5H20v-2H5.5l1-2H17c.75 0 1.41-.41 1.75-1.03l3-5.47C22.25 4.5 22 4 21.5 4H4.21l-.5-1.5H2v2h1L3.18 6.03z"/></svg>
+          Descargar para Android
+        </a>
+      `}
+      ${!esIOS && !esAndroid ? `
+        <a href="${urlAndroid}" target="_blank" rel="noopener" style="flex:1;min-width:130px;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:10px;text-decoration:none;background:rgba(39,174,226,.15);border:1px solid rgba(39,174,226,.35);color:#29aee2;font-size:12px;font-weight:700;">▶ Android</a>
+        <a href="${urlIOS}" target="_blank" rel="noopener" style="flex:1;min-width:130px;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:10px;text-decoration:none;background:rgba(39,174,226,.15);border:1px solid rgba(39,174,226,.35);color:#29aee2;font-size:12px;font-weight:700;"> iOS</a>
+      ` : ""}
+      <button id="btnYaTengoTelegram" style="
+        flex:0;white-space:nowrap;padding:10px 14px;border-radius:10px;
+        background:transparent;border:1px solid var(--border);
+        color:var(--text-3);font-size:12px;font-weight:500;cursor:pointer;
+      ">Ya lo tengo ✓</button>
+    </div>
+  `;
+
+  // Insertar al inicio del contenido del dashboard
+  const dashMain = document.getElementById("dashContent");
+
+  if (!dashMain) return;
+
+  // Si ya existe un banner previo, quitarlo
+  document.getElementById("telegramBanner")?.remove();
+
+  // Insertar después de la bienvenida (primer elemento)
+  const bienvenida = dashMain.querySelector(".dash-welcome");
+  if (bienvenida && bienvenida.nextElementSibling) {
+    dashMain.insertBefore(banner, bienvenida.nextElementSibling);
+  } else {
+    dashMain.appendChild(banner);
+  }
+
+  // Eventos
+  document.getElementById("btnCerrarTelegram")?.addEventListener("click", () => {
+    banner.remove();
+    // No marcar como visto — vuelve a aparecer la próxima vez
+  });
+
+  document.getElementById("btnYaTengoTelegram")?.addEventListener("click", () => {
+    localStorage.setItem("telegramBannerVisto", "1");
+    banner.style.opacity = "0";
+    banner.style.transition = "opacity .3s";
+    setTimeout(() => banner.remove(), 300);
+  });
+}
+
 function renderDashboard(user) {
   if (!user) return;
   const nombre = user.nombre || "Usuario";
@@ -600,6 +705,7 @@ function renderDashboard(user) {
     checkNovedades();
     checkVencimientoMembresia();
     setTimeout(initInstallCard, 500);
+    setTimeout(mostrarBannerTelegram, 1200);
   } else {
     if(memCard) memCard.style.display="none";
     if(vencCard) vencCard.style.display="";
