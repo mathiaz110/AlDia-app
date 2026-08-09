@@ -32,13 +32,21 @@ require("dotenv").config();
 // En Railway: lee credenciales desde variable de entorno
 // En local con Docker: lee desde firebase-key.json
 let serviceAccount;
-if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-  serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+const firebaseKeyEnv = process.env.FIREBASE_KEY || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+if (firebaseKeyEnv) {
+  try {
+    serviceAccount = JSON.parse(firebaseKeyEnv);
+    console.log("[Firebase] Credenciales cargadas desde variable de entorno");
+  } catch(e) {
+    console.error("[ERROR] No se pudo parsear FIREBASE_KEY:", e.message);
+    process.exit(1);
+  }
 } else {
   try {
     serviceAccount = require("./firebase-key.json");
+    console.log("[Firebase] Credenciales cargadas desde firebase-key.json");
   } catch(e) {
-    console.error("[ERROR] No se encontró firebase-key.json ni GOOGLE_APPLICATION_CREDENTIALS_JSON");
+    console.error("[ERROR] No se encontró FIREBASE_KEY ni firebase-key.json");
     process.exit(1);
   }
 }
