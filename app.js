@@ -28,7 +28,7 @@ const CFG = Object.freeze({
   monto:      "$2.500",
   mpLink:     "https://mpago.la/2bugXHU",
   vapidKey:   "BCTslJPoTqAMsjQS_J6obznv5ZUDo2o3dYbRNK6cnMJokpsOv0cPKHZNNtPOZ7QbpLFTpu4IfH6UMHhrlo3r0ao",
-  backendUrl: "https://aldia-app-production.up.railway.app",
+  backendUrl: "https://aldia-app-production-90b0.up.railway.app",
   empresaUrl: "https://www.edenor.com.ar/pagos",
   soporteWA:  "5492995348617",
   sessionKey: "aldia_user_v6",
