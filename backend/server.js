@@ -841,6 +841,24 @@ app.post("/avisos/activo", async (req, res) => {
         }
       }
       console.log(`[Aviso] Push enviado a ${enviados}/${tokens.length} clientes`);
+
+      // Telegram masivo — a todos los clientes activos con chatId vinculado
+      try {
+        const iconos = { alerta:"🚨", aviso:"⚠️", info:"ℹ️", novedad:"📢" };
+        const icono  = iconos[tipo] || "📢";
+        let telegramEnviados = 0;
+        for (const doc of snap.docs) {
+          const { telegramChatId, nombre = "Cliente" } = doc.data();
+          if (telegramChatId) {
+            await telegramCliente(telegramChatId,
+              `${icono} <b>${titulo}</b>\n\n${cuerpo}\n\nIngresá a la app: https://aldia-app1.web.app`
+            );
+            telegramEnviados++;
+          }
+        }
+        console.log(`[Telegram Aviso] Enviado a ${telegramEnviados} clientes con Telegram vinculado`);
+      } catch(tErr) { console.warn("[Telegram Aviso]", tErr.message); }
+
       res.json({ success: true, notificados: enviados, total: tokens.length });
     } else {
       res.json({ success: true, notificados: 0 });
