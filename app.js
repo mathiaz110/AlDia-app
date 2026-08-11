@@ -540,7 +540,9 @@ function showDashboard(user) {
 //  BANNER TELEGRAM
 // ════════════════════════════════════════════════════
 function mostrarBannerTelegram() {
-  // Solo para clientes activos, solo una vez
+  // Si ya tiene Telegram vinculado, no mostrar el banner
+  if (State.user?.telegramChatId) return;
+  // Si ya tocó el botón antes, no mostrar
   if (localStorage.getItem("telegramBannerVisto")) return;
 
   // Detectar si ya tiene Telegram instalado (no es posible saberlo con certeza,
@@ -582,29 +584,24 @@ function mostrarBannerTelegram() {
       <button id="btnCerrarTelegram" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer;padding:2px;flex-shrink:0;line-height:1">✕</button>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <a href="${botDeepLink}" target="_blank" rel="noopener" style="
+      <a id="btnActivarTelegram" href="${botDeepLink}" target="_blank" rel="noopener" style="
         flex:1;min-width:160px;display:flex;align-items:center;justify-content:center;gap:8px;
         padding:11px 16px;border-radius:10px;text-decoration:none;
         background:rgba(39,174,226,.15);border:1px solid rgba(39,174,226,.35);
         color:#29aee2;font-size:13px;font-weight:700;
       ">
-        ✈️ Activar notificaciones
+        ✈️ Activar notificaciones en Telegram
       </a>
-      ${!esIOS && !esAndroid ? "" : `
+      ${(esIOS || esAndroid) ? `
         <a href="${esIOS ? urlIOS : urlAndroid}" target="_blank" rel="noopener" style="
           flex:0;white-space:nowrap;display:flex;align-items:center;gap:6px;
           padding:11px 14px;border-radius:10px;text-decoration:none;
           background:transparent;border:1px solid var(--border);
           color:var(--text-3);font-size:12px;font-weight:500;
         ">
-          ${esIOS ? "⬇ Descargar para iPhone" : "⬇ Descargar para Android"}
+          ${esIOS ? "⬇ No tengo Telegram (iPhone)" : "⬇ No tengo Telegram (Android)"}
         </a>
-      `}
-      <button id="btnYaTengoTelegram" style="
-        flex:0;white-space:nowrap;padding:11px 14px;border-radius:10px;
-        background:transparent;border:1px solid var(--border);
-        color:var(--text-3);font-size:12px;font-weight:500;cursor:pointer;
-      ">Ya lo tengo ✓</button>
+      ` : ""}
     </div>
   `;
 
@@ -624,17 +621,19 @@ function mostrarBannerTelegram() {
     dashMain.appendChild(banner);
   }
 
-  // Eventos
-  document.getElementById("btnCerrarTelegram")?.addEventListener("click", () => {
-    banner.remove();
-    // No marcar como visto — vuelve a aparecer la próxima vez
+  // Al tocar "Activar notificaciones" — marcar como visto y ocultar banner
+  document.getElementById("btnActivarTelegram")?.addEventListener("click", () => {
+    localStorage.setItem("telegramBannerVisto", "1");
+    setTimeout(() => {
+      banner.style.opacity = "0";
+      banner.style.transition = "opacity .3s";
+      setTimeout(() => banner.remove(), 300);
+    }, 500);
   });
 
-  document.getElementById("btnYaTengoTelegram")?.addEventListener("click", () => {
-    localStorage.setItem("telegramBannerVisto", "1");
-    banner.style.opacity = "0";
-    banner.style.transition = "opacity .3s";
-    setTimeout(() => banner.remove(), 300);
+  // Botón cerrar — solo oculta, no marca como visto (vuelve a aparecer)
+  document.getElementById("btnCerrarTelegram")?.addEventListener("click", () => {
+    banner.remove();
   });
 }
 
