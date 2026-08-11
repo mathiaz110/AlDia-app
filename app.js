@@ -391,7 +391,7 @@ function showRegStep(step) {
 
 $("btnRegStep1")?.addEventListener("click", async () => {
   if (!validateForm()) return;
-  await obtenerFCMToken();
+  try { await obtenerFCMToken(); } catch(e) { console.warn("[Reg] FCM opcional:", e.message); }
   showRegStep(2);
   // Deshabilitar botones de pago hasta que acepte términos
   initPagoStep();
