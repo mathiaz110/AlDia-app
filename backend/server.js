@@ -298,26 +298,27 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
 
     console.log(`[R2] Subida → ${key} (${Math.round(req.file.size/1024)} KB)`);
 
-    // Telegram al admin — boleta subida
+    // Telegram al admin y al cliente — fuera del if para tener nombre disponible
+    const nombreCliente = userDoc.exists ? (userDoc.data()?.nombre || "Cliente") : "Cliente";
+    const telegramChatId = userDoc.exists ? userDoc.data()?.telegramChatId : null;
+
     await telegramAdmin(
       `📄 <b>Boleta subida</b>\n` +
-      `👤 Cliente: <b>${nombre}</b>\n` +
+      `👤 Cliente: <b>${nombreCliente}</b>\n` +
       `📅 Período: ${periodo}\n` +
       `💳 Vence: ${vencimiento}`
     );
 
-    // Telegram al cliente — si tiene chatId guardado
-    try {
-      const telegramChatId = userDoc.exists ? userDoc.data()?.telegramChatId : null;
-      if (telegramChatId) {
+    if (telegramChatId) {
+      try {
         await telegramCliente(telegramChatId,
           `⚡ <b>Nueva boleta disponible</b>\n\n` +
-          `Hola <b>${nombre.split(" ")[0]}</b>, tu boleta de <b>${periodo}</b> ya está lista.\n` +
+          `Hola <b>${nombreCliente.split(" ")[0]}</b>, tu boleta de <b>${periodo}</b> ya está lista.\n` +
           `📅 Vence el ${vencimiento}\n\n` +
           `Ingresá a la app para verla: https://aldia-app1.web.app`
         );
-      }
-    } catch(e) { console.warn("[Telegram cliente boleta]", e.message); }
+      } catch(e) { console.warn("[Telegram cliente boleta]", e.message); }
+    }
 
     res.json({
       success:  true,
