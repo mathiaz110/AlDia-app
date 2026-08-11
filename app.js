@@ -554,7 +554,7 @@ function mostrarBannerTelegram() {
 
   // Deep link al bot con el ID del usuario para vincularse automáticamente
   const usuarioId  = State.user?.id || "";
-  const botDeepLink = `https://t.me/aldia_boletas_bot?start=${usuarioId}`;
+  const botDeepLink = `https://t.me/AlDia_Digital_Boletas_bot?start=${usuarioId}`;
 
   // Crear banner
   const banner = document.createElement("div");
