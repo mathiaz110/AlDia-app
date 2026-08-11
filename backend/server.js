@@ -27,6 +27,36 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 require("dotenv").config();
 
 // ════════════════════════════════════════════════════
+//  TELEGRAM BOTS
+// ════════════════════════════════════════════════════
+const TELEGRAM_ADMIN_TOKEN  = process.env.TELEGRAM_ADMIN_TOKEN  || "8729373653:AAFzbKttrnzOE5QPgAzzR3qq9Pdf1p48i7A";
+const TELEGRAM_CLIENT_TOKEN = process.env.TELEGRAM_CLIENT_TOKEN || "8500037701:AAE3f_r5SU9pOsxewi2CwK5qAT4IlGo-duU";
+const TELEGRAM_ADMIN_CHAT   = process.env.TELEGRAM_ADMIN_CHAT   || "5659534803";
+
+async function telegramAdmin(mensaje) {
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_ADMIN_TOKEN}/sendMessage`;
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: TELEGRAM_ADMIN_CHAT, text: mensaje, parse_mode: "HTML" }),
+    });
+  } catch(e) { console.warn("[Telegram Admin]", e.message); }
+}
+
+async function telegramCliente(chatId, mensaje) {
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_CLIENT_TOKEN}/sendMessage`;
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: mensaje, parse_mode: "HTML" }),
+    });
+  } catch(e) { console.warn("[Telegram Cliente]", e.message); }
+}
+
+
+// ════════════════════════════════════════════════════
 //  FIREBASE ADMIN — Firestore + FCM
 // ════════════════════════════════════════════════════
 // En Railway: lee credenciales desde variable de entorno
@@ -267,6 +297,28 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
     }
 
     console.log(`[R2] Subida → ${key} (${Math.round(req.file.size/1024)} KB)`);
+
+    // Telegram al admin — boleta subida
+    await telegramAdmin(
+      `📄 <b>Boleta subida</b>\n` +
+      `👤 Cliente: <b>${nombre}</b>\n` +
+      `📅 Período: ${periodo}\n` +
+      `💳 Vence: ${vencimiento}`
+    );
+
+    // Telegram al cliente — si tiene chatId guardado
+    try {
+      const telegramChatId = userDoc.exists ? userDoc.data()?.telegramChatId : null;
+      if (telegramChatId) {
+        await telegramCliente(telegramChatId,
+          `⚡ <b>Nueva boleta disponible</b>\n\n` +
+          `Hola <b>${nombre.split(" ")[0]}</b>, tu boleta de <b>${periodo}</b> ya está lista.\n` +
+          `📅 Vence el ${vencimiento}\n\n` +
+          `Ingresá a la app para verla: https://aldia-app1.web.app`
+        );
+      }
+    } catch(e) { console.warn("[Telegram cliente boleta]", e.message); }
+
     res.json({
       success:  true,
       boletaId: boletaRef.id,
@@ -549,6 +601,26 @@ app.post("/usuarios/:id/activar", async (req, res) => {
       console.warn(`[Push SKIP] Token inválido para ${nombre}`);
     }
 
+    // Telegram al admin — cuenta activada
+    await telegramAdmin(
+      `✅ <b>Cuenta activada</b>\n` +
+      `👤 <b>${nombre}</b> ya está activa.\n` +
+      `💰 +$2.247/mes`
+    );
+
+    // Telegram al cliente — si tiene chatId guardado
+    try {
+      const userSnap = await db.collection("usuarios").doc(req.params.id).get();
+      const telegramChatId = userSnap.exists ? userSnap.data()?.telegramChatId : null;
+      if (telegramChatId) {
+        await telegramCliente(telegramChatId,
+          `✅ <b>¡Tu cuenta AlDía está activa!</b>\n\n` +
+          `Hola <b>${nombre.split(" ")[0]}</b>, ya podés acceder a todas las funciones.\n` +
+          `Entrá a la app: https://aldia-app1.web.app`
+        );
+      }
+    } catch(e) { console.warn("[Telegram cliente activar]", e.message); }
+
     res.json({ success:true, mensaje:`Cuenta de ${nombre} activada` });
   } catch(e) { handleError(res, e, "usuarios/activar"); }
 });
@@ -564,6 +636,33 @@ app.post("/admin/token", async (req, res) => {
     console.log(`[Admin] Token FCM guardado: ${fcmToken.substring(0,20)}...`);
     res.json({ success: true });
   } catch(e) { handleError(res, e, "admin/token"); }
+});
+
+// ─── POST /telegram/webhook — bot de clientes ────────
+// Recibe el /start del cliente con su usuarioId y guarda su chatId
+app.post("/telegram/webhook", async (req, res) => {
+  try {
+    const msg = req.body?.message;
+    if (!msg) return res.sendStatus(200);
+    const chatId = msg.chat?.id?.toString();
+    const text   = msg.text || "";
+    // /start USUARIO_ID
+    if (text.startsWith("/start ")) {
+      const usuarioId = text.split(" ")[1]?.trim();
+      if (usuarioId && usuarioId.length > 5) {
+        await db.collection("usuarios").doc(usuarioId).update({ telegramChatId: chatId });
+        console.log(`[Telegram] chatId ${chatId} vinculado a usuario ${usuarioId}`);
+        await telegramCliente(chatId,
+          `✅ <b>¡Listo! Ya vas a recibir notificaciones de AlDía Digital.</b>\n\n` +
+          `Te vamos a avisar cuando tengas una nueva boleta o cuando haya un aviso importante.`
+        );
+      }
+    }
+    res.sendStatus(200);
+  } catch(e) {
+    console.warn("[Telegram webhook]", e.message);
+    res.sendStatus(200);
+  }
 });
 
 // ─── GET /usuario/:id — obtener estado actualizado ──
@@ -641,6 +740,17 @@ app.post("/registro", async (req, res) => {
         }).catch(e => console.warn("[Push admin]", e.code));
       }
     } catch(e) { /* silencioso si no hay config admin */ }
+
+    // Telegram al admin — nuevo registro
+    await telegramAdmin(
+      `📋 <b>Nuevo cliente registrado</b>\n` +
+      `👤 <b>${nombre}</b>\n` +
+      `🪪 Usuario: ${usuario}\n` +
+      `🔢 N° cliente: ${nroCliente}\n` +
+      `📱 Celular: ${celular}\n` +
+      `📍 Dirección: ${direccion}\n` +
+      `⏳ Estado: Pendiente de activación`
+    );
 
     res.json({ success: true, usuarioId: ref.id });
 
