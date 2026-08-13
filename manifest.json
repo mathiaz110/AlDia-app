@@ -3,18 +3,24 @@
   "short_name": "AlDía Digital",
   "description": "Tu boleta de luz siempre al día. Descargala cuando quieras con AlDía Digital.",
   "start_url": "/?pwa=1",
-  "id": "/",
+  "id": "/?pwa=1",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "background_color": "#070b14",
   "theme_color": "#0a0e1a",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "es-AR",
   "dir": "ltr",
-  "categories": ["finance", "utilities", "productivity"],
+  "categories": [
+    "finance",
+    "utilities",
+    "productivity"
+  ],
   "prefer_related_applications": false,
-
   "icons": [
     {
       "src": "/icons/favicon-32.png",
@@ -53,43 +59,29 @@
       "purpose": "maskable"
     }
   ],
-
-  "screenshots": [
-    {
-      "src": "/icons/screenshot-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Pantalla de inicio AlDía Digital"
-    }
-  ],
-
+  "screenshots": [],
   "shortcuts": [
     {
       "name": "Mis boletas",
       "short_name": "Boletas",
       "description": "Ver mis últimas boletas de luz",
       "url": "/?shortcut=boletas",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Panel Admin",
-      "short_name": "Admin",
-      "description": "Acceso al panel de administración",
-      "url": "/admin.html",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
-
   "related_applications": [],
-
   "share_target": {
     "action": "/",
     "method": "GET",
     "params": {
       "title": "title",
-      "text":  "text",
-      "url":   "url"
+      "text": "text",
+      "url": "url"
     }
   }
 }
