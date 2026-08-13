@@ -1021,27 +1021,101 @@ function showInstallGuide(plataforma) {
   if (!guia) return;
 
   if (title) title.textContent = guia.titulo;
-  body.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
-      ${guia.pasos.map(p => `
-        <div style="display:flex;align-items:flex-start;gap:12px">
-          <div style="min-width:28px;height:28px;border-radius:50%;
-                      background:linear-gradient(135deg,var(--green),var(--blue));
-                      display:flex;align-items:center;justify-content:center;
-                      font-size:12px;font-weight:800;color:var(--bg-0);flex-shrink:0">
-            ${p.n}
-          </div>
-          <div style="font-size:13px;color:var(--text-2);line-height:1.6;padding-top:4px">
-            ${p.txt}
-          </div>
-        </div>
-      `).join("")}
-      <div style="margin-top:4px;padding:12px;background:rgba(57,255,143,0.06);
-                  border:1px solid rgba(57,255,143,0.2);border-radius:10px;
-                  font-size:12px;color:var(--text-3);text-align:center">
-        URL de la app: <strong style="color:var(--green)">aldia-app1.web.app</strong>
+
+  const renderPasoVisual = (p) => {
+    const numHtml = p.check
+      ? `<div style="min-width:28px;height:28px;border-radius:50%;background:rgba(57,255,143,.15);border:1px solid rgba(57,255,143,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0">✓</div>`
+      : `<div style="min-width:28px;height:28px;border-radius:50%;background:rgba(57,255,143,.12);border:1px solid rgba(57,255,143,.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#39ff8f;flex-shrink:0">${p.n}</div>`;
+
+    const mockupHtml = p.mockup || "";
+
+    return `<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+      ${numHtml}
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:2px">${p.titulo}</div>
+        <div style="font-size:12px;color:var(--text-3);line-height:1.5;margin-bottom:${mockupHtml ? "8px" : "0"}">${p.txt}</div>
+        ${mockupHtml}
       </div>
     </div>`;
+  };
+
+  const mockupBarra = (url) => `
+    <div style="background:var(--bg-1,#0f1729);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px">
+      <div style="flex:1;background:rgba(255,255,255,.06);border-radius:6px;padding:5px 10px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:#667">🔒</span>
+        <span style="font-size:11px;color:#8899aa">${url}</span>
+      </div>
+    </div>`;
+
+  const mockupSheet = (items) => `
+    <div style="background:var(--bg-1,#0f1729);border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden">
+      ${items.map((it, i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;${i < items.length-1 ? "border-bottom:1px solid rgba(255,255,255,.06)" : ""};${it.destacado ? "background:rgba(57,255,143,.07)" : ""}">
+          <div style="width:26px;height:26px;border-radius:7px;background:${it.destacado ? "rgba(57,255,143,.15)" : "rgba(255,255,255,.06)"};display:flex;align-items:center;justify-content:center;font-size:14px">${it.icono}</div>
+          <span style="font-size:12px;color:${it.destacado ? "#39ff8f" : "#8899aa"};font-weight:${it.destacado ? "600" : "400"}">${it.label}</span>
+          ${it.destacado ? `<span style="margin-left:auto;font-size:10px;background:rgba(57,255,143,.15);color:#39ff8f;padding:2px 7px;border-radius:4px;font-weight:600">este</span>` : ""}
+        </div>`).join("")}
+    </div>`;
+
+  const mockupConfirm = (nombre) => `
+    <div style="background:var(--bg-1,#0f1729);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px">
+      <div style="font-size:13px;font-weight:600;color:#dde;margin-bottom:2px">${nombre}</div>
+      <div style="font-size:11px;color:#667;margin-bottom:10px">aldia-app1.web.app</div>
+      <div style="background:rgba(57,255,143,.15);border:1px solid rgba(57,255,143,.3);border-radius:8px;padding:8px;text-align:center;font-size:12px;font-weight:600;color:#39ff8f">Agregar</div>
+    </div>`;
+
+  const mockupMenuPC = () => `
+    <div style="background:var(--bg-1,#0f1729);border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)">
+        <span style="font-size:11px;color:#667;flex:1">···</span>
+      </div>
+      ${[
+        {icono:"⊕", label:"Instalar AlDía Digital", destacado:true},
+        {icono:"⊡", label:"Zoom", destacado:false},
+        {icono:"☆", label:"Marcadores", destacado:false},
+      ].map((it,i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;${i < 2 ? "border-bottom:1px solid rgba(255,255,255,.06)" : ""};${it.destacado ? "background:rgba(57,255,143,.07)" : ""}">
+          <span style="font-size:15px">${it.icono}</span>
+          <span style="font-size:12px;color:${it.destacado ? "#39ff8f" : "#8899aa"};font-weight:${it.destacado ? "600" : "400"}">${it.label}</span>
+          ${it.destacado ? `<span style="margin-left:auto;font-size:10px;background:rgba(57,255,143,.15);color:#39ff8f;padding:2px 7px;border-radius:4px;font-weight:600">este</span>` : ""}
+        </div>`).join("")}
+    </div>`;
+
+  const pasosVisuales = {
+    ios: [
+      { n:"1", titulo:"Abrí Safari", txt:"Solo funciona con Safari — no con Chrome en iPhone.", mockup: mockupBarra("aldia-app1.web.app") },
+      { n:"2", titulo:"Tocá el botón compartir", txt:"Es la flecha hacia arriba □↑ en la barra inferior de Safari." },
+      { n:"3", titulo:'Tocá "Agregar a pantalla de inicio"', txt:"Deslizá el menú hacia arriba para encontrarlo.", mockup: mockupSheet([
+        {icono:"📋", label:"Copiar enlace", destacado:false},
+        {icono:"➕", label:"Agregar a pantalla de inicio", destacado:true},
+        {icono:"✉️", label:"Correo electrónico", destacado:false},
+      ])},
+      { n:"4", titulo:'Tocá "Agregar"', txt:"Arriba a la derecha en la pantalla de confirmación.", mockup: mockupConfirm("AlDía Digital") },
+      { n:"✓", titulo:"¡Listo! El ícono aparece en tu pantalla de inicio", txt:"Ya podés abrir AlDía Digital como una app.", check:true },
+    ],
+    android: [
+      { n:"1", titulo:"Abrí Chrome", txt:"Entrá a la app desde Chrome en tu celular.", mockup: mockupBarra("aldia-app1.web.app") },
+      { n:"2", titulo:"Tocá los 3 puntitos ⋮", txt:"Están arriba a la derecha del navegador." },
+      { n:"3", titulo:'Tocá "Instalar aplicación"', txt:'O "Agregar a pantalla de inicio" según tu versión de Android.', mockup: mockupSheet([
+        {icono:"⭐", label:"Marcadores", destacado:false},
+        {icono:"⊕", label:"Instalar aplicación", destacado:true},
+        {icono:"⬇", label:"Descargas", destacado:false},
+      ])},
+      { n:"4", titulo:'Confirmá con "Instalar"', txt:"En el cuadro que aparece tocá Instalar.", mockup: mockupConfirm("AlDía Digital") },
+      { n:"✓", titulo:"¡Listo! El ícono aparece en tu pantalla de inicio", txt:"Para notificaciones: Ajustes → Apps → AlDía Digital → Batería → Sin restricciones.", check:true },
+    ],
+    pc: [
+      { n:"1", titulo:"Abrí Chrome o Edge", txt:"Entrá a aldia-app1.web.app desde el navegador.", mockup: mockupBarra("aldia-app1.web.app") },
+      { n:"2", titulo:"Buscá el ícono ⊕ en la barra de direcciones", txt:"Aparece a la derecha de la URL. Si no lo ves, seguí al paso 3." },
+      { n:"3", titulo:"O usá el menú ···", txt:'Clic en los 3 puntitos → "Instalar AlDía Digital".', mockup: mockupMenuPC() },
+      { n:"4", titulo:'Clic en "Instalar"', txt:"En el cuadro que aparece.", mockup: mockupConfirm("AlDía Digital") },
+      { n:"✓", titulo:"¡Listo! AlDía Digital aparece en tu escritorio", txt:"También podés abrirla desde el menú Inicio de Windows.", check:true },
+    ],
+  };
+
+  const pasos = pasosVisuales[plataforma] || guia.pasos.map(p => ({ n:p.n, titulo:"", txt:p.txt }));
+
+  body.innerHTML = `<div style="padding-top:4px">${pasos.map(renderPasoVisual).join("")}</div>`;
 
   modal.classList.remove("hidden");
 }
