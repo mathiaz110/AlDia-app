@@ -177,7 +177,12 @@ window.addEventListener("DOMContentLoaded", async () => {
       const actualizado = await verificarEstadoUsuario(saved);
       State.user = actualizado;
       saveSession(actualizado);
-      showDashboard(actualizado);
+      // Si tiene cambio de contraseña pendiente, forzar pantalla
+      if (actualizado.passwordTemp) {
+        showForzarCambioPass(actualizado);
+      } else {
+        showDashboard(actualizado);
+      }
       // Actualizar FCM token si cambió
       const token = await obtenerFCMToken();
       if (token && token !== actualizado.fcmToken) {
@@ -329,6 +334,67 @@ $("btnEyeReg")?.addEventListener("click",   () => eyeToggle("password"));
 $("btnLogin")?.addEventListener("click", handleLogin);
 $("loginPass")?.addEventListener("keydown", e => { if (e.key==="Enter") handleLogin(); });
 
+
+// ════════════════════════════════════════════════════
+//  CAMBIO DE CONTRASEÑA FORZADO (passwordTemp)
+// ════════════════════════════════════════════════════
+function showForzarCambioPass(user) {
+  const overlay = $("forzarCambioOverlay");
+  if (!overlay) return;
+  overlay.classList.remove("hidden");
+  // Limpiar campos
+  const nva  = $("forzarPassNueva");
+  const conf = $("forzarPassConfirm");
+  const err  = $("forzarPassError");
+  if (nva)  nva.value  = "";
+  if (conf) conf.value = "";
+  if (err)  err.textContent = "";
+}
+
+async function handleForzarCambio() {
+  const nva  = $("forzarPassNueva")?.value   || "";
+  const conf = $("forzarPassConfirm")?.value || "";
+  const err  = $("forzarPassError");
+
+  if (err) err.textContent = "";
+
+  if (nva.length < 6) {
+    if (err) err.textContent = "La contraseña debe tener al menos 6 caracteres";
+    return;
+  }
+  if (nva !== conf) {
+    if (err) err.textContent = "Las contraseñas no coinciden";
+    return;
+  }
+
+  setLoading("btnForzarCambio", true, "Guardando...");
+  try {
+    const resp = await fetch(`${CFG.backendUrl}/usuarios/${State.user.id}/cambiar-password`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ passwordNueva: nva }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      if (err) err.textContent = data.error || "Error al cambiar contraseña";
+      return;
+    }
+    // Actualizar sesión local
+    State.user.passwordTemp = false;
+    State.user.password = nva;
+    saveSession(State.user);
+    // Cerrar overlay y mostrar dashboard
+    $("forzarCambioOverlay")?.classList.add("hidden");
+    showDashboard(State.user);
+    toast("✅ Contraseña actualizada", "success");
+  } catch(e) {
+    console.error("[CambioPass]", e);
+    if (err) err.textContent = "Error de conexión. Intentá de nuevo.";
+  } finally {
+    setLoading("btnForzarCambio", false, "Guardar contraseña");
+  }
+}
+
 async function handleLogin() {
   if (State.loading) return;
   const usuario = $("loginUser")?.value.trim() || "";
@@ -354,8 +420,13 @@ async function handleLogin() {
 
     State.user = data.usuario;
     saveSession(data.usuario);
-    showDashboard(data.usuario);
-    toast("Bienvenido ✓", "success");
+    // Si tiene cambio de contraseña pendiente, forzar pantalla de cambio
+    if (data.usuario.passwordTemp) {
+      showForzarCambioPass(data.usuario);
+    } else {
+      showDashboard(data.usuario);
+      toast("Bienvenido ✓", "success");
+    }
   } catch(e) {
     console.error("[Login]", e);
     if(errEl) errEl.textContent = "Error al ingresar. Intentá de nuevo.";
@@ -1377,3 +1448,16 @@ if("serviceWorker"in navigator){
     // No recargar — evita cerrar la sesión
   });
 }
+
+// ════════════════════════════════════════════════════
+//  LISTENERS — FORZAR CAMBIO CONTRASEÑA
+// ════════════════════════════════════════════════════
+$("btnForzarCambio")?.addEventListener("click", handleForzarCambio);
+
+[$("forzarPassNueva"), $("forzarPassConfirm")].forEach(el => {
+  el?.addEventListener("keydown", e => { if (e.key === "Enter") handleForzarCambio(); });
+});
+
+// Toggle ojo contraseña
+$("btnEyeForzarNueva")?.addEventListener("click",   () => eyeToggle("forzarPassNueva"));
+$("btnEyeForzarConf")?.addEventListener("click",    () => eyeToggle("forzarPassConfirm"));

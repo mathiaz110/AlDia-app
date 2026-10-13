@@ -497,6 +497,58 @@
   </div>
 </div>
 
+
+<!-- OVERLAY FORZAR CAMBIO CONTRASEÑA (passwordTemp) -->
+<div id="forzarCambioOverlay" class="modal-overlay hidden" style="z-index:9999">
+  <div class="modal-card" style="max-width:380px">
+    <div class="modal-header" style="border-bottom:1px solid rgba(245,158,11,0.2)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">🔑</span>
+        <div>
+          <h3 style="margin:0;font-size:15px">Elegí tu contraseña</h3>
+          <div style="font-size:11px;color:var(--text-3);margin-top:2px">Requerido para continuar</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#f59e0b;line-height:1.6">
+        Tu cuenta tiene una contraseña temporal asignada por el administrador.<br>
+        <strong>Elegí una contraseña nueva para continuar.</strong> No podrás cerrar esta pantalla sin hacerlo.
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Nueva contraseña</label>
+        <div class="field-wrap">
+          <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="password" id="forzarPassNueva" class="field-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/>
+          <button type="button" class="field-eye" id="btnEyeForzarNueva" aria-label="Ver contraseña">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M2 10c2.3-4.3 5.2-6.5 8-6.5s5.7 2.2 8 6.5c-2.3 4.3-5.2 6.5-8 6.5S4.3 14.3 2 10z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Confirmá la contraseña</label>
+        <div class="field-wrap">
+          <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="password" id="forzarPassConfirm" class="field-input" placeholder="Repetí la contraseña" autocomplete="new-password"/>
+          <button type="button" class="field-eye" id="btnEyeForzarConf" aria-label="Ver contraseña">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M2 10c2.3-4.3 5.2-6.5 8-6.5s5.7 2.2 8 6.5c-2.3 4.3-5.2 6.5-8 6.5S4.3 14.3 2 10z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="login-error" id="forzarPassError"></div>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px">
+      <button class="btn-primary" id="btnForzarCambio" style="width:100%;justify-content:center">
+        <span>Guardar contraseña</span>
+        <svg viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 <!-- ══ MODAL GUÍA INSTALACIÓN ══ -->
 <div id="modalInstall" class="modal-overlay hidden">

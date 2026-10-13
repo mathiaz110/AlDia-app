@@ -925,6 +925,39 @@ app.post("/usuarios/:id/reset-password", async (req, res) => {
   } catch(e) { handleError(res, e, "usuarios/reset-password"); }
 });
 
+// ─── POST /usuarios/:id/cambiar-password ─────────────
+app.post("/usuarios/:id/cambiar-password", async (req, res) => {
+  const { id } = req.params;
+  const { passwordNueva } = req.body;
+
+  if (!passwordNueva || passwordNueva.length < 6) {
+    return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+  }
+
+  try {
+    const snap = await db.collection("usuarios").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    const data = snap.data();
+
+    // Solo se puede cambiar si hay un reset pendiente
+    if (!data.passwordTemp) {
+      return res.status(403).json({
+        error: "No tenés un cambio de contraseña pendiente. Si necesitás cambiarla, pedile al administrador que te la resetee."
+      });
+    }
+
+    await snap.ref.update({
+      password: passwordNueva,
+      passwordTemp: false,
+      passwordCambiadaEn: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[CambiarPass] Usuario ${id} cambió su contraseña`);
+    res.json({ success: true, mensaje: "Contraseña actualizada correctamente" });
+  } catch(e) { handleError(res, e, "usuarios/cambiar-password"); }
+});
+
 app.use((req, res) => res.status(404).json({ error:"Endpoint no encontrado", path:req.path }));
 app.use((err, req, res, next) => {
   if (err.message?.includes("CORS"))   return res.status(403).json({ error:err.message });
