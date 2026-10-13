@@ -2626,3 +2626,202 @@ body::before {
   from { opacity: 0; transform: translateY(-10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ═══════════════════════════════════════════════════
+   ADMIN PANEL v6 — RESUMEN + CLIENTES ACTIVOS
+════════════════════════════════════════════════════ */
+
+/* ── 4-column stats grid ─────────────────────────── */
+.stats-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) {
+  .stats-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 520px) {
+  .stats-grid-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+}
+
+/* ── Chart card ──────────────────────────────────── */
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px 16px;
+  margin-bottom: 24px;
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.chart-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 0;
+}
+.chart-sub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-bottom: 16px;
+}
+.chart-wrap {
+  position: relative;
+  height: 200px;
+}
+
+/* ── Section nav ─────────────────────────────────── */
+.section-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.section-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+.section-tab.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+.section-tab:hover:not(.active) { color: var(--text-2); }
+
+/* ── Activos list section ────────────────────────── */
+.activos-section {
+  margin-bottom: 28px;
+}
+.activos-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.activos-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0;
+}
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(57,255,143,0.15);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 20px;
+  border: 1px solid rgba(57,255,143,0.25);
+}
+
+/* ── Activo card ─────────────────────────────────── */
+.activo-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  transition: var(--transition);
+}
+.activo-card:hover { border-color: rgba(57,255,143,0.2); }
+.vencido-card      { border-color: rgba(255,77,109,0.2) !important; background: rgba(255,77,109,0.03) !important; }
+
+/* ── Action buttons (inline) ─────────────────────── */
+.action-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.action-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: var(--transition);
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.btn-block-sm  { background: rgba(255,77,109,0.10); border-color: rgba(255,77,109,0.28); color: #ff4d6d; }
+.btn-block-sm:hover { background: rgba(255,77,109,0.20); }
+.btn-reset-sm  { background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.28); color: #f59e0b; }
+.btn-reset-sm:hover { background: rgba(245,158,11,0.20); }
+.btn-delete-sm { background: rgba(139,92,246,0.10); border-color: rgba(139,92,246,0.28); color: #8b5cf6; }
+.btn-delete-sm:hover { background: rgba(139,92,246,0.20); }
+.btn-enable-sm { background: rgba(57,255,143,0.10); border-color: rgba(57,255,143,0.28); color: var(--green); }
+.btn-enable-sm:hover { background: rgba(57,255,143,0.20); }
+.btn-detail-sm { background: rgba(0,194,255,0.10); border-color: rgba(0,194,255,0.28); color: var(--blue); }
+.btn-detail-sm:hover { background: rgba(0,194,255,0.20); }
+
+/* row of actions in user list */
+.action-btns-row {
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* ── Badge bloqueado ─────────────────────────────── */
+.badge-blocked {
+  background: rgba(139,92,246,0.15);
+  color: #8b5cf6;
+  border-color: rgba(139,92,246,0.3);
+}
+
+/* ── Modal Reset Password ────────────────────────── */
+.reset-pass-card {
+  text-align: center;
+  padding: 10px 0 8px;
+}
+.reset-pass-name {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-bottom: 16px;
+}
+.reset-pass-display {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--green);
+  background: rgba(57,255,143,0.07);
+  border: 1px solid rgba(57,255,143,0.2);
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-bottom: 16px;
+  word-break: break-all;
+  user-select: all;
+}
+.reset-pass-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* ── Section visibility ──────────────────────────── */
+.admin-section { display: none; }
+.admin-section.active { display: block; }
+

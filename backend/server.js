@@ -582,6 +582,7 @@ app.post("/usuarios/:id/activar", async (req, res) => {
     await userRef.update({
       estado:     "activo",
       activadoEn: admin.firestore.FieldValue.serverTimestamp(),
+      membresiaVence: (()=>{ const d=new Date(); return new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().split("T")[0]; })(),
     });
 
     const { fcmToken, nombre="Cliente" } = snap.data();
@@ -878,6 +879,50 @@ app.get("/admin/boletas/:usuarioId", async (req, res) => {
     const boletas = snap.docs.map(d => ({ id:d.id, ...d.data(), creadoEn: d.data().creadoEn?.toDate?.()?.toLocaleDateString("es-AR") || "—" }));
     res.json({ success:true, boletas, total:boletas.length });
   } catch(e) { handleError(res, e, "admin/boletas"); }
+});
+
+// ─── POST /usuarios/:id/bloquear ─────────────────────
+app.post("/usuarios/:id/bloquear", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const userRef = db.collection("usuarios").doc(id);
+    const snap    = await userRef.get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const { nombre = "Cliente" } = snap.data();
+    await userRef.update({ estado:"bloqueado", bloqueadoEn: admin.firestore.FieldValue.serverTimestamp() });
+    await telegramAdmin(`🔒 <b>Usuario bloqueado</b>\n👤 <b>${nombre}</b>`);
+    res.json({ success:true, mensaje:`${nombre} bloqueado` });
+  } catch(e) { handleError(res, e, "usuarios/bloquear"); }
+});
+
+// ─── DELETE /usuarios/:id ─────────────────────────────
+app.delete("/usuarios/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const snap = await db.collection("usuarios").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const { nombre = "Cliente" } = snap.data();
+    await snap.ref.delete();
+    await telegramAdmin(`🗑️ <b>Usuario eliminado</b>\n👤 <b>${nombre}</b>`);
+    res.json({ success:true, mensaje:`${nombre} eliminado` });
+  } catch(e) { handleError(res, e, "usuarios/delete"); }
+});
+
+// ─── POST /usuarios/:id/reset-password ───────────────
+app.post("/usuarios/:id/reset-password", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const snap = await db.collection("usuarios").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const { nombre = "Cliente", telegramChatId } = snap.data();
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    const tempPass = Array.from({length:8}, () => chars[Math.floor(Math.random()*chars.length)]).join("");
+    await db.collection("usuarios").doc(id).update({ password: tempPass, passwordTemp: true, passwordResetEn: admin.firestore.FieldValue.serverTimestamp() });
+    if (telegramChatId) {
+      await telegramCliente(telegramChatId, `🔑 <b>Nueva contraseña temporal</b>\n\nHola <b>${nombre.split(" ")[0]}</b>, tu contraseña fue reseteada.\n\n🔐 Contraseña temporal: <code>${tempPass}</code>\n\nCambiala cuando puedas desde tu perfil.`);
+    }
+    res.json({ success:true, tempPass, mensaje:`Contraseña reseteada para ${nombre}` });
+  } catch(e) { handleError(res, e, "usuarios/reset-password"); }
 });
 
 app.use((req, res) => res.status(404).json({ error:"Endpoint no encontrado", path:req.path }));

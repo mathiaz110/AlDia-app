@@ -10,11 +10,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.15" />
+  <link rel="stylesheet" href="style.css?v=1.0.16" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body class="admin-body">
 
-  <!-- LOGIN ADMIN -->
+  <!-- ════ LOGIN ════ -->
   <div id="adminLogin" class="admin-login">
     <div class="login-card">
       <div class="login-brand">
@@ -56,7 +57,7 @@
     </div>
   </div>
 
-  <!-- ADMIN DASHBOARD -->
+  <!-- ════ DASHBOARD ════ -->
   <div id="adminDash" class="admin-dash hidden">
 
     <!-- SIDEBAR -->
@@ -73,13 +74,13 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a href="#" class="nav-item active">
+        <a href="#" id="navResumen" class="nav-item active" data-sec="secResumen">
           <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
-          <span>Dashboard</span>
+          <span>Resumen</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" id="navClientes" class="nav-item" data-sec="secClientes">
           <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span>Usuarios</span>
+          <span>Clientes</span>
         </a>
       </nav>
 
@@ -97,7 +98,7 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <main class="admin-main">
 
       <!-- TOP BAR MOBILE -->
@@ -120,76 +121,118 @@
         </button>
       </div>
 
-      <!-- STATS -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon" style="--c:#39ff8f">
-            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
-          <div class="stat-value" id="statTotal">—</div>
-          <div class="stat-label">Total usuarios</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="--c:#f59e0b">
-            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.5v4l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="stat-value" id="statPending">—</div>
-          <div class="stat-label">Pendientes</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="--c:#00c2ff">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="stat-value" id="statActive">—</div>
-          <div class="stat-label">Activos</div>
-        </div>
-      </div>
+      <!-- ════ SECCIÓN RESUMEN ════ -->
+      <section id="secResumen" class="admin-section active">
 
-      <!-- FILTERS & SEARCH -->
-      <div class="filters-bar">
-        <div class="search-wrap">
-          <svg viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M15 15l-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nombre, DNI o usuario..." />
-        </div>
-        <div class="filter-tabs">
-          <button class="filter-tab active" data-filter="all">Todos</button>
-          <button class="filter-tab" data-filter="pendiente">Pendientes</button>
-          <button class="filter-tab" data-filter="activo">Activos</button>
-        </div>
-      </div>
-
-      <!-- USERS LIST -->
-      <div class="users-section">
-        <div class="section-header">
-          <h2>Usuarios registrados</h2>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn-activate" id="btnEditarAviso" style="padding:8px 14px;font-size:12px">
-              ✏️ Aviso general
-            </button>
-            <button class="btn-refresh" id="btnRefresh" title="Actualizar">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M4 4v5h5M16 16v-5h-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.6 8A8 8 0 105.7 16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </button>
+        <!-- KPIs -->
+        <div class="stats-grid stats-grid-4">
+          <div class="stat-card">
+            <div class="stat-icon" style="--c:#39ff8f">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-value" id="statTotal">—</div>
+            <div class="stat-label">Total usuarios</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="--c:#f59e0b">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.5v4l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-value" id="statPending">—</div>
+            <div class="stat-label">Pendientes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="--c:#ff4d6d">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M10 6v5M10 14h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/></svg>
+            </div>
+            <div class="stat-value" id="statVencidos">—</div>
+            <div class="stat-label">Vencidos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="--c:#00c2ff">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v14M5 7l5-4 5 4M5 13l5 4 5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-value" id="statIngresos">—</div>
+            <div class="stat-label">Ingresos del mes</div>
           </div>
         </div>
 
-        <div id="usersLoading" class="loading-state">
-          <div class="loading-spinner"></div>
-          <span>Cargando usuarios...</span>
+        <!-- GRÁFICO 6 MESES -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>📈 Ingresos — últimos 6 meses</h3>
+          </div>
+          <div class="chart-sub" id="chartSubtitle">Calculado por clientes activos × $2.247,25</div>
+          <div class="chart-wrap">
+            <canvas id="ingresoChart" height="200"></canvas>
+          </div>
         </div>
 
-        <div id="usersEmpty" class="empty-state hidden">
-          <div class="empty-icon">👥</div>
-          <div class="empty-title">Sin usuarios</div>
-          <div class="empty-sub">No hay usuarios que coincidan con los filtros</div>
+      </section>
+
+      <!-- ════ SECCIÓN CLIENTES ════ -->
+      <section id="secClientes" class="admin-section">
+
+        <!-- CLIENTES ACTIVOS -->
+        <div class="activos-section">
+          <div class="activos-header">
+            <h3>🏷 Clientes activos</h3>
+            <span class="badge-count" id="activoCount">0</span>
+          </div>
+          <div id="activosList">
+            <div id="activosLoading" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-3);padding:12px 0">
+              <div class="loading-spinner" style="width:16px;height:16px"></div> Cargando clientes activos...
+            </div>
+          </div>
         </div>
 
-        <div id="usersList" class="users-list hidden"></div>
-      </div>
+        <!-- TODOS LOS USUARIOS -->
+        <div class="users-section">
+          <div class="section-header">
+            <h2>Todos los usuarios</h2>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn-activate" id="btnEditarAviso" style="padding:8px 14px;font-size:12px">
+                ✏️ Aviso general
+              </button>
+              <button class="btn-refresh" id="btnRefresh" title="Actualizar">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M4 4v5h5M16 16v-5h-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.6 8A8 8 0 105.7 16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- FILTROS -->
+          <div class="filters-bar">
+            <div class="search-wrap">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M15 15l-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nombre, DNI o usuario..." />
+            </div>
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-filter="all">Todos</button>
+              <button class="filter-tab" data-filter="pendiente">Pendientes</button>
+              <button class="filter-tab" data-filter="activo">Activos</button>
+              <button class="filter-tab" data-filter="bloqueado">Bloqueados</button>
+            </div>
+          </div>
+
+          <div id="usersLoading" class="loading-state">
+            <div class="loading-spinner"></div>
+            <span>Cargando usuarios...</span>
+          </div>
+
+          <div id="usersEmpty" class="empty-state hidden">
+            <div class="empty-icon">👥</div>
+            <div class="empty-title">Sin usuarios</div>
+            <div class="empty-sub">No hay usuarios que coincidan con los filtros</div>
+          </div>
+
+          <div id="usersList" class="users-list hidden"></div>
+        </div>
+
+      </section>
 
     </main>
   </div>
 
-  <!-- USER DETAIL MODAL -->
+  <!-- MODAL: DETALLE USUARIO -->
   <div id="userModal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -203,7 +246,33 @@
     </div>
   </div>
 
-  <!-- MODAL AVISO -->
+  <!-- MODAL: RESET CONTRASEÑA -->
+  <div id="modalResetPass" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:380px">
+      <div class="modal-header">
+        <h3>🔑 Contraseña temporal</h3>
+        <button class="btn-close" id="btnCloseReset">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="reset-pass-card">
+          <div class="reset-pass-name" id="resetNombre">Cliente</div>
+          <div class="reset-pass-display" id="resetPassDisplay">————</div>
+          <div class="reset-pass-hint">
+            Esta contraseña fue enviada al cliente por Telegram.<br>
+            El cliente deberá cambiarla al ingresar.
+          </div>
+          <button class="btn-activate" id="btnCopyPass" style="width:100%;justify-content:center">
+            <svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><rect x="7" y="7" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 13V4a1 1 0 011-1h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Copiar contraseña
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AVISO GENERAL -->
   <div id="modalAviso" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -256,15 +325,28 @@
   <div id="toast" class="toast"></div>
 
   <script>
+    // Navegación entre secciones
+    document.querySelectorAll(".nav-item[data-sec]").forEach(link => {
+      link.addEventListener("click", e => {
+        e.preventDefault();
+        const sec = link.dataset.sec;
+        document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+        link.classList.add("active");
+        document.querySelectorAll(".admin-section").forEach(s => s.classList.remove("active"));
+        document.getElementById(sec)?.classList.add("active");
+        // Cerrar sidebar mobile
+        document.querySelector(".sidebar")?.classList.remove("open");
+        document.querySelector(".sidebar-overlay")?.remove();
+      });
+    });
     // Bloquear instalación PWA en el admin
     window.addEventListener("beforeinstallprompt", e => e.preventDefault());
   </script>
-  <script type="module" src="admin.js?v=1.0.15"></script>
+  <script type="module" src="admin.js?v=1.0.16"></script>
   <script>
-    // Registrar Service Worker para notificaciones push en el admin
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/firebase-messaging-sw.js")
-        .then(r => console.log("[Admin SW] Registrado"))
+        .then(() => console.log("[Admin SW] Registrado"))
         .catch(e => console.warn("[Admin SW]", e));
     }
   </script>

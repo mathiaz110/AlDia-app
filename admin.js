@@ -1,13 +1,16 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — admin.js v5
-//  Panel administrador con subida de boletas a R2
+//  ALDIA APP — admin.js v6
+//  Panel administrador expandido:
+//  · Resumen: KPIs + gráfico 6 meses ingresos
+//  · Clientes activos con botones de acción
+//  · Todos los usuarios con filtros
 // ═══════════════════════════════════════════════════
 
 import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword,
          signOut, onAuthStateChanged }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, getDocs,
-         doc, updateDoc, query, where,
+import { getFirestore, collection,
+         doc, updateDoc, query,
          orderBy, onSnapshot, addDoc,
          serverTimestamp }                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -21,7 +24,8 @@ const FIREBASE_CONFIG = {
   appId:             "1:1013051386288:web:e588c83d0892d6cbab4e75",
   measurementId:     "G-28VQ7VM4KS",
 };
-const BACKEND_URL = "https://aldia-app-production-90b0.up.railway.app"; // ← URL de Railway/Render
+const BACKEND_URL = "https://aldia-app-production-90b0.up.railway.app";
+const PRECIO_MES  = 2247.25;
 
 // ─── FIREBASE INIT ───────────────────────────────────
 const firebaseApp = initializeApp(FIREBASE_CONFIG);
@@ -34,7 +38,8 @@ let filteredUsers = [];
 let activeFilter  = "all";
 let searchQuery   = "";
 let unsubscribe   = null;
-let selectedUser  = null; // usuario abierto en modal
+let selectedUser  = null;
+let ingresoChart  = null;
 
 // ─── DOM ─────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -51,9 +56,7 @@ $("btnLogin")?.addEventListener("click", async () => {
   const email = $("adminEmail")?.value.trim();
   const pass  = $("adminPass")?.value;
   $("loginError").textContent = "";
-
   if (!email || !pass) { $("loginError").textContent = "Completá email y contraseña"; return; }
-
   setLoading("btnLogin", true, "Ingresando...");
   try {
     await signInWithEmailAndPassword(auth, email, pass);
@@ -96,7 +99,6 @@ function showDashboard(user) {
   if ($("adminName"))   $("adminName").textContent   = name;
   if ($("adminAvatar")) $("adminAvatar").textContent = name[0].toUpperCase();
   loadUsers();
-  // Guardar token FCM del admin para recibir notificaciones de nuevos registros
   registrarTokenAdmin();
 }
 
@@ -105,15 +107,12 @@ async function registrarTokenAdmin() {
     if (!("Notification" in window)) return;
     const perm = await Notification.requestPermission();
     if (perm !== "granted") return;
-
-    // Importar Firebase Messaging para el admin
     const { getMessaging, getToken } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js");
     const messaging = getMessaging();
     const token = await getToken(messaging, {
       vapidKey: "BCTslJPoTqAMsjQS_J6obznv5ZUDo2o3dYbRNK6cnMJokpsOv0cPKHZNNtPOZ7QbpLFTpu4IfH6UMHhrlo3r0ao"
     });
     if (!token) return;
-
     await fetch(`${BACKEND_URL}/admin/token`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
@@ -139,6 +138,7 @@ function loadUsers() {
     unsubscribe = onSnapshot(q, snap => {
       allUsers = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       updateStats();
+      renderActivosList();
       applyFilters();
       $("usersLoading")?.classList.add("hidden");
     }, err => {
@@ -153,17 +153,213 @@ function loadUsers() {
 }
 
 // ════════════════════════════════════════════════════
-//  ESTADÍSTICAS
+//  ESTADÍSTICAS + GRÁFICO
 // ════════════════════════════════════════════════════
 function updateStats() {
-  if ($("statTotal"))   $("statTotal").textContent   = allUsers.length;
-  if ($("statPending")) $("statPending").textContent = allUsers.filter(u=>u.estado==="pendiente").length;
-  if ($("statActive"))  $("statActive").textContent  = allUsers.filter(u=>u.estado==="activo").length;
-  // Contador de ingresos
-  const activos = allUsers.filter(u=>u.estado==="activo").length;
-  const ingresos = activos * 2247.25;
-  if ($("statIngresos")) $("statIngresos").textContent = "$" + ingresos.toLocaleString("es-AR", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const hoy = new Date();
+
+  // Calcular vencidos: activos con membresiaVence < hoy
+  const activos   = allUsers.filter(u => u.estado === "activo");
+  const vencidos  = activos.filter(u => {
+    if (!u.membresiaVence) return false;
+    return new Date(u.membresiaVence) < hoy;
+  });
+
+  const pendientes = allUsers.filter(u => u.estado === "pendiente");
+  const activosVigentes = activos.filter(u => {
+    if (!u.membresiaVence) return true; // sin fecha = vigente (activado manualmente)
+    return new Date(u.membresiaVence) >= hoy;
+  });
+
+  if ($("statTotal"))    $("statTotal").textContent    = allUsers.length;
+  if ($("statPending"))  $("statPending").textContent  = pendientes.length;
+  if ($("statVencidos")) $("statVencidos").textContent = vencidos.length;
+
+  // Ingresos del mes: clientes activos vigentes × PRECIO_MES
+  const ingresosMes = activosVigentes.length * PRECIO_MES;
+  if ($("statIngresos")) {
+    $("statIngresos").textContent = "$" + ingresosMes.toLocaleString("es-AR", {minimumFractionDigits:0, maximumFractionDigits:0});
+  }
+
+  // Gráfico de ingresos 6 meses
+  buildChart();
 }
+
+function buildChart() {
+  // Construir labels de últimos 6 meses
+  const labels = [];
+  const datos  = [];
+  const hoy = new Date();
+
+  for (let i = 5; i >= 0; i--) {
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const mesLabel = fecha.toLocaleString("es-AR", { month:"short", year:"2-digit" });
+    labels.push(mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1));
+
+    // Contar clientes que estaban activos en ese mes
+    // = activadoEn <= fin del mes && (membresiaVence >= inicio del mes || sin membresiaVence)
+    const inicioMes = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+    const finMes    = new Date(fecha.getFullYear(), fecha.getMonth()+1, 0, 23, 59, 59);
+
+    const activosEnMes = allUsers.filter(u => {
+      if (u.estado !== "activo" && u.activadoEn == null) return false;
+      // Fecha de activación
+      const activadoEn = toDate(u.activadoEn);
+      if (!activadoEn || activadoEn > finMes) return false; // aún no activado ese mes
+      // Membresía: si tiene vence y ya venció antes de inicioMes => no contabilizar
+      if (u.membresiaVence) {
+        const vence = new Date(u.membresiaVence);
+        if (vence < inicioMes) return false;
+      }
+      return true;
+    });
+
+    datos.push(activosEnMes.length * PRECIO_MES);
+  }
+
+  const canvas = $("ingresoChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  if (ingresoChart) ingresoChart.destroy();
+
+  ingresoChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Ingresos ($)",
+        data: datos,
+        backgroundColor: "rgba(57,255,143,0.18)",
+        borderColor: "#39ff8f",
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false,
+        hoverBackgroundColor: "rgba(57,255,143,0.35)",
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => " $" + ctx.parsed.y.toLocaleString("es-AR", {minimumFractionDigits:0})
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: { color: "#7a8499", font: { size: 11 } }
+        },
+        y: {
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: {
+            color: "#7a8499",
+            font: { size: 11 },
+            callback: v => "$" + (v/1000).toFixed(0) + "k"
+          },
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  LISTA CLIENTES ACTIVOS (con botones de acción)
+// ════════════════════════════════════════════════════
+function renderActivosList() {
+  const list = $("activosList");
+  const countEl = $("activoCount");
+  if (!list) return;
+
+  const hoy = new Date();
+  const activos = allUsers.filter(u => u.estado === "activo");
+
+  if (countEl) countEl.textContent = activos.length;
+  $("activosLoading")?.remove();
+
+  if (!activos.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏷</div><div class="empty-title">Sin clientes activos</div></div>`;
+    return;
+  }
+
+  list.innerHTML = activos.map(u => {
+    const vencido = u.membresiaVence && new Date(u.membresiaVence) < hoy;
+    const venceStr = u.membresiaVence ? `Vence: ${u.membresiaVence}` : "Membresía activa";
+    return `
+    <div class="user-card activo-card ${vencido ? 'vencido-card' : ''}">
+      <div class="user-avatar" style="background:${vencido ? 'rgba(255,77,109,.15)' : 'rgba(57,255,143,.15)'};color:${vencido ? '#ff4d6d' : '#39ff8f'}">${(u.nombre||"?")[0].toUpperCase()}</div>
+      <div class="user-info" style="flex:1;min-width:0">
+        <div class="user-name">${escHtml(u.nombre||"Sin nombre")} ${vencido ? '<span style="color:#ff4d6d;font-size:10px">● Vencido</span>' : ''}</div>
+        <div class="user-meta">@${escHtml(u.usuario||"—")} · N°${escHtml(u.nroCliente||"—")} · ${venceStr}</div>
+      </div>
+      <div class="action-btns">
+        <button class="action-btn btn-block-sm"   onclick="accion('bloquear','${u.id}','${escHtml(u.nombre||"")}')">🔒 Bloquear</button>
+        <button class="action-btn btn-reset-sm"   onclick="accion('reset','${u.id}','${escHtml(u.nombre||"")}')">🔑 Reset</button>
+        <button class="action-btn btn-delete-sm"  onclick="accion('borrar','${u.id}','${escHtml(u.nombre||"")}')">🗑️ Borrar</button>
+        <button class="action-btn btn-detail-sm"  onclick="openModal('${u.id}')">👁 Ver</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ════════════════════════════════════════════════════
+//  ACCIONES POR CLIENTE
+// ════════════════════════════════════════════════════
+window.accion = async function(tipo, userId, nombre) {
+  if (tipo === "bloquear") {
+    if (!confirm(`¿Bloquear a ${nombre}?`)) return;
+    try {
+      const resp = await fetch(`${BACKEND_URL}/usuarios/${userId}/bloquear`, { method:"POST" });
+      if (!resp.ok) throw new Error("Error");
+      showToast(`🔒 ${nombre} bloqueado`, "");
+    } catch(e) { showToast("Error al bloquear", "error"); }
+  }
+
+  else if (tipo === "borrar") {
+    if (!confirm(`¿ELIMINAR a ${nombre}? Esta acción no se puede deshacer.`)) return;
+    try {
+      const resp = await fetch(`${BACKEND_URL}/usuarios/${userId}`, { method:"DELETE" });
+      if (!resp.ok) throw new Error("Error");
+      showToast(`🗑️ ${nombre} eliminado`, "");
+    } catch(e) { showToast("Error al eliminar", "error"); }
+  }
+
+  else if (tipo === "reset") {
+    if (!confirm(`¿Resetear contraseña de ${nombre}? Se generará una temporal.`)) return;
+    try {
+      const resp = await fetch(`${BACKEND_URL}/usuarios/${userId}/reset-password`, { method:"POST" });
+      if (!resp.ok) throw new Error("Error");
+      const data = await resp.json();
+      // Mostrar modal con contraseña temporal
+      $("resetNombre").textContent = nombre;
+      $("resetPassDisplay").textContent = data.tempPass;
+      $("modalResetPass")?.classList.remove("hidden");
+    } catch(e) { showToast("Error al resetear contraseña", "error"); }
+  }
+
+  else if (tipo === "habilitar") {
+    try {
+      const resp = await fetch(`${BACKEND_URL}/usuarios/${userId}/activar`, { method:"POST" });
+      if (!resp.ok) throw new Error("Error");
+      showToast(`✅ ${nombre} activado`, "success");
+    } catch(e) { showToast("Error al activar", "error"); }
+  }
+};
+
+// Modal reset password
+$("btnCloseReset")?.addEventListener("click", () => $("modalResetPass")?.classList.add("hidden"));
+$("modalResetPass")?.addEventListener("click", e => { if(e.target===$("modalResetPass")) $("modalResetPass").classList.add("hidden"); });
+$("btnCopyPass")?.addEventListener("click", () => {
+  const pass = $("resetPassDisplay")?.textContent;
+  if (pass) {
+    navigator.clipboard.writeText(pass).then(() => showToast("Contraseña copiada", "success")).catch(() => {});
+  }
+});
 
 // ════════════════════════════════════════════════════
 //  FILTROS Y BÚSQUEDA
@@ -213,20 +409,27 @@ function renderUsers(users) {
   list.classList.remove("hidden");
 
   list.innerHTML = users.map(u => `
-    <div class="user-card" data-id="${u.id}" onclick="openModal('${u.id}')">
+    <div class="user-card" data-id="${u.id}">
       <div class="user-avatar">${(u.nombre||"?")[0].toUpperCase()}</div>
-      <div class="user-info">
+      <div class="user-info" onclick="openModal('${u.id}')" style="cursor:pointer;flex:1;min-width:0">
         <div class="user-name">${escHtml(u.nombre||"Sin nombre")}</div>
         <div class="user-meta">@${escHtml(u.usuario||"—")} · N°${escHtml(u.nroCliente||"—")} · DNI ${escHtml(u.dni||"—")}</div>
       </div>
       <span class="user-status-badge ${getBadgeClass(u.estado)}">${capitalizar(u.estado)}</span>
       <div class="user-date">${formatDate(u.creadoEn)}</div>
+      <div class="action-btns action-btns-row">
+        ${u.estado === "pendiente" ? `<button class="action-btn btn-enable-sm" onclick="accion('habilitar','${u.id}','${escHtml(u.nombre||"")}')">✅ Habilitar</button>` : ""}
+        ${u.estado === "activo"    ? `<button class="action-btn btn-block-sm"  onclick="accion('bloquear','${u.id}','${escHtml(u.nombre||"")}')">🔒 Bloquear</button>` : ""}
+        ${u.estado === "bloqueado" ? `<button class="action-btn btn-enable-sm" onclick="accion('habilitar','${u.id}','${escHtml(u.nombre||"")}')">✅ Activar</button>` : ""}
+        <button class="action-btn btn-reset-sm"  onclick="accion('reset','${u.id}','${escHtml(u.nombre||"")}')">🔑</button>
+        <button class="action-btn btn-delete-sm" onclick="accion('borrar','${u.id}','${escHtml(u.nombre||"")}')">🗑️</button>
+      </div>
     </div>
   `).join("");
 }
 
 // ════════════════════════════════════════════════════
-//  MODAL USUARIO
+//  MODAL USUARIO (detalle + boletas)
 // ════════════════════════════════════════════════════
 window.openModal = function(userId) {
   selectedUser = allUsers.find(u => u.id === userId);
@@ -242,23 +445,25 @@ window.openModal = function(userId) {
     <div class="detail-row"><span class="detail-label">Dirección</span><span class="detail-value">${escHtml(selectedUser.direccion||"—")}</span></div>
     <div class="detail-row"><span class="detail-label">Estado</span><span class="detail-value"><span class="user-status-badge ${getBadgeClass(selectedUser.estado)}">${capitalizar(selectedUser.estado)}</span></span></div>
     <div class="detail-row"><span class="detail-label">Registro</span><span class="detail-value">${formatDate(selectedUser.creadoEn, true)}</span></div>
-    <div class="detail-row"><span class="detail-label">Token FCM</span><span class="detail-value" style="font-size:10px;word-break:break-all">${selectedUser.fcmToken?.substring(0,40)||"—"}…</span></div>
+    ${selectedUser.membresiaVence ? `<div class="detail-row"><span class="detail-label">Membresía vence</span><span class="detail-value">${selectedUser.membresiaVence}</span></div>` : ""}
+    <div class="detail-row"><span class="detail-label">Telegram</span><span class="detail-value">${selectedUser.telegramChatId ? "✅ Vinculado" : "No vinculado"}</span></div>
   `;
 
-  // ─── ACCIONES SEGÚN ESTADO ───────────────────────
   const actions = $("modalActions");
   actions.innerHTML = `
     ${selectedUser.estado==="pendiente" ? `
       <button class="btn-activate" id="btnActivate">
         <svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Activar cuenta y notificar
+        Activar cuenta
       </button>
-      <button class="btn-reject" id="btnReject">Rechazar solicitud</button>
+      <button class="btn-reject" id="btnReject">Rechazar</button>
     ` : selectedUser.estado==="activo" ? `
-      <p style="text-align:center;color:var(--text-3);font-size:12px;padding:4px 0">Cuenta activa ✓</p>
-    ` : `
-      <button class="btn-activate" id="btnReactivate">Reactivar cuenta</button>
-    `}
+      <button class="btn-reject" id="btnBloquear" style="background:rgba(255,77,109,.1);border-color:rgba(255,77,109,.3)">🔒 Bloquear</button>
+    ` : selectedUser.estado==="bloqueado" ? `
+      <button class="btn-activate" id="btnReactivate">✅ Reactivar</button>
+    ` : ""}
+    <button class="btn-reject" id="btnResetModal" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:#f59e0b">🔑 Reset contraseña</button>
+    <button class="btn-reject" id="btnDeleteModal" style="background:rgba(255,77,109,.1);border-color:rgba(255,77,109,.3)">🗑️ Eliminar usuario</button>
 
     <!-- ─── BOLETAS DEL CLIENTE ─────────────────────── -->
     <div class="upload-boleta-section">
@@ -270,8 +475,7 @@ window.openModal = function(userId) {
         <div style="font-size:11px;color:var(--text-3)">Cargando boletas...</div>
       </div>
 
-    <!-- ─── SUBIR BOLETA A R2 ─────────────────────── -->
-    <div class="upload-section-title" style="margin-top:8px">
+      <div class="upload-section-title" style="margin-top:8px">
         <svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         Subir nueva boleta PDF → R2
       </div>
@@ -279,21 +483,18 @@ window.openModal = function(userId) {
         <div class="field-group">
           <label class="field-label">Período (ej: Enero 2025)</label>
           <div class="field-wrap">
-            <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M3 8h14M7 4V2M13 4V2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             <input type="text" id="uploadPeriodo" class="field-input" placeholder="Enero 2025"/>
           </div>
         </div>
         <div class="field-group">
           <label class="field-label">Fecha de vencimiento</label>
           <div class="field-wrap">
-            <svg class="field-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="11" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M10 8v3l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <input type="text" id="uploadVenc" class="field-input" placeholder="10/01/2025"/>
           </div>
         </div>
         <div class="field-group">
           <label class="field-label">Fecha de emisión</label>
           <div class="field-wrap">
-            <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             <input type="text" id="uploadEmitida" class="field-input" placeholder="01/01/2025"/>
           </div>
         </div>
@@ -310,18 +511,18 @@ window.openModal = function(userId) {
         </button>
       </div>
     </div>
-    </div>
   `;
 
-  // Eventos de acción
   $("btnActivate")?.addEventListener("click",   () => activateUser(selectedUser));
-  // Cargar boletas del cliente
-  cargarBoletasAdmin(selectedUser.id);
   $("btnReject")?.addEventListener("click",     () => rejectUser(selectedUser));
   $("btnReactivate")?.addEventListener("click", () => activateUser(selectedUser));
+  $("btnBloquear")?.addEventListener("click",   () => { closeModal(); accion("bloquear", selectedUser.id, selectedUser.nombre); });
+  $("btnResetModal")?.addEventListener("click", () => { closeModal(); accion("reset", selectedUser.id, selectedUser.nombre); });
+  $("btnDeleteModal")?.addEventListener("click",() => { closeModal(); accion("borrar", selectedUser.id, selectedUser.nombre); });
   $("btnUploadBoleta")?.addEventListener("click", uploadBoleta);
 
-  // Drag & drop en la zona de upload
+  cargarBoletasAdmin(selectedUser.id);
+
   const drop = $("uploadDrop");
   if (drop) {
     drop.addEventListener("dragover",  e => { e.preventDefault(); drop.classList.add("drag-over"); });
@@ -345,14 +546,8 @@ window.onPdfSelected = function(input) {
 
 function setPdfFile(file) {
   const errEl = $("uploadError");
-  if (file.type !== "application/pdf") {
-    if(errEl) errEl.textContent = "Solo se aceptan archivos PDF";
-    return;
-  }
-  if (file.size > 5*1024*1024) {
-    if(errEl) errEl.textContent = "El PDF no puede superar 5 MB";
-    return;
-  }
+  if (file.type !== "application/pdf") { if(errEl) errEl.textContent = "Solo se aceptan archivos PDF"; return; }
+  if (file.size > 5*1024*1024) { if(errEl) errEl.textContent = "El PDF no puede superar 5 MB"; return; }
   if(errEl) errEl.textContent = "";
   selectedPdfFile = file;
   const txt = $("uploadDropText");
@@ -398,11 +593,8 @@ window.borrarBoleta = async function(boletaId, periodo) {
     const resp = await fetch(`${BACKEND_URL}/boleta/${boletaId}`, { method:"DELETE" });
     if (!resp.ok) throw new Error("Error al borrar");
     showToast(`Boleta ${periodo} eliminada`, "success");
-    // Recargar lista
     if (selectedUser) cargarBoletasAdmin(selectedUser.id);
-  } catch(e) {
-    showToast("Error al borrar boleta", "error");
-  }
+  } catch(e) { showToast("Error al borrar boleta", "error"); }
 };
 
 async function uploadBoleta() {
@@ -429,20 +621,10 @@ async function uploadBoleta() {
     formData.append("vencimiento",venc);
     formData.append("emitida",    emitida);
 
-    const resp = await fetch(`${BACKEND_URL}/boleta/subir`, {
-      method: "POST",
-      body:   formData,
-      // No poner Content-Type — el browser lo pone automático con boundary
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.error || `HTTP ${resp.status}`);
-    }
-    const data = await resp.json();
+    const resp = await fetch(`${BACKEND_URL}/boleta/subir`, { method:"POST", body:formData });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.error || `HTTP ${resp.status}`); }
 
     showToast(`✅ Boleta ${periodo} subida y cliente notificado`, "success");
-    // Reset
     selectedPdfFile = null;
     $("uploadPdfInput").value = "";
     $("uploadDropText").textContent = "Arrastrá el PDF o tocá para elegir";
@@ -450,7 +632,6 @@ async function uploadBoleta() {
     $("uploadVenc").value    = "";
     $("uploadEmitida").value = "";
     $("btnUploadBoleta").disabled = true;
-
   } catch(e) {
     console.error("[Upload R2]", e);
     if(errEl) errEl.textContent = e.message || "Error al subir. Intentá de nuevo.";
@@ -466,40 +647,31 @@ async function uploadBoleta() {
 async function activateUser(user) {
   setLoading("btnActivate", true, "Activando...");
   try {
-    // Activar via backend — actualiza Firestore Y envía push notification
     const resp = await fetch(`${BACKEND_URL}/usuarios/${user.id}/activar`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
     });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.error || "Error al activar");
-    }
-
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.error || "Error al activar"); }
     showToast(`✅ ${user.nombre} activado y notificado`, "success");
     closeModal();
   } catch(e) {
     console.error("[Activar]", e);
     showToast("Error al activar: " + e.message, "error");
-    setLoading("btnActivate", false, "Activar cuenta y notificar");
+    setLoading("btnActivate", false, "Activar cuenta");
   }
 }
 
 async function rejectUser(user) {
   if (!confirm(`¿Rechazar la solicitud de ${user.nombre}?`)) return;
   try {
-    await updateDoc(doc(db,"usuarios",user.id), {
-      estado:       "rechazado",
-      rechazadoEn:  serverTimestamp(),
-    });
+    await updateDoc(doc(db,"usuarios",user.id), { estado:"rechazado", rechazadoEn:serverTimestamp() });
     showToast(`Usuario ${user.nombre} rechazado`, "");
     closeModal();
   } catch(e) { showToast("Error al rechazar", "error"); }
 }
 
 // ════════════════════════════════════════════════════
-//  CERRAR MODAL
+//  MODAL CIERRE
 // ════════════════════════════════════════════════════
 $("btnCloseModal")?.addEventListener("click", closeModal);
 $("userModal")?.addEventListener("click", e => { if(e.target===$("userModal")) closeModal(); });
@@ -510,13 +682,9 @@ function closeModal() {
 }
 
 // ════════════════════════════════════════════════════
-//  REFRESH + MOBILE MENU
-// ════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════
-//  AVISOS GENERALES — editar desde admin
+//  AVISOS GENERALES
 // ════════════════════════════════════════════════════
 $("btnEditarAviso")?.addEventListener("click", async () => {
-  // Cargar aviso actual
   try {
     const resp = await fetch(`${BACKEND_URL}/avisos/activo`);
     const data = await resp.json();
@@ -531,12 +699,8 @@ $("btnEditarAviso")?.addEventListener("click", async () => {
   $("modalAviso")?.classList.remove("hidden");
 });
 
-$("btnCloseAviso")?.addEventListener("click", () => {
-  $("modalAviso")?.classList.add("hidden");
-});
-$("modalAviso")?.addEventListener("click", e => {
-  if (e.target === $("modalAviso")) $("modalAviso").classList.add("hidden");
-});
+$("btnCloseAviso")?.addEventListener("click", () => $("modalAviso")?.classList.add("hidden"));
+$("modalAviso")?.addEventListener("click", e => { if(e.target===$("modalAviso")) $("modalAviso").classList.add("hidden"); });
 
 $("btnGuardarAviso")?.addEventListener("click", async () => {
   const titulo = $("avisoTitulo")?.value.trim();
@@ -545,43 +709,39 @@ $("btnGuardarAviso")?.addEventListener("click", async () => {
   const activo = $("avisoActivo")?.checked !== false;
   const errEl  = $("avisoError");
 
-  if (!titulo || !cuerpo) {
-    if (errEl) errEl.textContent = "Completá título y mensaje";
-    return;
-  }
-  if (errEl) errEl.textContent = "";
+  if (!titulo || !cuerpo) { if(errEl) errEl.textContent = "Completá título y mensaje"; return; }
+  if(errEl) errEl.textContent = "";
 
   try {
     const resp = await fetch(`${BACKEND_URL}/avisos/activo`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ tipo, titulo, cuerpo, activo }),
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ tipo, titulo, cuerpo, activo }),
     });
     if (!resp.ok) throw new Error("Error al guardar");
     const data = await resp.json();
     $("modalAviso")?.classList.add("hidden");
     const msg = data.notificados > 0
       ? `✅ Aviso publicado · ${data.notificados} cliente${data.notificados!==1?"s":""} notificado${data.notificados!==1?"s":""}`
-      : "✅ Aviso guardado (sin clientes activos aún)";
+      : "✅ Aviso guardado";
     showToast(msg, "success");
-  } catch(e) {
-    if (errEl) errEl.textContent = "Error al guardar. Intentá de nuevo.";
-  }
+  } catch(e) { if(errEl) errEl.textContent = "Error al guardar. Intentá de nuevo."; }
 });
 
 $("btnBorrarAviso")?.addEventListener("click", async () => {
-  if (!confirm("¿Quitar el aviso? Los clientes dejarán de verlo.")) return;
+  if (!confirm("¿Quitar el aviso?")) return;
   try {
     await fetch(`${BACKEND_URL}/avisos/activo`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ tipo:"info", titulo:"", cuerpo:"", activo:false }),
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ tipo:"info", titulo:"", cuerpo:"", activo:false }),
     });
     $("modalAviso")?.classList.add("hidden");
     showToast("Aviso quitado", "");
   } catch(e) { showToast("Error al quitar aviso", "error"); }
 });
 
+// ════════════════════════════════════════════════════
+//  REFRESH + MOBILE MENU
+// ════════════════════════════════════════════════════
 $("btnRefresh")?.addEventListener("click", () => {
   $("btnRefresh")?.classList.add("spinning");
   loadUsers();
@@ -599,6 +759,13 @@ $("btnMenu")?.addEventListener("click", () => {
 // ════════════════════════════════════════════════════
 //  UTILS
 // ════════════════════════════════════════════════════
+function toDate(val) {
+  if (!val) return null;
+  if (val.toDate) return val.toDate();
+  if (val._seconds) return new Date(val._seconds * 1000);
+  return new Date(val);
+}
+
 function setLoading(btnId, on, label) {
   const btn = $(btnId); if(!btn) return;
   btn.disabled = on;
@@ -611,13 +778,14 @@ function setLoading(btnId, on, label) {
 }
 
 function getBadgeClass(estado) {
-  return { pendiente:"badge-pending", activo:"badge-active", rechazado:"badge-rejected" }[estado] || "badge-pending";
+  return { pendiente:"badge-pending", activo:"badge-active", rechazado:"badge-rejected", bloqueado:"badge-rejected" }[estado] || "badge-pending";
 }
 function capitalizar(s)  { return s ? s[0].toUpperCase()+s.slice(1) : "—"; }
 function escHtml(s)      { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function formatDate(ts, full=false) {
   if(!ts) return "—";
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const d = toDate(ts);
+  if (!d) return "—";
   return full ? d.toLocaleString("es-AR") : d.toLocaleDateString("es-AR",{day:"2-digit",month:"short"});
 }
 
