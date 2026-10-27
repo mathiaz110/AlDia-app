@@ -3,9 +3,9 @@
 //  Service Worker: cache + offline + install prompt
 // ═══════════════════════════════════════════════════
 
-const CACHE_NAME    = "aldia-v1.0.15";
-const CACHE_STATIC  = "aldia-static-v1.0.15";
-const CACHE_DYNAMIC = "aldia-dynamic-v1.0.15";
+const CACHE_NAME    = "aldia-v1.0.18";
+const CACHE_STATIC  = "aldia-static-v1.0.18";
+const CACHE_DYNAMIC = "aldia-dynamic-v1.0.18";
 
 // Recursos que se cachean al instalar (shell de la app)
 const STATIC_ASSETS = [
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
   "/icons/notification-icon.png",
   "/icons/apple-touch-icon.png",
   "/icons/favicon-32.png",
+  "/install-guide.html",
   // Fuentes de Google (pre-cache para offline)
   "https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap",
 ];
@@ -41,14 +42,14 @@ const NEVER_CACHE = [
 //  INSTALL — pre-cachear shell de la app
 // ════════════════════════════════════════════════════
 self.addEventListener("install", event => {
-  console.log("[SW] Instalando v1.0.15...");
+  console.log("[SW] Instalando v1.0.18...");
   event.waitUntil(
     caches.open(CACHE_STATIC)
       .then(cache => cache.addAll(
         STATIC_ASSETS.map(url => new Request(url, { cache: "reload" }))
       ))
       .then(() => {
-        console.log("[SW] Instalado correctamente");
+        console.log("[SW] v1.0.18 instalado");
         return self.skipWaiting(); // activa inmediatamente sin esperar recarga
       })
       .catch(err => console.warn("[SW] Error en install:", err))
@@ -59,7 +60,7 @@ self.addEventListener("install", event => {
 //  ACTIVATE — limpiar caches viejas
 // ════════════════════════════════════════════════════
 self.addEventListener("activate", event => {
-  console.log("[SW] Activando v1.0.15...");
+  console.log("[SW] Activando v1.0.18...");
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(

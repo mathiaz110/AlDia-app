@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cómo instalar AlDía — Guía de instalación</title>
+  <meta name="theme-color" content="#0a0e1a" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0e1a;
+      --card:     #111827;
+      --border:   rgba(255,255,255,.08);
+      --green:    #39ff8f;
+      --blue:     #00c2ff;
+      --text-1:   #f0f4ff;
+      --text-2:   #8892aa;
+      --text-3:   #5a6480;
+      --radius:   16px;
+    }
+
+    body {
+      font-family: "DM Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100dvh;
+      padding: 0 0 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .guide-header {
+      background: linear-gradient(135deg, rgba(57,255,143,.08) 0%, rgba(0,194,255,.05) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 32px 20px 28px;
+      text-align: center;
+    }
+    .guide-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, rgba(57,255,143,.15), rgba(0,194,255,.1));
+      border: 1px solid rgba(57,255,143,.25);
+      border-radius: 12px;
+      display: grid; place-items: center;
+    }
+    .logo-icon svg { width: 26px; height: 26px; }
+    .logo-name {
+      font-family: "Syne", sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #39ff8f, #00c2ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .guide-title {
+      font-family: "Syne", sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    .guide-sub {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.6;
+      max-width: 340px;
+      margin: 0 auto;
+    }
+
+    /* ── Tab selector ── */
+    .device-tabs {
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      padding: 20px 20px 0;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .device-tabs::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      color: var(--text-2);
+      font-size: 12px;
+      font-family: "DM Sans", sans-serif;
+      font-weight: 500;
+      transition: all .2s;
+      min-width: 72px;
+    }
+    .tab-btn .tab-icon { font-size: 20px; }
+    .tab-btn.active {
+      background: rgba(57,255,143,.08);
+      border-color: rgba(57,255,143,.35);
+      color: var(--green);
+    }
+
+    /* ── Guide panels ── */
+    .guide-panels { padding: 20px; }
+    .guide-panel { display: none; }
+    .guide-panel.active { display: block; }
+
+    /* ── Alert ── */
+    .alert-box {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: rgba(255,165,0,.07);
+      border: 1px solid rgba(255,165,0,.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+    .alert-icon { font-size: 18px; flex-shrink: 0; }
+    .alert-text { font-size: 13px; color: #ffd680; line-height: 1.55; }
+    .alert-text strong { font-weight: 600; }
+
+    .info-box {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: rgba(0,194,255,.07);
+      border: 1px solid rgba(0,194,255,.2);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+    .info-text { font-size: 13px; color: #80e4ff; line-height: 1.55; }
+
+    /* ── Steps ── */
+    .steps { list-style: none; }
+    .step {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, rgba(57,255,143,.15), rgba(0,194,255,.1));
+      border: 1px solid rgba(57,255,143,.25);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-family: "Syne", sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green);
+    }
+    .step-body { flex: 1; padding-top: 4px; }
+    .step-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+    .step-desc {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+    .step-desc code {
+      background: rgba(255,255,255,.07);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: 12px;
+      color: var(--text-1);
+      font-family: monospace;
+    }
+
+    /* Tag icon inline */
+    .inline-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--text-1);
+      vertical-align: middle;
+    }
+
+    /* ── Back link ── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 20px 20px 0;
+      font-size: 13px;
+      color: var(--text-3);
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--green); }
+
+    /* ── Push note ── */
+    .push-note {
+      background: rgba(57,255,143,.05);
+      border: 1px solid rgba(57,255,143,.15);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-top: 24px;
+    }
+    .push-note-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: 6px;
+    }
+    .push-note-text {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <a href="/" class="back-link">
+    <svg viewBox="0 0 20 20" fill="none" style="width:16px;height:16px"><path d="M12 5l-6 5 6 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Volver a la app
+  </a>
+
+  <div class="guide-header">
+    <div class="guide-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" stroke="url(#hg)" stroke-width="1.8"/>
+          <path d="M10 16.3L14.3 20.5L22 13" stroke="#39ff8f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs><linearGradient id="hg" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#39ff8f"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs>
+        </svg>
+      </div>
+      <span class="logo-name">AlDía</span>
+    </div>
+    <h1 class="guide-title">Instalá la app</h1>
+    <p class="guide-sub">Seguí los pasos según tu dispositivo para agregar AlDía a tu pantalla de inicio y recibir notificaciones.</p>
+  </div>
+
+  <!-- Device tabs -->
+  <div class="device-tabs" role="tablist">
+    <button class="tab-btn active" data-panel="iphone" role="tab" aria-selected="true">
+      <span class="tab-icon">📱</span>
+      iPhone
+    </button>
+    <button class="tab-btn" data-panel="ipad" role="tab">
+      <span class="tab-icon">🗂️</span>
+      iPad
+    </button>
+    <button class="tab-btn" data-panel="android" role="tab">
+      <span class="tab-icon">🤖</span>
+      Android
+    </button>
+    <button class="tab-btn" data-panel="mac" role="tab">
+      <span class="tab-icon">💻</span>
+      Mac
+    </button>
+    <button class="tab-btn" data-panel="pc" role="tab">
+      <span class="tab-icon">🖥️</span>
+      PC / Windows
+    </button>
+  </div>
+
+  <div class="guide-panels">
+
+    <!-- ══ iPhone ══ -->
+    <div class="guide-panel active" id="panel-iphone">
+      <div class="alert-box">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-text">
+          <strong>Importante:</strong> En iPhone, las notificaciones push solo funcionan cuando la app está instalada en la pantalla de inicio. Abrirla como página web no alcanza.
+        </div>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Abrí la app en Safari</div>
+            <div class="step-desc">Entrá a <code>aldia-app1.web.app</code> usando <strong>Safari</strong>. Otros navegadores como Chrome o Firefox no permiten instalar apps ni recibir notificaciones en iPhone.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Tocá el botón Compartir</div>
+            <div class="step-desc">En la barra inferior de Safari, tocá el ícono de compartir <span class="inline-icon">⬆️ Compartir</span>. Si no lo ves, bajá un poco la página.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Seleccioná "Agregar a pantalla de inicio"</div>
+            <div class="step-desc">En el menú que se abre, deslizá hacia abajo y tocá <span class="inline-icon">📲 Agregar a pantalla de inicio</span>. Cambiá el nombre si querés y tocá <strong>Agregar</strong>.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Abrí la app desde el ícono</div>
+            <div class="step-desc">Buscá el ícono de AlDía en tu pantalla de inicio y abrilo desde ahí. Iniciá sesión normalmente.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Habilitá las notificaciones</div>
+            <div class="step-desc">Tocá el 🔔 que aparece arriba en el dashboard. El sistema te pedirá permiso — tocá <strong>Permitir</strong>. ¡Listo!</div>
+          </div>
+        </li>
+      </ol>
+      <div class="push-note">
+        <div class="push-note-title">🔔 ¿Por qué es necesario instalarla?</div>
+        <div class="push-note-text">Apple solo permite enviar notificaciones push a apps instaladas en la pantalla de inicio (iOS 16.4+). Es una limitación del sistema, no de AlDía.</div>
+      </div>
+    </div>
+
+    <!-- ══ iPad ══ -->
+    <div class="guide-panel" id="panel-ipad">
+      <div class="alert-box">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-text">
+          <strong>Importante:</strong> Al igual que en iPhone, en iPad las notificaciones push solo funcionan con la app instalada en la pantalla de inicio, abierta desde Safari.
+        </div>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Abrí la app en Safari</div>
+            <div class="step-desc">Entrá a <code>aldia-app1.web.app</code> en <strong>Safari</strong>. No uses Chrome ni otros navegadores.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Tocá Compartir en la barra de herramientas</div>
+            <div class="step-desc">En iPad, el botón Compartir <span class="inline-icon">⬆️</span> está en la barra de direcciones, arriba a la derecha.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Tocá "Agregar a pantalla de inicio"</div>
+            <div class="step-desc">Buscá <span class="inline-icon">📲 Agregar a pantalla de inicio</span> en el menú, tocalo y confirmá con <strong>Agregar</strong>.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Abrí desde el ícono e iniciá sesión</div>
+            <div class="step-desc">Encontrá el ícono de AlDía en tu pantalla de inicio y abrilo desde ahí.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Habilitá las notificaciones</div>
+            <div class="step-desc">Tocá el 🔔 en el dashboard y aceptá el permiso cuando aparezca.</div>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- ══ Android ══ -->
+    <div class="guide-panel" id="panel-android">
+      <div class="info-box">
+        <span style="font-size:18px;flex-shrink:0">ℹ️</span>
+        <div class="info-text">En Android podés usar Chrome (o Brave/Edge). Las notificaciones funcionan aunque no instales la app, pero instalarla le da una experiencia mucho mejor.</div>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Abrí la app en Chrome</div>
+            <div class="step-desc">Entrá a <code>aldia-app1.web.app</code> con Chrome. Es el navegador recomendado en Android.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Instalá la app (opcional pero recomendado)</div>
+            <div class="step-desc">Chrome puede mostrar un banner o un ícono en la barra de direcciones para instalar la app. También podés ir al menú <span class="inline-icon">⋮</span> y seleccionar <strong>"Agregar a pantalla de inicio"</strong> o <strong>"Instalar app"</strong>.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Iniciá sesión</div>
+            <div class="step-desc">Abrí AlDía desde el ícono instalado o desde el navegador e iniciá sesión con tus datos.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Habilitá las notificaciones</div>
+            <div class="step-desc">Tocá el 🔔 que aparece en el dashboard. Cuando el sistema te pida permiso, tocá <strong>Permitir</strong>. Si no sale el pedido, revisá que las notificaciones de Chrome no estén bloqueadas en Ajustes.</div>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- ══ Mac (Safari) ══ -->
+    <div class="guide-panel" id="panel-mac">
+      <div class="info-box">
+        <span style="font-size:18px;flex-shrink:0">ℹ️</span>
+        <div class="info-text">En Mac, podés instalar la app y recibir notificaciones usando Safari (macOS Sonoma 14+) o Chrome.</div>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Abrí la app en Safari o Chrome</div>
+            <div class="step-desc">Entrá a <code>aldia-app1.web.app</code> en tu navegador preferido.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Agregá al Dock (Safari — Sonoma)</div>
+            <div class="step-desc">En Safari, andá a <strong>Archivo → Agregar al Dock</strong>. La app se instala como si fuera nativa y queda en tu Dock.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">O instalá desde Chrome</div>
+            <div class="step-desc">En Chrome, hacé clic en el ícono de instalación <span class="inline-icon">⊕ Instalar</span> en la barra de direcciones, o en el menú <span class="inline-icon">⋮ → Instalar AlDía</span>.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Habilitá las notificaciones</div>
+            <div class="step-desc">Iniciá sesión, tocá el 🔔 en el dashboard y aceptá el permiso de notificaciones que aparece en pantalla.</div>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- ══ PC / Windows ══ -->
+    <div class="guide-panel" id="panel-pc">
+      <div class="info-box">
+        <span style="font-size:18px;flex-shrink:0">ℹ️</span>
+        <div class="info-text">En Windows, usá Chrome o Edge para instalar la app y recibir notificaciones push en el escritorio.</div>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Abrí la app en Chrome o Edge</div>
+            <div class="step-desc">Entrá a <code>aldia-app1.web.app</code> en Chrome o Edge. Firefox no soporta instalación de PWA.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Instalá la app</div>
+            <div class="step-desc">En Chrome: hacé clic en el ícono <span class="inline-icon">⊕ Instalar</span> que aparece en la barra de direcciones. En Edge: el botón puede verse como <span class="inline-icon">⊕ App disponible</span> o en el menú <span class="inline-icon">⋯ → Aplicaciones → Instalar</span>.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Abrí la app instalada</div>
+            <div class="step-desc">Buscá AlDía en el menú Inicio o en el escritorio y abrila desde ahí. Iniciá sesión normalmente.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Habilitá las notificaciones</div>
+            <div class="step-desc">Hacé clic en el 🔔 del dashboard. Cuando aparezca el pedido de permiso, hacé clic en <strong>Permitir</strong>. Las notificaciones llegarán como notificaciones nativas de Windows.</div>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+
+  <script>
+    const tabs   = document.querySelectorAll(".tab-btn");
+    const panels = document.querySelectorAll(".guide-panel");
+
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        const id = tab.dataset.panel;
+        tabs.forEach(t => { t.classList.remove("active"); t.setAttribute("aria-selected","false"); });
+        panels.forEach(p => p.classList.remove("active"));
+        tab.classList.add("active");
+        tab.setAttribute("aria-selected","true");
+        document.getElementById("panel-" + id)?.classList.add("active");
+      });
+    });
+
+    // Auto-detect device
+    (function detectDevice() {
+      const ua = navigator.userAgent;
+      let device = "pc";
+      if (/iPad/.test(ua) || (navigator.maxTouchPoints > 1 && /Mac/.test(ua))) device = "ipad";
+      else if (/iPhone/.test(ua))   device = "iphone";
+      else if (/Android/.test(ua))  device = "android";
+      else if (/Mac/.test(ua))      device = "mac";
+
+      const tab = document.querySelector(`[data-panel="${device}"]`);
+      if (tab) tab.click();
+    })();
+  </script>
+
+</body>
+</html>

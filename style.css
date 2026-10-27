@@ -2825,3 +2825,69 @@ body::before {
 .admin-section { display: none; }
 .admin-section.active { display: block; }
 
+
+/* ══════════════════════════════════════════════════
+   AVISOS GENERALES — Sección admin
+   ══════════════════════════════════════════════════ */
+
+/* Card del formulario de envío */
+.aviso-form-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  margin-bottom: 8px;
+}
+.aviso-form-card .field-group { margin-bottom: 16px; }
+.aviso-form-card .field-group:last-of-type { margin-bottom: 0; }
+
+/* Cards del historial */
+.aviso-hist-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 10px;
+  transition: border-color .2s;
+}
+.aviso-hist-card:hover { border-color: rgba(255,255,255,.12); }
+
+.aviso-hist-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.aviso-hist-icono {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 2px;
+}
+.aviso-hist-meta { flex: 1; min-width: 0; }
+.aviso-hist-titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.aviso-hist-fecha {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.aviso-hist-stats {
+  font-size: 11px;
+  color: var(--text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
+}
+.aviso-hist-body {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.55;
+  padding-left: 32px; /* align with title */
+}

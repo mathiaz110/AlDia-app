@@ -280,7 +280,7 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
           const msgId = await messaging.send({
             token: fcmToken,
             webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
-            data: { tipo:"nueva-boleta", boletaId:boletaRef.id, titulo:"⚡ Nueva boleta disponible", cuerpo:`Tu boleta de ${periodo} ya está lista. Vence el ${vencimiento}.` },
+            data: { tipo:"nueva-boleta", boletaId:boletaRef.id, titulo:"📄 Nueva boleta disponible", cuerpo:`Tu boleta de ${periodo} ya está disponible. Vence el ${vencimiento}.` },
           });
           console.log(`[Push OK] Nueva boleta enviada a ${nombre}: ${msgId.substring(0,20)}...`);
         } catch(pushErr) {
@@ -956,6 +956,142 @@ app.post("/usuarios/:id/cambiar-password", async (req, res) => {
     console.log(`[CambiarPass] Usuario ${id} cambió su contraseña`);
     res.json({ success: true, mensaje: "Contraseña actualizada correctamente" });
   } catch(e) { handleError(res, e, "usuarios/cambiar-password"); }
+});
+
+// ─── GET /avisos/generales — lista de avisos generales ──
+app.get("/avisos/generales", async (req, res) => {
+  try {
+    const snap = await db.collection("avisos_generales")
+      .orderBy("creadoEn", "desc")
+      .limit(20)
+      .get();
+    const avisos = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id:           d.id,
+        tipo:         data.tipo        || "aviso",
+        titulo:       data.titulo      || "",
+        mensaje:      data.mensaje     || "",
+        icono:        data.icono       || "📢",
+        creadoEn:     data.creadoEn?.toDate?.()?.toISOString() || null,
+        enviados:     data.enviados    || 0,
+        destinatarios:data.destinatarios || 0,
+      };
+    });
+    res.json({ success:true, avisos, total:avisos.length });
+  } catch(e) { handleError(res, e, "avisos/generales"); }
+});
+
+// ─── POST /avisos/general — admin envía aviso a todos ──
+app.post("/avisos/general", async (req, res) => {
+  const { titulo, mensaje, tipo = "aviso" } = req.body;
+  if (!titulo || !mensaje) {
+    return res.status(400).json({ error:"titulo y mensaje son requeridos" });
+  }
+  if (titulo.length > 100 || mensaje.length > 500) {
+    return res.status(400).json({ error:"titulo máx 100 chars, mensaje máx 500 chars" });
+  }
+
+  const iconos = { alerta:"🚨", aviso:"⚠️", info:"ℹ️", novedad:"📢" };
+  const icono  = iconos[tipo] || "📢";
+
+  try {
+    // 1 — Guardar en avisos_generales
+    const avisoRef = await db.collection("avisos_generales").add({
+      tipo,
+      titulo,
+      mensaje,
+      icono,
+      creadoEn:     admin.firestore.FieldValue.serverTimestamp(),
+      enviados:     0,
+      destinatarios:0,
+    });
+
+    // 2 — Obtener tokens de clientes activos con push habilitado
+    const snap   = await db.collection("usuarios").where("estado","==","activo").get();
+    const tokens = snap.docs
+      .map(d => d.data().fcmToken)
+      .filter(t => t && t !== "no-token" && t.length > 50);
+
+    let enviados = 0, fallidos = 0;
+
+    // 3 — Enviar en lotes de 100 (más seguro que 500 para general notices)
+    for (let i = 0; i < tokens.length; i += 100) {
+      try {
+        const resp = await messaging.sendEachForMulticast({
+          tokens: tokens.slice(i, i+100),
+          webpush: { headers:{ Urgency:"high", TTL:"7200" }, fcmOptions:{ link:"/" } },
+          data: {
+            tipo,
+            titulo:   `${icono} ${titulo}`,
+            cuerpo:   mensaje.substring(0, 200),
+            avisoId:  avisoRef.id,
+            ts:       Date.now().toString(),
+          },
+        });
+        enviados += resp.successCount;
+        fallidos += resp.failureCount;
+        // Limpiar tokens inválidos
+        resp.responses.forEach((r, idx) => {
+          if (!r.success && r.error?.code === "messaging/registration-token-not-registered") {
+            const tokenVencido = tokens.slice(i, i+100)[idx];
+            db.collection("usuarios").where("fcmToken","==",tokenVencido).limit(1).get()
+              .then(s => s.forEach(d => d.ref.update({ fcmToken:"no-token" })))
+              .catch(() => {});
+          }
+        });
+        if (i + 100 < tokens.length) {
+          // Pequeña pausa entre lotes para no saturar FCM
+          await new Promise(r => setTimeout(r, 100));
+        }
+      } catch(pushErr) {
+        console.error(`[Aviso General Push] Lote ${i/100+1} error:`, pushErr.message);
+        fallidos += tokens.slice(i, i+100).length;
+      }
+    }
+
+    // 4 — Actualizar contadores en el documento del aviso
+    await avisoRef.update({ enviados, destinatarios: tokens.length, enviadoEn: admin.firestore.FieldValue.serverTimestamp() });
+
+    // 5 — También guardar en avisos_config para el banner del dashboard
+    await db.collection("avisos_config").doc("activo").set({
+      tipo, titulo, cuerpo: mensaje, activo: true,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 6 — Telegram masivo
+    let telegramCount = 0;
+    try {
+      for (const doc of snap.docs) {
+        const { telegramChatId } = doc.data();
+        if (telegramChatId) {
+          await telegramCliente(telegramChatId, `${icono} <b>${titulo}</b>\n\n${mensaje}\n\nIngresá a la app: https://aldia-app1.web.app`);
+          telegramCount++;
+        }
+      }
+    } catch(tErr) { console.warn("[Telegram Aviso General]", tErr.message); }
+
+    console.log(`[Aviso General] "${titulo}" → Push:${enviados}/${tokens.length}, Telegram:${telegramCount}`);
+    res.json({ success:true, avisoId:avisoRef.id, pushEnviados:enviados, pushFallidos:fallidos, total:tokens.length });
+  } catch(e) { handleError(res, e, "avisos/general"); }
+});
+
+// ─── POST /usuario/:id/unsubscribe-push — logout elimina token ──
+app.post("/usuario/:id/unsubscribe-push", async (req, res) => {
+  const { id } = req.params;
+  const { fcmToken } = req.body;
+  try {
+    const userRef = db.collection("usuarios").doc(id);
+    const snap    = await userRef.get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const data = snap.data();
+    // Solo limpiar si el token coincide (evitar que otro dispositivo borre el token nuevo)
+    if (!fcmToken || data.fcmToken === fcmToken) {
+      await userRef.update({ fcmToken:"no-token" });
+      console.log(`[Push] Token removido para ${id.substring(0,8)}... (logout)`);
+    }
+    res.json({ success:true });
+  } catch(e) { handleError(res, e, "usuario/unsubscribe-push"); }
 });
 
 app.use((req, res) => res.status(404).json({ error:"Endpoint no encontrado", path:req.path }));

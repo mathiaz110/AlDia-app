@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — admin.js v6
+//  ALDIA APP — admin.js v7
 //  Panel administrador expandido:
 //  · Resumen: KPIs + gráfico 6 meses ingresos
 //  · Clientes activos con botones de acción
@@ -697,6 +697,103 @@ $("btnEditarAviso")?.addEventListener("click", async () => {
     }
   } catch(e) { console.warn("[Aviso]", e); }
   $("modalAviso")?.classList.remove("hidden");
+});
+
+// ════════════════════════════════════════════════════
+//  SECCIÓN AVISOS GENERALES
+// ════════════════════════════════════════════════════
+async function loadAvisosHistorial() {
+  const loading = $("avisosHistorialLoading");
+  const empty   = $("avisosHistorialEmpty");
+  const list    = $("avisosHistorialList");
+  if (!list) return;
+  loading?.classList.remove("hidden");
+  empty?.classList.add("hidden");
+  list.classList.add("hidden");
+  list.innerHTML = "";
+
+  try {
+    const resp = await fetch(`${BACKEND_URL}/avisos/generales`);
+    const data = resp.ok ? await resp.json() : { avisos: [] };
+    const avisos = data.avisos || [];
+    loading?.classList.add("hidden");
+
+    if (!avisos.length) { empty?.classList.remove("hidden"); return; }
+
+    const ICONOS = { alerta:"🚨", aviso:"⚠️", info:"ℹ️" };
+    list.innerHTML = avisos.map(a => {
+      const icono   = ICONOS[a.tipo] || "📣";
+      const fecha   = a.creadoEn ? new Date(a.creadoEn).toLocaleString("es-AR",{ day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit" }) : "—";
+      const entregados = a.enviados ?? "—";
+      const total      = a.destinatarios ?? "—";
+      return `<div class="aviso-hist-card">
+        <div class="aviso-hist-header">
+          <span class="aviso-hist-icono">${icono}</span>
+          <div class="aviso-hist-meta">
+            <div class="aviso-hist-titulo">${escHtml(a.titulo)}</div>
+            <div class="aviso-hist-fecha">${fecha}</div>
+          </div>
+          <div class="aviso-hist-stats">
+            <span title="Entregados / Total tokens">${entregados}/${total} push</span>
+          </div>
+        </div>
+        <div class="aviso-hist-body">${escHtml(a.mensaje)}</div>
+      </div>`;
+    }).join("");
+    list.classList.remove("hidden");
+  } catch(e) {
+    loading?.classList.add("hidden");
+    showToast("Error al cargar historial", "error");
+  }
+}
+
+// Navegar a secAvisos → cargar historial
+document.querySelectorAll(".nav-item[data-sec]").forEach(link => {
+  link.addEventListener("click", () => {
+    if (link.dataset.sec === "secAvisos") loadAvisosHistorial();
+  });
+});
+
+$("btnRefreshAvisos")?.addEventListener("click", () => {
+  $("btnRefreshAvisos")?.classList.add("spinning");
+  loadAvisosHistorial().finally(() => {
+    setTimeout(() => $("btnRefreshAvisos")?.classList.remove("spinning"), 800);
+  });
+});
+
+$("btnEnviarGeneral")?.addEventListener("click", async () => {
+  const tipo    = $("generalTipo")?.value    || "aviso";
+  const titulo  = $("generalTitulo")?.value?.trim() || "";
+  const mensaje = $("generalMensaje")?.value?.trim() || "";
+  const errEl   = $("generalError");
+  if (errEl) errEl.textContent = "";
+
+  if (!titulo)  { if(errEl) errEl.textContent = "Escribí un título para el aviso"; return; }
+  if (!mensaje) { if(errEl) errEl.textContent = "Escribí el mensaje del aviso"; return; }
+
+  setLoading("btnEnviarGeneral", true, "Enviando...");
+  try {
+    const resp = await fetch(`${BACKEND_URL}/avisos/general`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ tipo, titulo, mensaje }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Error al enviar");
+
+    // Limpiar form
+    if ($("generalTitulo"))  $("generalTitulo").value  = "";
+    if ($("generalMensaje")) $("generalMensaje").value = "";
+    if ($("generalTipo"))    $("generalTipo").value    = "aviso";
+
+    const msg = `✅ Aviso enviado · ${data.pushEnviados ?? 0} push entregados de ${data.total ?? 0} suscriptos`;
+    showToast(msg, "success");
+    loadAvisosHistorial();
+  } catch(e) {
+    if (errEl) errEl.textContent = e.message || "Error al enviar. Intentá de nuevo.";
+  } finally {
+    setLoading("btnEnviarGeneral", false, '<svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M3 10l14-7-5 7 5 7-14-7z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Enviar a todos los clientes');
+  }
 });
 
 $("btnCloseAviso")?.addEventListener("click", () => $("modalAviso")?.classList.add("hidden"));

@@ -69,12 +69,13 @@ try {
 //  ESTADO GLOBAL
 // ════════════════════════════════════════════════════
 const State = {
-  user:        null,
-  fcmToken:    null,
-  loading:     false,
-  regStep:     1,
-  obSlide:     0,
-  forgotStep:  1,
+  user:          null,
+  fcmToken:      null,
+  notifActivas:  null,   // true | false | null (desconocido aún)
+  loading:       false,
+  regStep:       1,
+  obSlide:       0,
+  forgotStep:    1,
   forgotSmsCode: null,
   refreshTimer:  null,
 };
@@ -185,8 +186,15 @@ window.addEventListener("DOMContentLoaded", async () => {
       }
       // Actualizar FCM token si cambió
       const token = await obtenerFCMToken();
-      if (token && token !== actualizado.fcmToken) {
-        actualizarTokenBackend(actualizado.id, token);
+      if (token && token !== "no-token") {
+        State.notifActivas = true;
+        updateNotifToggleBtn(true);
+        if (token !== actualizado.fcmToken) {
+          actualizarTokenBackend(actualizado.id, token);
+        }
+      } else if (token === null && Notification.permission !== "granted") {
+        State.notifActivas = false;
+        updateNotifToggleBtn(false);
       }
     }, 700);
     return;
@@ -293,14 +301,40 @@ $("btnGoToDash")?.addEventListener("click", async () => {
   showDashboard(State.user);
 });
 
-$("btnLogoutUser")?.addEventListener("click", () => {
+$("btnLogoutUser")?.addEventListener("click", async () => {
+  // Remover token FCM del backend antes de cerrar sesión
+  const uid   = State.user?.id;
+  const token = State.fcmToken;
+  if (uid && token && token !== "no-token") {
+    try {
+      await fetch(`${CFG.backendUrl}/usuario/${uid}/unsubscribe-push`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ fcmToken: token }),
+        signal: AbortSignal.timeout(4000),
+      });
+    } catch(e) { /* silencioso */ }
+  }
   clearSession(); stopPendingCheck();
-  State.user = null; State.fcmToken = null;
+  State.user = null; State.fcmToken = null; State.notifActivas = null;
+  // Resetear botón toggle
+  updateNotifToggleBtn(null);
   goTo("benefits"); toast("Sesión cerrada", "");
 });
 $("btnNovAvisos")?.addEventListener("click", () => {
   renderNovedades(); goTo("novedades");
   const nd = $("notifDot"); if (nd) nd.style.display = "none";
+});
+$("btnToggleNotif")?.addEventListener("click", async () => {
+  const perm = ("Notification" in window) ? Notification.permission : "default";
+  const tokenActivo = State.fcmToken && State.fcmToken !== "no-token";
+  if (State.notifActivas && tokenActivo) {
+    await desactivarNotificaciones();
+  } else if (perm === "denied") {
+    toast("Notificaciones bloqueadas. Habilitá el permiso en Ajustes del navegador.", "error", 6000);
+  } else {
+    await activarNotificaciones();
+  }
 });
 $("btnSupport")?.addEventListener("click", () => {
   const n = State.user?.nombre || "Cliente";
@@ -424,6 +458,8 @@ async function handleLogin() {
     if (data.usuario.passwordTemp) {
       showForzarCambioPass(data.usuario);
     } else {
+      // Marcar notificaciones como activas si ya tenemos token
+      if (token && token !== "no-token") State.notifActivas = true;
       showDashboard(data.usuario);
       toast("Bienvenido ✓", "success");
     }
@@ -590,6 +626,9 @@ $("btnForgotAction")?.addEventListener("click", async () => {
 function showDashboard(user) {
   goTo("dashboard");
 
+  // Actualizar botón toggle según estado actual
+  updateNotifToggleBtn(State.notifActivas);
+
   // Mostrar skeleton
   const skel = $("dashSkeleton");
   const cont = $("dashContent");
@@ -604,6 +643,8 @@ function showDashboard(user) {
       cont.style.opacity = "1";
     }
     renderDashboard(user);
+    // Re-evaluar toggle después de que el dashboard renderizó
+    updateNotifToggleBtn(State.notifActivas);
   }, 400);
 }
 
@@ -706,6 +747,90 @@ function mostrarBannerTelegram() {
   document.getElementById("btnCerrarTelegram")?.addEventListener("click", () => {
     banner.remove();
   });
+}
+
+// ════════════════════════════════════════════════════
+//  NOTIFICACIONES PUSH — TOGGLE 🔔/🔕
+// ════════════════════════════════════════════════════
+
+/** Actualiza el ícono y visibilidad del botón toggle */
+function updateNotifToggleBtn(notifActivas) {
+  const btn  = $("btnToggleNotif");
+  const icon = $("notifToggleIcon");
+  if (!btn || !icon) return;
+
+  // Mostrar solo si push está soportado
+  const pushSupported = "Notification" in window && "serviceWorker" in navigator;
+  if (!pushSupported) { btn.style.display = "none"; return; }
+
+  btn.style.display = "";
+
+  if (notifActivas === null || notifActivas === undefined) {
+    // Estado desconocido: mostrar según permiso del navegador
+    const perm = Notification.permission;
+    if (perm === "granted" && State.fcmToken && State.fcmToken !== "no-token") {
+      icon.textContent = "🔔";
+      btn.title = "Notificaciones activas — tocá para desactivar";
+    } else if (perm === "denied") {
+      icon.textContent = "🔕";
+      btn.title = "Notificaciones bloqueadas en el navegador";
+    } else {
+      icon.textContent = "🔕";
+      btn.title = "Activar notificaciones push";
+    }
+  } else if (notifActivas) {
+    icon.textContent = "🔔";
+    btn.title = "Notificaciones activas — tocá para desactivar";
+  } else {
+    icon.textContent = "🔕";
+    btn.title = "Activar notificaciones push";
+  }
+}
+
+/** Activa las notificaciones: pide permiso y sube token */
+async function activarNotificaciones() {
+  if (!messaging) { toast("Push no disponible en este dispositivo", ""); return; }
+  try {
+    const token = await obtenerFCMToken();
+    if (!token) {
+      // Si el permiso fue denegado, explicar cómo reactivar
+      if (Notification.permission === "denied") {
+        toast("Notificaciones bloqueadas. Habilitá el permiso en la configuración del navegador.", "error", 5000);
+      } else {
+        toast("No se pudo activar. Intentá de nuevo.", "error");
+      }
+      return;
+    }
+    State.notifActivas = true;
+    if (State.user?.id) {
+      await actualizarTokenBackend(State.user.id, token);
+    }
+    updateNotifToggleBtn(true);
+    toast("🔔 Notificaciones activadas", "success");
+  } catch(e) {
+    console.warn("[Toggle notif activar]", e.message);
+    toast("No se pudo activar", "error");
+  }
+}
+
+/** Desactiva las notificaciones: borra token del backend */
+async function desactivarNotificaciones() {
+  const uid   = State.user?.id;
+  const token = State.fcmToken;
+  if (uid && token && token !== "no-token") {
+    try {
+      await fetch(`${CFG.backendUrl}/usuario/${uid}/unsubscribe-push`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ fcmToken: token }),
+        signal: AbortSignal.timeout(4000),
+      });
+    } catch(e) { /* silencioso */ }
+  }
+  State.fcmToken     = null;
+  State.notifActivas = false;
+  updateNotifToggleBtn(false);
+  toast("🔕 Notificaciones desactivadas", "");
 }
 
 function renderDashboard(user) {
@@ -828,19 +953,50 @@ async function checkNovedades() {
 // ════════════════════════════════════════════════════
 //  NOVEDADES
 // ════════════════════════════════════════════════════
-function renderNovedades() {
+async function renderNovedades() {
   const list=$("novedadesList"); if(!list) return;
+  list.innerHTML = `<div class="sk-item"></div><div class="sk-item"></div>`;
   const iconMap={alerta:"🚨",aviso:"⚠️",info:"ℹ️",novedad:"📢"};
-  list.innerHTML = DEMO.novedades.map(n=>`
-    <div class="novedad-card tipo-${n.tipo}">
-      <div class="nov-card-header">
-        <span class="nov-card-icon">${iconMap[n.tipo]||"📢"}</span>
-        <span class="nov-card-title">${escHtml(n.titulo)}</span>
-        <span class="nov-card-fecha">${n.fecha}</span>
-      </div>
-      <div class="nov-card-body">${escHtml(n.cuerpo)}</div>
-      <span class="nov-card-badge badge-${n.tipo}">${cap(n.tipo)}</span>
-    </div>`).join("");
+
+  try {
+    const resp = await fetch(`${CFG.backendUrl}/avisos/generales`, {
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) throw new Error("Sin avisos");
+    const { avisos } = await resp.json();
+
+    if (!avisos || !avisos.length) {
+      list.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">📭</div><div style="font-size:14px;color:var(--text-3)">No hay avisos por ahora.</div></div>`;
+      return;
+    }
+
+    list.innerHTML = avisos.map(n => {
+      const icono = n.icono || iconMap[n.tipo] || "📢";
+      const fecha = n.creadoEn ? new Date(n.creadoEn).toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric" }) : "—";
+      return `
+        <div class="novedad-card tipo-${escHtml(n.tipo)}">
+          <div class="nov-card-header">
+            <span class="nov-card-icon">${icono}</span>
+            <span class="nov-card-title">${escHtml(n.titulo)}</span>
+            <span class="nov-card-fecha">${fecha}</span>
+          </div>
+          <div class="nov-card-body">${escHtml(n.mensaje)}</div>
+          <span class="nov-card-badge badge-${escHtml(n.tipo)}">${cap(n.tipo)}</span>
+        </div>`;
+    }).join("");
+  } catch(e) {
+    // Fallback a datos demo si falla el backend
+    list.innerHTML = DEMO.novedades.map(n=>`
+      <div class="novedad-card tipo-${n.tipo}">
+        <div class="nov-card-header">
+          <span class="nov-card-icon">${iconMap[n.tipo]||"📢"}</span>
+          <span class="nov-card-title">${escHtml(n.titulo)}</span>
+          <span class="nov-card-fecha">${n.fecha}</span>
+        </div>
+        <div class="nov-card-body">${escHtml(n.cuerpo)}</div>
+        <span class="nov-card-badge badge-${n.tipo}">${cap(n.tipo)}</span>
+      </div>`).join("");
+  }
 }
 
 // ════════════════════════════════════════════════════

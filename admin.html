@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.16" />
+  <link rel="stylesheet" href="style.css?v=1.0.59" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body class="admin-body">
@@ -81,6 +81,10 @@
         <a href="#" id="navClientes" class="nav-item" data-sec="secClientes">
           <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           <span>Clientes</span>
+        </a>
+        <a href="#" id="navAvisos" class="nav-item" data-sec="secAvisos">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 016 6c0 2.5.7 4.5 1.8 5.7.3.3.2.8-.2 1H2.4c-.4-.2-.5-.7-.2-1C3.3 12.5 4 10.5 4 8a6 6 0 016-6z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 16.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Avisos</span>
         </a>
       </nav>
 
@@ -272,6 +276,67 @@
     </div>
   </div>
 
+      <!-- ════ SECCIÓN AVISOS ════ -->
+      <section id="secAvisos" class="admin-section">
+
+        <!-- ENVIAR AVISO -->
+        <div class="section-header" style="margin-bottom:20px">
+          <h2 class="section-title">📣 Enviar aviso a todos</h2>
+        </div>
+
+        <div class="aviso-form-card">
+          <div class="field-group">
+            <label class="field-label">Tipo</label>
+            <select id="generalTipo" class="field-input" style="cursor:pointer">
+              <option value="alerta">🚨 Alerta — urgente</option>
+              <option value="aviso" selected>⚠️ Aviso — importante</option>
+              <option value="info">ℹ️ Info — novedad</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Título</label>
+            <div class="field-wrap">
+              <input type="text" id="generalTitulo" class="field-input" placeholder="Ej: Corte programado del servicio" maxlength="80"/>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Mensaje</label>
+            <textarea id="generalMensaje" class="field-input"
+              style="min-height:100px;resize:vertical;padding:10px;line-height:1.5"
+              placeholder="Describí el aviso con todos los detalles necesarios..." maxlength="500"></textarea>
+          </div>
+          <div id="generalError" class="auth-error" style="margin-top:4px"></div>
+          <div style="margin-top:16px">
+            <button class="btn-activate" id="btnEnviarGeneral">
+              <svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M3 10l14-7-5 7 5 7-14-7z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Enviar a todos los clientes
+            </button>
+          </div>
+          <p style="font-size:11px;color:var(--text-3);margin-top:10px;line-height:1.5">
+            El aviso se enviará como notificación push a todos los clientes activos con push habilitado, y quedará guardado en su sección de Novedades.
+          </p>
+        </div>
+
+        <!-- HISTORIAL -->
+        <div class="section-header" style="margin:28px 0 16px">
+          <h2 class="section-title">📋 Historial de avisos enviados</h2>
+          <button class="btn-icon" id="btnRefreshAvisos" title="Actualizar">
+            <svg viewBox="0 0 20 20" fill="none" style="width:16px;height:16px"><path d="M4 4v5h5M16 16v-5h-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.09 9A7 7 0 1016 15.91" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div id="avisosHistorialLoading" class="empty-state" style="padding:24px">
+          <div class="loading-spinner" style="margin:0 auto"></div>
+        </div>
+        <div id="avisosHistorialEmpty" class="empty-state hidden">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">Sin avisos enviados</div>
+          <div class="empty-sub">Los avisos que enviés aparecerán acá</div>
+        </div>
+        <div id="avisosHistorialList" class="hidden"></div>
+
+      </section>
+
   <!-- MODAL: AVISO GENERAL -->
   <div id="modalAviso" class="modal-overlay hidden">
     <div class="modal-card">
@@ -342,7 +407,7 @@
     // Bloquear instalación PWA en el admin
     window.addEventListener("beforeinstallprompt", e => e.preventDefault());
   </script>
-  <script type="module" src="admin.js?v=1.0.16"></script>
+  <script type="module" src="admin.js?v=1.0.17"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/firebase-messaging-sw.js")
