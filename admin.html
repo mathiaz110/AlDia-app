@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.59" />
+  <link rel="stylesheet" href="style.css?v=1.0.60" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body class="admin-body">
@@ -136,6 +136,7 @@
             </div>
             <div class="stat-value" id="statTotal">—</div>
             <div class="stat-label">Total usuarios</div>
+            <svg class="sc-bg-icon" viewBox="0 0 24 24" fill="none" style="color:#39ff8f"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="stat-card">
             <div class="stat-icon" style="--c:#f59e0b">
@@ -143,6 +144,7 @@
             </div>
             <div class="stat-value" id="statPending">—</div>
             <div class="stat-label">Pendientes</div>
+            <svg class="sc-bg-icon" viewBox="0 0 24 24" fill="none" style="color:#f59e0b"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="stat-card">
             <div class="stat-icon" style="--c:#ff4d6d">
@@ -150,6 +152,7 @@
             </div>
             <div class="stat-value" id="statVencidos">—</div>
             <div class="stat-label">Vencidos</div>
+            <svg class="sc-bg-icon" viewBox="0 0 24 24" fill="none" style="color:#ff4d6d"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="1.5"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
           <div class="stat-card">
             <div class="stat-icon" style="--c:#00c2ff">
@@ -157,6 +160,7 @@
             </div>
             <div class="stat-value" id="statIngresos">—</div>
             <div class="stat-label">Ingresos del mes</div>
+            <svg class="sc-bg-icon" viewBox="0 0 24 24" fill="none" style="color:#00c2ff"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
         </div>
 
@@ -407,7 +411,7 @@
     // Bloquear instalación PWA en el admin
     window.addEventListener("beforeinstallprompt", e => e.preventDefault());
   </script>
-  <script type="module" src="admin.js?v=1.0.17"></script>
+  <script type="module" src="admin.js?v=1.0.18"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/firebase-messaging-sw.js")

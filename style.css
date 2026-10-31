@@ -2891,3 +2891,174 @@ body::before {
   line-height: 1.55;
   padding-left: 32px; /* align with title */
 }
+
+/* ═══════════════════════════════════════════════
+   REDISEÑO VISUAL v2 — PANEL PÚBLICO + ADMIN
+   ═══════════════════════════════════════════════ */
+
+/* ── RING CHART MEMBRESÍA ── */
+.membresia-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(57,255,143,.07) 0%, rgba(0,194,255,.05) 100%);
+  border: 1px solid rgba(57,255,143,.18);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.membresia-card::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, rgba(57,255,143,.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.mc-ring-wrap {
+  flex-shrink: 0;
+  width: 80px; height: 80px;
+  position: relative;
+}
+.mc-ring-svg {
+  width: 80px; height: 80px;
+  transform: rotate(-90deg);
+}
+.mc-ring-bg {
+  fill: none;
+  stroke: rgba(255,255,255,.08);
+  stroke-width: 7;
+}
+.mc-ring-fill {
+  fill: none;
+  stroke: url(#ringGrad);
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dashoffset .9s cubic-bezier(.4,0,.2,1);
+}
+.mc-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.mc-ring-dias {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'Syne', sans-serif;
+  color: var(--green);
+  line-height: 1;
+}
+.mc-ring-sub {
+  font-size: 9px;
+  color: rgba(255,255,255,.45);
+  letter-spacing: .04em;
+  margin-top: 2px;
+}
+.mc-info { flex: 1; min-width: 0; }
+.mc-top { margin-bottom: 0; }
+.mc-bar-wrap { display: none !important; }
+.mc-dates {
+  font-size: 11px;
+  color: rgba(255,255,255,.35);
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── BOLETA CARDS — ACENTO IZQUIERDO POR ESTADO ── */
+.boleta-card-expanded {
+  border-left: 3px solid rgba(255,255,255,.08);
+  transition: border-left-color .3s, transform .2s, box-shadow .2s;
+}
+.boleta-card-expanded.estado-activa  { border-left-color: var(--green); }
+.boleta-card-expanded.estado-proximo { border-left-color: var(--amber); }
+.boleta-card-expanded.estado-vencida { border-left-color: var(--red); }
+.boleta-card-expanded:hover {
+  transform: translateX(3px);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+}
+/* stagger entrada */
+.boleta-card-expanded:nth-child(1) { animation: fadeUp .35s .04s both; }
+.boleta-card-expanded:nth-child(2) { animation: fadeUp .35s .09s both; }
+.boleta-card-expanded:nth-child(3) { animation: fadeUp .35s .14s both; }
+.boleta-card-expanded:nth-child(4) { animation: fadeUp .35s .19s both; }
+.boleta-card-expanded:nth-child(5) { animation: fadeUp .35s .24s both; }
+
+/* ── PENDING BANNER — SPINNER ANIMADO ── */
+.pending-banner {
+  background: linear-gradient(135deg, rgba(245,158,11,.06) 0%, rgba(245,158,11,.02) 100%);
+  border: 1px solid rgba(245,158,11,.2);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.pb-loader {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(245,158,11,.18);
+  border-top-color: var(--amber);
+  animation: spin .85s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── ADMIN — KPI STAT CARDS ── */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform .2s var(--transition), box-shadow .2s var(--transition);
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 40px rgba(0,0,0,.45);
+}
+.sc-bg-icon {
+  position: absolute;
+  right: -6px; bottom: -6px;
+  width: 68px; height: 68px;
+  opacity: .07;
+  pointer-events: none;
+}
+
+/* ── ADMIN — CLIENTES CON HOVER ── */
+.activo-card,
+.user-card {
+  transition: background .2s, transform .15s;
+}
+.activo-card:hover,
+.user-card:hover {
+  background: rgba(255,255,255,.05) !important;
+  transform: translateX(2px);
+}
+.activo-card .action-btns,
+.user-card .action-btns {
+  transition: opacity .2s, transform .2s;
+}
+@media (hover: hover) {
+  .activo-card .action-btns,
+  .user-card .action-btns {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  .activo-card:hover .action-btns,
+  .user-card:hover .action-btns {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── ADMIN — JERARQUÍA COLORES BOTONES ACCIÓN ── */
+.btn-enable-sm  { border-color: rgba(57,255,143,.35) !important; color: var(--green) !important; }
+.btn-block-sm   { border-color: rgba(245,158,11,.35)  !important; color: var(--amber) !important; }
+.btn-reset-sm   { border-color: rgba(0,194,255,.35)   !important; color: var(--blue)  !important; }
+.btn-delete-sm  { border-color: rgba(255,77,109,.35)  !important; color: var(--red)   !important; }
+
+.btn-enable-sm:hover  { background: rgba(57,255,143,.1)  !important; }
+.btn-block-sm:hover   { background: rgba(245,158,11,.1)  !important; }
+.btn-reset-sm:hover   { background: rgba(0,194,255,.1)   !important; }
+.btn-delete-sm:hover  { background: rgba(255,77,109,.1)  !important; }

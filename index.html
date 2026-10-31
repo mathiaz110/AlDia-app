@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=1.0.59"/>
+  <link rel="stylesheet" href="style.css?v=1.0.60"/>
   <script>
     // Verificar compatibilidad del navegador
     (function() {
@@ -347,24 +347,33 @@
         </div>
       </div>
 
-      <!-- MEMBRESIA PROGRESS CARD -->
+      <!-- MEMBRESIA RING CARD v2 -->
       <div class="membresia-card" id="membresiaCard" style="display:none">
-        <div class="mc-top">
-          <div>
-            <div class="mc-label">Estado de membresía</div>
-            <div class="mc-active">Activa ✓</div>
-          </div>
-          <div style="text-align:right">
-            <div class="mc-label">Días al vencimiento</div>
-            <div class="mc-dias" id="mcDias">—</div>
+        <div class="mc-ring-wrap">
+          <svg class="mc-ring-svg" viewBox="0 0 80 80">
+            <defs>
+              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#39ff8f"/>
+                <stop offset="100%" stop-color="#00c2ff"/>
+              </linearGradient>
+            </defs>
+            <circle class="mc-ring-bg" cx="40" cy="40" r="33"/>
+            <circle class="mc-ring-fill" id="mcRingFill" cx="40" cy="40" r="33"
+                    stroke-dasharray="207.3" stroke-dashoffset="207.3"/>
+          </svg>
+          <div class="mc-ring-label">
+            <span class="mc-ring-dias" id="mcDias">—</span>
+            <span class="mc-ring-sub">días</span>
           </div>
         </div>
-        <div class="mc-bar-wrap">
-          <div class="mc-bar-fill" id="mcBarFill"></div>
-        </div>
-        <div class="mc-dates">
-          <span id="mcFechaInicio">—</span>
-          <span id="mcFechaVenc">—</span>
+        <div class="mc-info">
+          <div class="mc-label">Membresía</div>
+          <div class="mc-active">Activa ✓</div>
+          <div class="mc-dates">
+            <span id="mcFechaInicio">—</span>
+            <span>→</span>
+            <span id="mcFechaVenc">—</span>
+          </div>
         </div>
       </div>
 
@@ -441,7 +450,7 @@
 
       <!-- BANNER PENDIENTE -->
       <div class="pending-banner" id="pendingBanner">
-        <div class="pb-icon">⏳</div>
+        <div class="pb-loader"></div>
         <div><div class="pb-title">Verificando tu membresía</div><div class="pb-sub">Te notificamos por WhatsApp y push cuando tu cuenta esté activa.</div></div>
       </div>
     </div>
@@ -675,6 +684,6 @@
   <div class="ios-arrow">▼</div>
 </div>
 
-<script type="module" src="app.js?v=1.0.18"></script>
+<script type="module" src="app.js?v=1.0.19"></script>
 </body>
 </html>

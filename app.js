@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — script.js v6
+//  ALDIA APP — script.js v1.0.19
 //  Fix completo notificaciones push + auto-refresh
 // ═══════════════════════════════════════════════════
 
@@ -886,10 +886,19 @@ function renderDashboard(user) {
     const diaActual = hoy.getDate();
     const pct = Math.round((diaActual / diasMes) * 100);
 
-    $("mcDias")       && ($("mcDias").textContent       = `${diasNum} día${diasNum!==1?"s":""}`);
+    $("mcDias")       && ($("mcDias").textContent       = `${diasNum}`);
     $("mcFechaInicio")&& ($("mcFechaInicio").textContent = fechaInicioStr);
     $("mcFechaVenc")  && ($("mcFechaVenc").textContent   = fechaVencStr);
-    setTimeout(() => { const bar=$("mcBarFill"); if(bar) bar.style.width=`${pct}%`; }, 300);
+    // Ring chart animado
+    setTimeout(() => {
+      const ring = $("mcRingFill");
+      if (ring) {
+        const circum = 2 * Math.PI * 33; // ≈ 207.3
+        const pctRing = Math.max(0.03, Math.min(1, diasNum / diasMes));
+        ring.style.strokeDasharray = circum;
+        ring.style.strokeDashoffset = circum * (1 - pctRing);
+      }
+    }, 150);
     $("statTotal")    && ($("statTotal").textContent    = "—");
     $("statDias")     && ($("statDias").textContent     = `${diasNum} día${diasNum!==1?"s":""}`);
     $("statVencDias") && ($("statVencDias").textContent = fechaVencStr);
@@ -1054,10 +1063,23 @@ async function cargarBoletasReales(usuarioId) {
     $("statTotal") && ($("statTotal").textContent = boletas.length);
     console.info("[Boletas] Renderizando:", boletas.length, "boletas");
     const dl=getDescargas();
+    const hoyMs = Date.now();
     list.innerHTML = boletas.map(b=>{
       const desc=!!dl[b.id];
+      // Estado visual por vencimiento
+      let estadoClass = "";
+      if (b.vencimiento) {
+        const parts = b.vencimiento.split("/");
+        if (parts.length === 3) {
+          const vencMs = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+          const diffDias = (vencMs - hoyMs) / (1000*60*60*24);
+          if (diffDias < 0)      estadoClass = "estado-vencida";
+          else if (diffDias <= 7) estadoClass = "estado-proximo";
+          else                    estadoClass = "estado-activa";
+        }
+      }
       return `
-      <div class="boleta-card-expanded" id="bcard-${b.id}">
+      <div class="boleta-card-expanded ${estadoClass}" id="bcard-${b.id}">
         <div class="boleta-card-header" onclick="toggleBoleta('${b.id}')">
           <div class="boleta-icon" style="font-size:19px;width:36px;height:36px;background:rgba(57,255,143,.08);border:1px solid rgba(57,255,143,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">⚡</div>
           <div class="boleta-info" style="flex:1;min-width:0">

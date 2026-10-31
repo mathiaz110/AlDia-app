@@ -223,19 +223,29 @@ function buildChart() {
 
   if (ingresoChart) ingresoChart.destroy();
 
+  // Gradient fill bajo la línea
+  const grad = ctx.createLinearGradient(0, 0, 0, 200);
+  grad.addColorStop(0,   "rgba(57,255,143,0.30)");
+  grad.addColorStop(0.6, "rgba(57,255,143,0.08)");
+  grad.addColorStop(1,   "rgba(57,255,143,0.00)");
+
   ingresoChart = new Chart(ctx, {
-    type: "bar",
+    type: "line",
     data: {
       labels,
       datasets: [{
         label: "Ingresos ($)",
         data: datos,
-        backgroundColor: "rgba(57,255,143,0.18)",
+        backgroundColor: grad,
         borderColor: "#39ff8f",
-        borderWidth: 2,
-        borderRadius: 8,
-        borderSkipped: false,
-        hoverBackgroundColor: "rgba(57,255,143,0.35)",
+        borderWidth: 2.5,
+        pointBackgroundColor: "#39ff8f",
+        pointBorderColor: "#070b14",
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
       }]
     },
     options: {
@@ -244,6 +254,12 @@ function buildChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: "rgba(10,14,26,0.95)",
+          borderColor: "rgba(57,255,143,0.3)",
+          borderWidth: 1,
+          titleColor: "#f0f4ff",
+          bodyColor: "#39ff8f",
+          padding: 12,
           callbacks: {
             label: ctx => " $" + ctx.parsed.y.toLocaleString("es-AR", {minimumFractionDigits:0})
           }
@@ -251,11 +267,11 @@ function buildChart() {
       },
       scales: {
         x: {
-          grid: { color: "rgba(255,255,255,0.05)" },
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
           ticks: { color: "#7a8499", font: { size: 11 } }
         },
         y: {
-          grid: { color: "rgba(255,255,255,0.05)" },
+          grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
           ticks: {
             color: "#7a8499",
             font: { size: 11 },
