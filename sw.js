@@ -42,14 +42,14 @@ const NEVER_CACHE = [
 //  INSTALL — pre-cachear shell de la app
 // ════════════════════════════════════════════════════
 self.addEventListener("install", event => {
-  console.log("[SW] Instalando v1.0.18...");
+  console.log("[SW] Instalando v1.0.19...");
   event.waitUntil(
     caches.open(CACHE_STATIC)
       .then(cache => cache.addAll(
         STATIC_ASSETS.map(url => new Request(url, { cache: "reload" }))
       ))
       .then(() => {
-        console.log("[SW] v1.0.18 instalado");
+        console.log("[SW] v1.0.19 instalado");
         return self.skipWaiting(); // activa inmediatamente sin esperar recarga
       })
       .catch(err => console.warn("[SW] Error en install:", err))
@@ -60,7 +60,7 @@ self.addEventListener("install", event => {
 //  ACTIVATE — limpiar caches viejas
 // ════════════════════════════════════════════════════
 self.addEventListener("activate", event => {
-  console.log("[SW] Activando v1.0.18...");
+  console.log("[SW] Activando v1.0.19...");
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
