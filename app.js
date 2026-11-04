@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — script.js v1.0.19
+//  ALDIA APP — script.js v1.0.20
 //  Fix completo notificaciones push + auto-refresh
 // ═══════════════════════════════════════════════════
 
@@ -1037,85 +1037,143 @@ function renderBoletas(user) {
 }
 
 async function cargarBoletasReales(usuarioId) {
-  const list=$("boletasList"), count=$("boletasCount");
-  if(!list) return;
+  // Tabs multi-servicio: traer todas las boletas y distribuirlas
+  const SERVICIOS = ["coospu", "argentium", "elcable"];
+  const SVC_LABEL = { coospu:"COOSPU", argentium:"ARGENTIUM", elcable:"EL CABLE" };
+  const SVC_ICON  = { coospu:"⚡", argentium:"🌐", elcable:"📺" };
+  const SVC_COLOR = { coospu:"var(--green)", argentium:"var(--blue)", elcable:"var(--amber)" };
 
   try {
-    console.info("[Boletas] Fetching:", CFG.backendUrl + "/boletas/" + usuarioId);
+    console.info("[Boletas] Fetching todas:", CFG.backendUrl + "/boletas/" + usuarioId);
     const resp = await fetch(`${CFG.backendUrl}/boletas/${usuarioId}`, {
       headers: { Authorization: `Bearer ${State.user?.id||""}` },
       signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    const boletas = data.boletas;
-    console.info("[Boletas] Recibidas:", boletas?.length || 0, "boletas");
+    const boletas = data.boletas || [];
+    console.info("[Boletas] Recibidas:", boletas.length);
 
-    if (!boletas?.length) {
-      if(count) count.textContent="0 disponibles";
-      list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚡</div><div><div class="pb-title">Sin boletas todavía</div><div class="pb-sub">Tu proveedor aún no subió boletas a tu cuenta.</div></div></div>`;
-      return;
+    // Agrupar por servicio (retrocompatibilidad: sin servicio → coospu)
+    const grupos = { coospu:[], argentium:[], elcable:[] };
+    boletas.forEach(b => {
+      const svc = b.servicio || "coospu";
+      if (grupos[svc]) grupos[svc].push(b);
+      else grupos.coospu.push(b);
+    });
+
+    // Detectar qué servicios tienen boletas
+    const serviciosConBoletas = SERVICIOS.filter(s => grupos[s].length > 0);
+
+    // Mostrar/ocultar tabs según disponibilidad
+    const tabsWrap = $("serviciosTabs");
+    if (tabsWrap) tabsWrap.style.display = serviciosConBoletas.length > 0 ? "" : "none";
+
+    // Si solo hay un servicio con boletas, ocultar los tabs y mostrar directo
+    const mostrarTabs = serviciosConBoletas.length > 1;
+    if (tabsWrap) tabsWrap.style.display = mostrarTabs ? "" : "none";
+
+    // Actualizar tabs y paneles
+    const dl = getDescargas();
+    const hoyMs = Date.now();
+
+    SERVICIOS.forEach(svc => {
+      const tab   = document.querySelector(`.svc-tab[data-svc="${svc}"]`);
+      const panel = $(`svcPanel-${svc}`);
+      const list  = $(`boletasList-${svc}`);
+      const countEl = $(`svcCount-${svc}`);
+      const bols  = grupos[svc];
+
+      // Mostrar/ocultar tab
+      if (tab) tab.style.display = (mostrarTabs && bols.length > 0) ? "" : "none";
+
+      // Actualizar contador
+      if (countEl) countEl.textContent = bols.length || "0";
+
+      if (!list) return;
+
+      if (!bols.length) {
+        list.innerHTML = `<div class="pending-banner"><div class="pb-icon">${SVC_ICON[svc]}</div><div><div class="pb-title">Sin boletas de ${SVC_LABEL[svc]}</div><div class="pb-sub">Tu administrador aún no subió boletas de este servicio.</div></div></div>`;
+        return;
+      }
+
+      list.innerHTML = bols.map((b, idx) => {
+        const desc = !!dl[b.id];
+        let estadoClass = "";
+        if (b.vencimiento) {
+          const parts = b.vencimiento.split("/");
+          if (parts.length === 3) {
+            const vencMs = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+            const diffDias = (vencMs - hoyMs) / (1000*60*60*24);
+            if (diffDias < 0)       estadoClass = "estado-vencida";
+            else if (diffDias <= 7) estadoClass = "estado-proximo";
+            else                    estadoClass = "estado-activa";
+          }
+        }
+        return `
+        <div class="boleta-card-expanded ${estadoClass}" id="bcard-${b.id}" style="animation-delay:${idx*0.05}s">
+          <div class="boleta-card-header" onclick="toggleBoleta('${b.id}')">
+            <div class="boleta-icon" style="font-size:17px;width:36px;height:36px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${SVC_ICON[svc]}</div>
+            <div class="boleta-info" style="flex:1;min-width:0">
+              <div class="boleta-periodo">${escHtml(b.periodo)}</div>
+              <div class="boleta-fecha">Vence: ${b.vencimiento}</div>
+            </div>
+            <span class="boleta-estado ${desc?"estado-descargada":"estado-nueva"}">${desc?"✓ Descargada":"Nueva"}</span>
+            <div class="boleta-chevron"><svg viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="boleta-detail">
+            <div class="boleta-detail-row"><span>Período</span><span>${escHtml(b.periodo)}</span></div>
+            <div class="boleta-detail-row"><span>Emisión</span><span>${b.emitida}</span></div>
+            <div class="boleta-detail-row"><span>Vencimiento</span><span>${b.vencimiento}</span></div>
+            <div class="boleta-detail-row"><span>Estado</span>
+              <span id="estado-txt-${b.id}" style="color:${desc?"var(--green)":"var(--text-2)"};${desc?"font-weight:600":""}">
+                ${desc?"✓ Descargada":"Disponible para descargar"}
+              </span>
+            </div>
+            <div class="boleta-detail-actions">
+              <button class="${desc?"btn-ver-boleta":"btn-descargar-boleta"}" id="btn-dl-${b.id}"
+                      data-url="${escHtml(b.pdfUrl||"")}"
+                      onclick="descargarBoleta('${b.id}','${escHtml(b.periodo)}')">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                ${desc?"Descargar de nuevo":"Descargar PDF"}
+              </button>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+    });
+
+    // Si no hay ninguna boleta en ningún servicio
+    if (boletas.length === 0) {
+      const list = $("boletasList-coospu");
+      if (list) list.innerHTML = `<div class="pending-banner"><div class="pb-icon">⚡</div><div><div class="pb-title">Sin boletas todavía</div><div class="pb-sub">Tu administrador aún no subió boletas a tu cuenta.</div></div></div>`;
     }
 
-    // Mostrar período de la última boleta en el contador
-    if(count) count.textContent = boletas[0]?.periodo || `${boletas.length} disponibles`;
-    // Actualizar stat card con cantidad real
+    // Stat card total
     $("statTotal") && ($("statTotal").textContent = boletas.length);
-    console.info("[Boletas] Renderizando:", boletas.length, "boletas");
-    const dl=getDescargas();
-    const hoyMs = Date.now();
-    list.innerHTML = boletas.map(b=>{
-      const desc=!!dl[b.id];
-      // Estado visual por vencimiento
-      let estadoClass = "";
-      if (b.vencimiento) {
-        const parts = b.vencimiento.split("/");
-        if (parts.length === 3) {
-          const vencMs = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
-          const diffDias = (vencMs - hoyMs) / (1000*60*60*24);
-          if (diffDias < 0)      estadoClass = "estado-vencida";
-          else if (diffDias <= 7) estadoClass = "estado-proximo";
-          else                    estadoClass = "estado-activa";
-        }
-      }
-      return `
-      <div class="boleta-card-expanded ${estadoClass}" id="bcard-${b.id}">
-        <div class="boleta-card-header" onclick="toggleBoleta('${b.id}')">
-          <div class="boleta-icon" style="font-size:19px;width:36px;height:36px;background:rgba(57,255,143,.08);border:1px solid rgba(57,255,143,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">⚡</div>
-          <div class="boleta-info" style="flex:1;min-width:0">
-            <div class="boleta-periodo">${escHtml(b.periodo)}</div>
-            <div class="boleta-fecha">Vence: ${b.vencimiento}</div>
-          </div>
-          <span class="boleta-estado ${desc?"estado-descargada":"estado-nueva"}">${desc?"✓ Descargada":"Nueva"}</span>
-          <div class="boleta-chevron"><svg viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        </div>
-        <div class="boleta-detail">
-          <div class="boleta-detail-row"><span>Período</span><span>${escHtml(b.periodo)}</span></div>
-          <div class="boleta-detail-row"><span>Emisión</span><span>${b.emitida}</span></div>
-          <div class="boleta-detail-row"><span>Vencimiento</span><span>${b.vencimiento}</span></div>
-          <div class="boleta-detail-row"><span>Estado</span>
-            <span id="estado-txt-${b.id}" style="color:${desc?"var(--green)":"var(--text-2)"};${desc?"font-weight:600":""}">
-              ${desc?"✓ Descargada":"Disponible para descargar"}
-            </span>
-          </div>
-          <div class="boleta-detail-actions">
-            <button class="${desc?"btn-ver-boleta":"btn-descargar-boleta"}" id="btn-dl-${b.id}"
-                    data-url="${escHtml(b.pdfUrl||"")}"
-                    onclick="descargarBoleta('${b.id}','${escHtml(b.periodo)}')">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-              ${desc?"Descargar de nuevo":"Descargar PDF"}
-            </button>
-          </div>
-        </div>
-      </div>`;
-    }).join("");
+
+    // Activar primer tab con boletas
+    if (serviciosConBoletas.length > 0) {
+      switchServicioTab(serviciosConBoletas[0]);
+    }
 
   } catch(e) {
     console.error("[Boletas]", e);
-    if(count) count.textContent="—";
-    list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚠️</div><div><div class="pb-title">Error al cargar boletas</div><div class="pb-sub">Intentá de nuevo en unos segundos.</div></div></div>`;
+    const list = $("boletasList-coospu");
+    if (list) list.innerHTML = `<div class="pending-banner"><div class="pb-icon">⚠️</div><div><div class="pb-title">Error al cargar boletas</div><div class="pb-sub">Intentá de nuevo en unos segundos.</div></div></div>`;
   }
 }
+
+window.switchServicioTab = function(svc) {
+  // Desactivar todos los tabs y paneles
+  document.querySelectorAll(".svc-tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".svc-panel").forEach(p => p.classList.remove("active"));
+  // Activar el seleccionado
+  const tab = document.querySelector(`.svc-tab[data-svc="${svc}"]`);
+  const panel = $(`svcPanel-${svc}`);
+  if (tab) tab.classList.add("active");
+  if (panel) panel.classList.add("active");
+};
 
 window.toggleBoleta = id => document.getElementById("bcard-"+id)?.classList.toggle("open");
 

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — admin.js v7
+//  ALDIA APP — admin.js v8
 //  Panel administrador expandido:
 //  · Resumen: KPIs + gráfico 6 meses ingresos
 //  · Clientes activos con botones de acción
@@ -497,6 +497,17 @@ window.openModal = function(userId) {
       </div>
       <div class="upload-fields">
         <div class="field-group">
+          <label class="field-label">Servicio</label>
+          <div class="field-wrap" style="padding:0">
+            <select id="uploadServicio" class="field-input" style="background:transparent;border:none;width:100%;height:100%;padding:0 12px 0 36px;cursor:pointer">
+              <option value="coospu">COOSPU</option>
+              <option value="argentium">ARGENTIUM</option>
+              <option value="elcable">EL CABLE</option>
+            </select>
+            <svg class="field-icon" viewBox="0 0 20 20" fill="none" style="pointer-events:none"><path d="M3 6h14M3 10h10M3 14h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+        <div class="field-group">
           <label class="field-label">Período (ej: Enero 2025)</label>
           <div class="field-wrap">
             <input type="text" id="uploadPeriodo" class="field-input" placeholder="Enero 2025"/>
@@ -587,9 +598,9 @@ async function cargarBoletasAdmin(usuarioId) {
       <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">${total} boleta${total!==1?"s":""} cargada${total!==1?"s":""}</div>
       ${boletas.map(b => `
         <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
-          <span style="font-size:16px">⚡</span>
+          <span style="font-size:16px">${{coospu:"⚡",argentium:"🌐",elcable:"📺"}[b.servicio||"coospu"]||"⚡"}</span>
           <div style="flex:1;min-width:0">
-            <div style="font-size:11px;font-weight:600;color:var(--text-1)">${escHtml(b.periodo)}</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-1)">${escHtml(b.periodo)} <span style="font-size:9px;font-weight:700;color:${{coospu:"var(--green)",argentium:"var(--blue)",elcable:"var(--amber)"}[b.servicio||"coospu"]||"var(--text-2)"};background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;margin-left:2px">${{coospu:"COOSPU",argentium:"ARGENTIUM",elcable:"EL CABLE"}[b.servicio||"coospu"]||""}</span></div>
             <div style="font-size:10px;color:var(--text-3)">Vence: ${b.vencimiento} · Emitida: ${b.emitida}</div>
           </div>
           <button onclick="borrarBoleta('${b.id}','${escHtml(b.periodo)}')"
@@ -630,12 +641,14 @@ async function uploadBoleta() {
 
   try {
     const formData = new FormData();
+    const servicio = $("uploadServicio")?.value || "coospu";
     formData.append("pdf",        selectedPdfFile);
     formData.append("usuarioId",  selectedUser.id);
     formData.append("nroCliente", selectedUser.nroCliente || "");
     formData.append("periodo",    periodo);
     formData.append("vencimiento",venc);
     formData.append("emitida",    emitida);
+    formData.append("servicio",   servicio);
 
     const resp = await fetch(`${BACKEND_URL}/boleta/subir`, { method:"POST", body:formData });
     if (!resp.ok) { const err = await resp.json(); throw new Error(err.error || `HTTP ${resp.status}`); }

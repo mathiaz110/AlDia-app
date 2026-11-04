@@ -224,8 +224,8 @@ function handleError(res, err, ctx = "") {
 }
 
 /** Construye la clave S3/R2 de un PDF */
-const r2Key = (nroCliente, periodo) =>
-  `boletas/${nroCliente}/${periodo.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+const r2Key = (nroCliente, periodo, servicio = "coospu") =>
+  `boletas/${servicio}/${nroCliente}/${periodo.replace(/\s+/g, "-").toLowerCase()}.pdf`;
 
 /** URL pública o firmada según configuración */
 async function getPdfUrl(key) {
@@ -259,6 +259,7 @@ app.get("/health", (_, res) => res.json({
  *   - usuarioId, nroCliente, periodo, vencimiento, emitida
  */
 app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
+  const SERVICIOS_VALIDOS = ["coospu","argentium","elcable"];
   const errs = validate(req.body, {
     usuarioId:   { required:true, type:"string" },
     nroCliente:  { required:true, type:"string" },
@@ -266,6 +267,9 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
     vencimiento: { required:true, type:"string" },
     emitida:     { required:true, type:"string" },
   });
+  const servicio = (req.body.servicio || "coospu").toLowerCase();
+  if (!SERVICIOS_VALIDOS.includes(servicio))
+    return res.status(400).json({ error:"servicio inválido (coospu|argentium|elcable)" });
   if (errs.length) return res.status(400).json({ errors:errs });
   if (!req.file)   return res.status(400).json({ error:"Archivo PDF requerido" });
 
@@ -273,7 +277,7 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
 
   try {
     // 1 ─── Subir PDF a Cloudflare R2 ────────────────
-    const key = r2Key(nroCliente, periodo);
+    const key = r2Key(nroCliente, periodo, servicio);
     await R2.send(new PutObjectCommand({
       Bucket:      R2_BUCKET,
       Key:         key,
@@ -290,7 +294,7 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
 
     // 2 ─── Guardar metadata en Firestore ────────────
     const boletaRef = await db.collection("boletas").add({
-      usuarioId, nroCliente, periodo, vencimiento, emitida,
+      usuarioId, nroCliente, periodo, vencimiento, emitida, servicio,
       r2Key:         key,
       pdfUrl,
       alertaEnviada: false,
@@ -400,18 +404,29 @@ app.get("/boleta/:id", async (req, res) => {
  */
 app.get("/boletas/:usuarioId", async (req, res) => {
   const { usuarioId } = req.params;
+  const { servicio } = req.query;   // opcional: ?servicio=coospu
   if (!usuarioId) return res.status(400).json({ error:"usuarioId requerido" });
 
   try {
-    const snap = await db.collection("boletas")
+    let q = db.collection("boletas")
       .where("usuarioId", "==", usuarioId)
-      .orderBy("creadoEn", "desc")
-      .limit(4)
-      .get();
+      .orderBy("creadoEn", "desc");
 
-    const boletas = await Promise.all(snap.docs.map(async d => {
+    if (servicio) {
+      // Firestore no permite dos where en campos distintos con orderBy sin índice compuesto
+      // => filtramos en memoria para no requerir índice adicional
+    }
+
+    const snap = await q.limit(20).get();   // traemos más y filtramos en memoria
+
+    let docs = snap.docs;
+    if (servicio) {
+      docs = docs.filter(d => (d.data().servicio || "coospu") === servicio.toLowerCase());
+    }
+    docs = docs.slice(0, 6);   // máximo 6 por servicio
+
+    const boletas = await Promise.all(docs.map(async d => {
       const data = d.data();
-      // Renovar URL firmada si no hay dominio público
       const url = R2_PUB_URL
         ? `${R2_PUB_URL}/${data.r2Key}`
         : await getSignedUrl(R2, new GetObjectCommand({ Bucket:R2_BUCKET, Key:data.r2Key }), { expiresIn:604800 });
@@ -420,6 +435,7 @@ app.get("/boletas/:usuarioId", async (req, res) => {
         periodo:     data.periodo,
         vencimiento: data.vencimiento,
         emitida:     data.emitida,
+        servicio:    data.servicio || "coospu",
         pdfUrl:      url,
       };
     }));

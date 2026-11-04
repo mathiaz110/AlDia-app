@@ -6,7 +6,7 @@
   <title>AlDía Digital — Tu boleta de luz, siempre al día</title>
   <meta name="description" content="Recibí tu boleta de luz por WhatsApp. Sin filas, sin sorpresas."/>
   <meta name="theme-color" content="#0a0e1a"/>
-  <meta name="app-version" content="1.0.6"/>
+  <meta name="app-version" content="1.0.7"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="AlDía Digital"/>
@@ -412,12 +412,38 @@
         <button class="nov-close" id="novClose"><svg viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
       </div>
 
-      <!-- BOLETAS -->
-      <div class="section-header-simple">
-        <h2>Mis boletas de luz</h2>
-        <div class="boletas-count" id="boletasCount">—</div>
+      <!-- BOLETAS MULTI-SERVICIO -->
+      <div class="servicios-tabs" id="serviciosTabs" style="display:none">
+        <button class="svc-tab active" data-svc="coospu" onclick="switchServicioTab('coospu')">
+          <span class="svc-dot"></span>
+          COOSPU
+          <span class="svc-count" id="svcCount-coospu">—</span>
+        </button>
+        <button class="svc-tab" data-svc="argentium" id="svcTab-argentium" onclick="switchServicioTab('argentium')" style="display:none">
+          <span class="svc-dot"></span>
+          ARGENTIUM
+          <span class="svc-count" id="svcCount-argentium">—</span>
+        </button>
+        <button class="svc-tab" data-svc="elcable" id="svcTab-elcable" onclick="switchServicioTab('elcable')" style="display:none">
+          <span class="svc-dot"></span>
+          EL CABLE
+          <span class="svc-count" id="svcCount-elcable">—</span>
+        </button>
       </div>
-      <div class="boletas-list" id="boletasList"></div>
+
+      <div class="svc-panel active" id="svcPanel-coospu">
+        <div class="boletas-list" id="boletasList-coospu"></div>
+      </div>
+      <div class="svc-panel" id="svcPanel-argentium">
+        <div class="boletas-list" id="boletasList-argentium"></div>
+      </div>
+      <div class="svc-panel" id="svcPanel-elcable">
+        <div class="boletas-list" id="boletasList-elcable"></div>
+      </div>
+
+      <!-- compatibilidad: id legacy para código que lo busque -->
+      <div id="boletasList" style="display:none"></div>
+      <div id="boletasCount" style="display:none"></div>
 
       <!-- LINK PAGO EMPRESA -->
       <div class="pay-link-card" id="payLinkCard" style="display:none">
