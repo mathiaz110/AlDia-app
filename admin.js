@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — admin.js v8
+//  ALDIA APP — admin.js v9
 //  Panel administrador expandido:
 //  · Resumen: KPIs + gráfico 6 meses ingresos
 //  · Clientes activos con botones de acción
@@ -181,6 +181,21 @@ function updateStats() {
     $("statIngresos").textContent = "$" + ingresosMes.toLocaleString("es-AR", {minimumFractionDigits:0, maximumFractionDigits:0});
   }
 
+  // Distribución por servicio
+  const activos2 = allUsers.filter(u => u.estado === "activo");
+  const SERVICIOS = ["coospu", "argentium", "elcable"];
+  SERVICIOS.forEach(svc => {
+    const count = activos2.filter(u => {
+      const svcs = Array.isArray(u.servicios) && u.servicios.length ? u.servicios : ["coospu"];
+      return svcs.includes(svc);
+    }).length;
+    const pct = activos2.length > 0 ? Math.round((count / activos2.length) * 100) : 0;
+    const cEl = $(`svcDistCount-${svc}`);
+    const pEl = $(`svcDistPct-${svc}`);
+    if (cEl) cEl.textContent = count;
+    if (pEl) pEl.textContent = `${pct}% del total`;
+  });
+
   // Gráfico de ingresos 6 meses
   buildChart();
 }
@@ -287,6 +302,19 @@ function buildChart() {
 // ════════════════════════════════════════════════════
 //  LISTA CLIENTES ACTIVOS (con botones de acción)
 // ════════════════════════════════════════════════════
+
+// Renderiza badges de servicios para las tarjetas de usuario
+function renderServiciosBadges(servicios) {
+  if (!Array.isArray(servicios) || !servicios.length) {
+    return `<span style="font-size:9px;color:var(--text-3);font-weight:600;padding:2px 6px;background:rgba(255,255,255,.04);border-radius:4px;border:1px solid rgba(255,255,255,.07)">⚡ COOSPU</span>`;
+  }
+  const SVC = { coospu:{ icon:"⚡", label:"COOSPU", color:"var(--green)" }, argentium:{ icon:"🌐", label:"ARGENTIUM", color:"var(--blue)" }, elcable:{ icon:"📺", label:"EL CABLE", color:"var(--amber)" } };
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${servicios.map(s => {
+    const sv = SVC[s] || { icon:"⚡", label:s.toUpperCase(), color:"var(--text-2)" };
+    return `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.04);border:1px solid ${sv.color}44;color:${sv.color}">${sv.icon} ${sv.label}</span>`;
+  }).join("")}</div>`;
+}
+
 function renderActivosList() {
   const list = $("activosList");
   const countEl = $("activoCount");
@@ -312,6 +340,7 @@ function renderActivosList() {
       <div class="user-info" style="flex:1;min-width:0">
         <div class="user-name">${escHtml(u.nombre||"Sin nombre")} ${vencido ? '<span style="color:#ff4d6d;font-size:10px">● Vencido</span>' : ''}</div>
         <div class="user-meta">@${escHtml(u.usuario||"—")} · N°${escHtml(u.nroCliente||"—")} · ${venceStr}</div>
+        ${renderServiciosBadges(u.servicios)}
       </div>
       <div class="action-btns">
         <button class="action-btn btn-block-sm"   onclick="accion('bloquear','${u.id}','${escHtml(u.nombre||"")}')">🔒 Bloquear</button>
@@ -430,6 +459,7 @@ function renderUsers(users) {
       <div class="user-info" onclick="openModal('${u.id}')" style="cursor:pointer;flex:1;min-width:0">
         <div class="user-name">${escHtml(u.nombre||"Sin nombre")}</div>
         <div class="user-meta">@${escHtml(u.usuario||"—")} · N°${escHtml(u.nroCliente||"—")} · DNI ${escHtml(u.dni||"—")}</div>
+        ${renderServiciosBadges(u.servicios)}
       </div>
       <span class="user-status-badge ${getBadgeClass(u.estado)}">${capitalizar(u.estado)}</span>
       <div class="user-date">${formatDate(u.creadoEn)}</div>
@@ -459,6 +489,7 @@ window.openModal = function(userId) {
     <div class="detail-row"><span class="detail-label">Usuario</span><span class="detail-value">@${escHtml(selectedUser.usuario||"—")}</span></div>
     <div class="detail-row"><span class="detail-label">Celular</span><span class="detail-value">${escHtml(selectedUser.celular||"—")}</span></div>
     <div class="detail-row"><span class="detail-label">Dirección</span><span class="detail-value">${escHtml(selectedUser.direccion||"—")}</span></div>
+    <div class="detail-row"><span class="detail-label">Servicios</span><span class="detail-value">${renderServiciosBadges(selectedUser.servicios)}</span></div>
     <div class="detail-row"><span class="detail-label">Estado</span><span class="detail-value"><span class="user-status-badge ${getBadgeClass(selectedUser.estado)}">${capitalizar(selectedUser.estado)}</span></span></div>
     <div class="detail-row"><span class="detail-label">Registro</span><span class="detail-value">${formatDate(selectedUser.creadoEn, true)}</span></div>
     ${selectedUser.membresiaVence ? `<div class="detail-row"><span class="detail-label">Membresía vence</span><span class="detail-value">${selectedUser.membresiaVence}</span></div>` : ""}
@@ -497,7 +528,7 @@ window.openModal = function(userId) {
       </div>
       <div class="upload-fields">
         <div class="field-group">
-          <label class="field-label">Servicio</label>
+          <label class="field-label">Servicio <span id="uploadSvcHint" style="font-size:9px;font-weight:600;color:var(--text-3);margin-left:4px"></span></label>
           <div class="field-wrap" style="padding:0">
             <select id="uploadServicio" class="field-input" style="background:transparent;border:none;width:100%;height:100%;padding:0 12px 0 36px;cursor:pointer">
               <option value="coospu">COOSPU</option>
@@ -549,6 +580,17 @@ window.openModal = function(userId) {
   $("btnUploadBoleta")?.addEventListener("click", uploadBoleta);
 
   cargarBoletasAdmin(selectedUser.id);
+
+  // Pre-seleccionar servicio si el usuario tiene solo uno contratado
+  const svcs = Array.isArray(selectedUser.servicios) ? selectedUser.servicios : ["coospu"];
+  const uploadSvc = $("uploadServicio");
+  const svcHint = $("uploadSvcHint");
+  if (uploadSvc && svcs.length === 1) uploadSvc.value = svcs[0];
+  else if (uploadSvc) uploadSvc.value = "coospu";
+  if (svcHint) {
+    const SVC_ICONS = { coospu:"⚡", argentium:"🌐", elcable:"📺" };
+    svcHint.textContent = `(tiene: ${svcs.map(s => SVC_ICONS[s]||"•").join(" ")} ${svcs.map(s=>s.toUpperCase()).join(", ")})`;
+  }
 
   const drop = $("uploadDrop");
   if (drop) {

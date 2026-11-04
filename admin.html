@@ -175,6 +175,33 @@
           </div>
         </div>
 
+        <!-- DISTRIBUCIÓN POR SERVICIO -->
+        <div class="chart-card" style="margin-top:16px">
+          <div class="chart-header">
+            <h3>🗂 Clientes por servicio</h3>
+          </div>
+          <div id="svcDistGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:4px 0 8px">
+            <div class="svc-dist-card" id="svcDist-coospu">
+              <div class="svc-dist-icon">⚡</div>
+              <div class="svc-dist-name">COOSPU</div>
+              <div class="svc-dist-count" id="svcDistCount-coospu">—</div>
+              <div class="svc-dist-pct" id="svcDistPct-coospu">—%</div>
+            </div>
+            <div class="svc-dist-card" id="svcDist-argentium" style="--sc:var(--blue)">
+              <div class="svc-dist-icon">🌐</div>
+              <div class="svc-dist-name">ARGENTIUM</div>
+              <div class="svc-dist-count" id="svcDistCount-argentium">—</div>
+              <div class="svc-dist-pct" id="svcDistPct-argentium">—%</div>
+            </div>
+            <div class="svc-dist-card" id="svcDist-elcable" style="--sc:var(--amber)">
+              <div class="svc-dist-icon">📺</div>
+              <div class="svc-dist-name">EL CABLE</div>
+              <div class="svc-dist-count" id="svcDistCount-elcable">—</div>
+              <div class="svc-dist-pct" id="svcDistPct-elcable">—%</div>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- ════ SECCIÓN CLIENTES ════ -->
@@ -411,7 +438,7 @@
     // Bloquear instalación PWA en el admin
     window.addEventListener("beforeinstallprompt", e => e.preventDefault());
   </script>
-  <script type="module" src="admin.js?v=1.0.18"></script>
+  <script type="module" src="admin.js?v=1.0.9"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/firebase-messaging-sw.js")

@@ -3262,3 +3262,36 @@ body::before {
   border-color: var(--amber);
   color: #000;
 }
+
+/* ═══ DISTRIBUCIÓN POR SERVICIO (admin stats) ═══ */
+.svc-dist-card {
+  --sc: var(--green);
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.svc-dist-icon { font-size: 22px; }
+.svc-dist-name {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.svc-dist-count {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--sc);
+  line-height: 1;
+  margin-top: 2px;
+}
+.svc-dist-pct {
+  font-size: 10px;
+  color: var(--text-3);
+}

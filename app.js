@@ -962,12 +962,23 @@ async function checkNovedades() {
     const { aviso } = await resp.json();
 
     if (aviso && aviso.activo && aviso.titulo && aviso.cuerpo) {
-      ban.style.display = "";
+      // Color del banner según tipo
+      const AVISO_COLORS = {
+        alerta:  { bg:"rgba(255,77,109,.12)", border:"rgba(255,77,109,.3)",  color:"#ff4d6d" },
+        aviso:   { bg:"rgba(245,158,11,.10)", border:"rgba(245,158,11,.3)",  color:"#f59e0b" },
+        info:    { bg:"rgba(0,194,255,.10)",  border:"rgba(0,194,255,.3)",   color:"var(--blue)" },
+        novedad: { bg:"rgba(57,255,143,.08)", border:"rgba(57,255,143,.25)", color:"var(--green)" },
+      };
+      const c = AVISO_COLORS[aviso.tipo] || AVISO_COLORS.novedad;
+      ban.style.display     = "";
+      ban.style.background  = c.bg;
+      ban.style.borderColor = c.border;
       // Ícono según tipo
       const iconos = { alerta:"🚨", aviso:"⚠️", info:"ℹ️", novedad:"📢" };
       const novIcon = ban.querySelector(".nov-icon");
       if (novIcon) novIcon.textContent = iconos[aviso.tipo] || "📢";
-      $("novTitle") && ($("novTitle").textContent = aviso.titulo);
+      const tEl = $("novTitle");
+      if (tEl) { tEl.textContent = aviso.titulo; tEl.style.color = c.color; }
       $("novSub")   && ($("novSub").textContent   = aviso.cuerpo.substring(0, 90) + (aviso.cuerpo.length > 90 ? "…" : ""));
       $("notifDot") && ($("notifDot").style.display = "");
       $("novClose")?.addEventListener("click", () => { ban.style.display = "none"; }, { once:true });
@@ -1083,8 +1094,11 @@ async function cargarBoletasReales(usuarioId) {
       else grupos.coospu.push(b);
     });
 
-    // Detectar qué servicios tienen boletas
-    const serviciosConBoletas = SERVICIOS.filter(s => grupos[s].length > 0);
+    // Detectar qué servicios tienen boletas (Y que el usuario tiene contratados)
+    const serviciosUsuario = Array.isArray(State.user?.servicios) && State.user.servicios.length
+      ? State.user.servicios
+      : SERVICIOS; // sin campo → mostrar todos (retrocompatibilidad)
+    const serviciosConBoletas = SERVICIOS.filter(s => grupos[s].length > 0 && serviciosUsuario.includes(s));
 
     // Mostrar/ocultar tabs según disponibilidad
     const tabsWrap = $("serviciosTabs");
@@ -1139,7 +1153,10 @@ async function cargarBoletasReales(usuarioId) {
               <div class="boleta-periodo">${escHtml(b.periodo)}</div>
               <div class="boleta-fecha">Vence: ${b.vencimiento}</div>
             </div>
-            <span class="boleta-estado ${desc?"estado-descargada":"estado-nueva"}">${desc?"✓ Descargada":"Nueva"}</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+              ${estadoClass==="estado-vencida" ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,77,109,.15);border:1px solid rgba(255,77,109,.3);color:#ff4d6d">● VENCIDA</span>` : estadoClass==="estado-proximo" ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#f59e0b">● POR VENCER</span>` : `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(57,255,143,.1);border:1px solid rgba(57,255,143,.25);color:var(--green)">● AL DÍA</span>`}
+              <span class="boleta-estado ${desc?"estado-descargada":"estado-nueva"}">${desc?"✓ Descargada":"Nueva"}</span>
+            </div>
             <div class="boleta-chevron"><svg viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           </div>
           <div class="boleta-detail">
