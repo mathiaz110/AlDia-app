@@ -177,6 +177,34 @@ function validate(body, rules) {
   }, []);
 }
 
+/**
+ * Construye un mensaje FCM con maxima prioridad para todos los canales.
+ * webpush Urgency:high, android priority:high (doze mode), apns priority:10 (iOS)
+ */
+function buildMsg({ token = null, tokens = null, data = {}, link = "/" }) {
+  const base = {
+    webpush: {
+      headers: { Urgency: "high" },
+      fcmOptions: { link },
+    },
+    android: {
+      priority: "high",
+      ttl:      60 * 1000,
+    },
+    apns: {
+      headers: {
+        "apns-priority":    "10",
+        "apns-push-type":   "alert",
+        "apns-expiration":  String(Math.floor(Date.now() / 1000) + 60),
+      },
+    },
+    data: { ts: Date.now().toString(), ...data },
+  };
+  if (token)  base.token  = token;
+  if (tokens) base.tokens = tokens;
+  return base;
+}
+
 /** Manejador de errores centralizado */
 function handleError(res, err, ctx = "") {
   console.error(`[ERROR ${ctx}]`, err.code || "", err.message);
@@ -277,11 +305,10 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
       console.log(`[Push boleta] Token: ${fcmToken?.substring(0,20)}... largo: ${fcmToken?.length}`);
       if (fcmToken && fcmToken !== "no-token" && fcmToken.length > 50) {
         try {
-          const msgId = await messaging.send({
+          const msgId = await messaging.send(buildMsg({
             token: fcmToken,
-            webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
             data: { tipo:"nueva-boleta", boletaId:boletaRef.id, titulo:"⚡ Nueva boleta disponible", cuerpo:`Tu boleta de ${periodo} ya está lista. Vence el ${vencimiento}.` },
-          });
+          }));
           console.log(`[Push OK] Nueva boleta enviada a ${nombre}: ${msgId.substring(0,20)}...`);
         } catch(pushErr) {
           console.error("[Push ERROR boleta]", pushErr.code, pushErr.message);
@@ -477,11 +504,10 @@ app.post("/notificar", notifs, async (req, res) => {
 
   const { token, titulo, mensaje, data={} } = req.body;
   try {
-    const msgId = await messaging.send({
+    const msgId = await messaging.send(buildMsg({
       token,
-      webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
-      data: { tipo:"general", ...data, titulo:titulo.substring(0,100), cuerpo:mensaje.substring(0,200), ts:Date.now().toString() },
-    });
+      data: { tipo:"general", ...data, titulo:titulo.substring(0,100), cuerpo:mensaje.substring(0,200) },
+    }));
     res.json({ success:true, messageId:msgId, ts:new Date().toISOString() });
   } catch(e) { handleError(res, e, "notificar"); }
 });
@@ -499,11 +525,10 @@ app.post("/notificar-masivo", notifs, async (req, res) => {
     // Enviar en lotes de 500 (límite FCM)
     for (let i = 0; i < tokens.length; i += 500) {
       const lote = tokens.slice(i, i+500);
-      const resp = await messaging.sendEachForMulticast({
+      const resp = await messaging.sendEachForMulticast(buildMsg({
         tokens: lote,
-        webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
-        data: { tipo: tipo || "aviso", titulo:`${icono} ${titulo}`, cuerpo:cuerpo.substring(0,200), ts:Date.now().toString() },
-      });
+        data: { tipo: tipo || "aviso", titulo:`${icono} ${titulo}`, cuerpo:cuerpo.substring(0,200) },
+      }));
       enviados += resp.successCount;
       fallidos += resp.failureCount;
     }
@@ -589,11 +614,10 @@ app.post("/usuarios/:id/activar", async (req, res) => {
 
     if (fcmToken && fcmToken !== "no-token" && fcmToken.length > 50) {
       try {
-        const msgId = await messaging.send({
+        const msgId = await messaging.send(buildMsg({
           token: fcmToken,
-          webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/" } },
           data: { tipo:"cuenta-activada", titulo:"✅ Cuenta AlDía activada", cuerpo:`¡Hola ${nombre.split(" ")[0]}! Tu cuenta ya está activa.` },
-        });
+        }));
         console.log(`[Push OK] Cuenta activada enviada: ${msgId.substring(0,20)}...`);
       } catch(pushErr) {
         console.error("[Push ERROR activar]", pushErr.code, pushErr.message);
@@ -734,11 +758,11 @@ app.post("/registro", async (req, res) => {
       const adminSnap = await db.collection("admins").doc("config").get();
       const adminToken = adminSnap.exists ? adminSnap.data()?.fcmToken : null;
       if (adminToken && adminToken.length > 100) {
-        await messaging.send({
+        await messaging.send(buildMsg({
           token: adminToken,
-          webpush: { headers:{ Urgency:"high" }, fcmOptions:{ link:"/admin.html" } },
+          link: "/admin.html",
           data: { tipo:"nuevo-registro", usuarioId:ref.id, titulo:"📋 Nuevo cliente registrado", cuerpo:`${nombre} se registró y está esperando activación.` },
-        }).catch(e => console.warn("[Push admin]", e.code));
+        })).catch(e => console.warn("[Push admin]", e.code));
       }
     } catch(e) { /* silencioso si no hay config admin */ }
 
@@ -812,19 +836,14 @@ app.post("/avisos/activo", async (req, res) => {
       let enviados = 0;
       for (let i = 0; i < tokens.length; i += 500) {
         try {
-          const resp = await messaging.sendEachForMulticast({
+          const resp = await messaging.sendEachForMulticast(buildMsg({
             tokens: tokens.slice(i, i+500),
-            webpush: {
-              headers: { Urgency: "high" },
-              fcmOptions: { link: "/" },
-            },
             data: {
               tipo:   tipo || "aviso",
               titulo: `${icono} ${titulo}`,
               cuerpo: cuerpo.substring(0, 200),
-              ts:     Date.now().toString(),
             },
-          });
+          }));
           enviados += resp.successCount;
           console.log(`[Push Aviso] Lote ${i/500+1}: ${resp.successCount} OK, ${resp.failureCount} fail`);
           // Limpiar tokens inválidos
