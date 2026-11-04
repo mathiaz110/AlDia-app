@@ -737,7 +737,7 @@ app.get("/usuario/:id", async (req, res) => {
 
 // ─── POST /registro — nuevo usuario desde el frontend ──
 app.post("/registro", async (req, res) => {
-  const { nroCliente, nombre, dni, usuario, celular,
+  const { servicios, nroCliente, nombre, dni, usuario, celular,
           direccion, password, fcmToken } = req.body;
 
   if (!nombre || !dni || !usuario || !celular || !password) {
@@ -754,6 +754,7 @@ app.post("/registro", async (req, res) => {
 
     // Guardar con Admin SDK (sin restricciones de reglas Firestore)
     const ref = await db.collection("usuarios").add({
+      servicios:      Array.isArray(servicios) && servicios.length ? servicios : ["coospu"],
       nroCliente:     nroCliente || "",
       nombre,
       dni,
@@ -788,6 +789,7 @@ app.post("/registro", async (req, res) => {
       `👤 <b>${nombre}</b>\n` +
       `🪪 Usuario: ${usuario}\n` +
       `🔢 N° cliente: ${nroCliente}\n` +
+      `🗂 Servicios: ${(Array.isArray(servicios) && servicios.length ? servicios : ["coospu"]).map(s => s.toUpperCase()).join(", ")}\n` +
       `📱 Celular: ${celular}\n` +
       `📍 Dirección: ${direccion}\n` +
       `⏳ Estado: Pendiente de activación`

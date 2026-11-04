@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — script.js v1.0.20
+//  ALDIA APP — script.js v1.0.21
 //  Fix completo notificaciones push + auto-refresh
 // ═══════════════════════════════════════════════════
 
@@ -74,6 +74,7 @@ const State = {
   notifActivas:  null,   // true | false | null (desconocido aún)
   loading:       false,
   regStep:       1,
+  serviciosReg:  [],
   obSlide:       0,
   forgotStep:    1,
   forgotSmsCode: null,
@@ -477,17 +478,22 @@ async function handleLogin() {
 // ════════════════════════════════════════════════════
 function resetStepper() {
   State.regStep = 1;
+  // Limpiar checkboxes de servicios
+  document.querySelectorAll(".svc-checkbox").forEach(cb => { cb.checked = false; });
+  document.querySelectorAll(".svc-check-card").forEach(c => c.classList.remove("selected"));
+  const errSvc = $("err-servicios"); if (errSvc) errSvc.textContent = "";
   showRegStep(1);
 }
 
 function showRegStep(step) {
   State.regStep = step;
-  [$("regStep1"), $("regStep2"), $("regStep3")].forEach((el,i) => {
+  // 4 pasos: regStep0=servicios, regStep1=datos, regStep2=pago, regStep3=listo
+  [$("regStep0"), $("regStep1"), $("regStep2"), $("regStep3")].forEach((el,i) => {
     if (el) el.classList.toggle("hidden", i+1 !== step);
   });
   const fill = $("regStepFill");
-  if (fill) fill.style.width = `${Math.round((step/3)*100)}%`;
-  [0,1,2].forEach(i => {
+  if (fill) fill.style.width = `${Math.round((step/4)*100)}%`;
+  [0,1,2,3].forEach(i => {
     const step_el = $(`rstep${i}`);
     if (!step_el) return;
     step_el.classList.remove("active","done");
@@ -496,10 +502,24 @@ function showRegStep(step) {
   });
 }
 
+// PASO 0 → 1: Validar servicios seleccionados, pasar a Datos
+$("btnRegStep0")?.addEventListener("click", () => {
+  const seleccionados = Array.from(document.querySelectorAll(".svc-checkbox:checked")).map(cb => cb.value);
+  const errSvc = $("err-servicios");
+  if (seleccionados.length === 0) {
+    if (errSvc) errSvc.textContent = "Seleccioná al menos un servicio.";
+    return;
+  }
+  if (errSvc) errSvc.textContent = "";
+  State.serviciosReg = seleccionados;
+  showRegStep(2);
+});
+
+// PASO 1 → 2: Validar datos, pasar a Pago
 $("btnRegStep1")?.addEventListener("click", async () => {
   if (!validateForm()) return;
   try { await obtenerFCMToken(); } catch(e) { console.warn("[Reg] FCM opcional:", e.message); }
-  showRegStep(2);
+  showRegStep(3);
   // Deshabilitar botones de pago hasta que acepte términos
   initPagoStep();
 });
@@ -531,6 +551,7 @@ async function handleRegister() {
     console.info("[Registro] FCM Token:", token ? token.substring(0,20)+"…" : "NO TOKEN");
 
     const payload = {
+      servicios:  State.serviciosReg || ["coospu"],
       nroCliente: $("nroCliente")?.value.trim()  || "",
       nombre:     $("nombre")?.value.trim()      || "",
       dni:        $("dni")?.value.trim()         || "",

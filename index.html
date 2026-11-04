@@ -6,7 +6,7 @@
   <title>AlDía Digital — Tu boleta de luz, siempre al día</title>
   <meta name="description" content="Recibí tu boleta de luz por WhatsApp. Sin filas, sin sorpresas."/>
   <meta name="theme-color" content="#0a0e1a"/>
-  <meta name="app-version" content="1.0.7"/>
+  <meta name="app-version" content="1.0.8"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="AlDía Digital"/>
@@ -210,28 +210,74 @@
           <div class="reg-stepper-steps">
             <div class="reg-step active" id="rstep0">
               <div class="reg-step-circle" id="rcirc0"><span>1</span></div>
-              <div class="reg-step-label">Datos</div>
+              <div class="reg-step-label">Servicios</div>
             </div>
             <div class="reg-step" id="rstep1">
               <div class="reg-step-circle" id="rcirc1"><span>2</span></div>
-              <div class="reg-step-label">Pago</div>
+              <div class="reg-step-label">Datos</div>
             </div>
             <div class="reg-step" id="rstep2">
               <div class="reg-step-circle" id="rcirc2"><span>3</span></div>
+              <div class="reg-step-label">Pago</div>
+            </div>
+            <div class="reg-step" id="rstep3">
+              <div class="reg-step-circle" id="rcirc3"><span>4</span></div>
               <div class="reg-step-label">Listo</div>
             </div>
           </div>
         </div>
 
+        <!-- PASO 0: SERVICIOS -->
+        <div id="regStep0">
+          <div class="screen-title-block">
+            <h1>Tus <span class="gradient-text">servicios</span></h1>
+            <p class="subtitle">¿Cuál/es servicios tenés contratados?</p>
+          </div>
+          <div class="servicios-selector" id="serviciosSelector">
+            <label class="svc-check-card" id="svccard-coospu">
+              <input type="checkbox" class="svc-checkbox" value="coospu" id="svcCheck-coospu"/>
+              <div class="svc-check-inner">
+                <span class="svc-check-icon">⚡</span>
+                <span class="svc-check-name">COOSPU</span>
+                <span class="svc-check-tick">
+                  <svg viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </div>
+            </label>
+            <label class="svc-check-card" id="svccard-argentium">
+              <input type="checkbox" class="svc-checkbox" value="argentium" id="svcCheck-argentium"/>
+              <div class="svc-check-inner">
+                <span class="svc-check-icon">🌐</span>
+                <span class="svc-check-name">ARGENTIUM</span>
+                <span class="svc-check-tick">
+                  <svg viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </div>
+            </label>
+            <label class="svc-check-card" id="svccard-elcable">
+              <input type="checkbox" class="svc-checkbox" value="elcable" id="svcCheck-elcable"/>
+              <div class="svc-check-inner">
+                <span class="svc-check-icon">📺</span>
+                <span class="svc-check-name">EL CABLE</span>
+                <span class="svc-check-tick">
+                  <svg viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </div>
+            </label>
+          </div>
+          <span class="field-error" id="err-servicios" style="margin-top:8px;display:block"></span>
+          <button class="btn-primary" id="btnRegStep0"><span>Continuar</span><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+
         <!-- PASO 1: DATOS -->
-        <div id="regStep1">
+        <div id="regStep1" class="hidden">
           <div class="screen-title-block">
             <h1>Tus <span class="gradient-text">datos</span></h1>
             <p class="subtitle">Completá tu información personal</p>
           </div>
           <div class="info-notice">
             <svg viewBox="0 0 20 20" fill="none" style="width:18px;height:18px;flex-shrink:0"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M10 9v5M10 7h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            <span>Tu <strong>N° de cliente</strong> figura en la parte superior de tu boleta de luz actual.</span>
+            <span>Tu <strong>N° de cliente</strong> figura en la parte superior de tu boleta (COOSPU, ARGENTIUM o EL CABLE).</span>
           </div>
           <div class="form-card">
             <div class="field-group"><label class="field-label">N° de cliente (boleta de luz)</label><div class="field-wrap"><svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h10M5 10h6M5 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" id="nroCliente" class="field-input" placeholder="Ej: 000123456" inputmode="numeric" maxlength="12"/></div><span class="field-error" id="err-nroCliente"></span></div>

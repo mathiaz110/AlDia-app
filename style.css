@@ -3166,3 +3166,99 @@ body::before {
 .svc-service-icon.argentium { background: rgba(0,194,255,.1);   }
 .svc-service-icon.elcable   { background: rgba(245,158,11,.1);  }
 
+
+/* ═══ SELECTOR DE SERVICIOS (registro paso 0) ═══ */
+.servicios-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0 8px;
+}
+
+.svc-check-card {
+  display: block;
+  cursor: pointer;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  transition: border-color .2s, background .2s, transform .15s;
+  user-select: none;
+}
+.svc-check-card:active { transform: scale(.98); }
+
+.svc-check-card input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.svc-check-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.svc-check-icon {
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,.05);
+  flex-shrink: 0;
+}
+
+.svc-check-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: .5px;
+}
+
+.svc-check-tick {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .2s, border-color .2s;
+  color: transparent;
+}
+.svc-check-tick svg { width: 14px; height: 14px; }
+
+/* Estado: seleccionado */
+.svc-check-card:has(input:checked) {
+  border-color: var(--green);
+  background: rgba(57,255,143,.06);
+}
+.svc-check-card:has(input[value="argentium"]:checked) {
+  border-color: var(--blue);
+  background: rgba(0,194,255,.06);
+}
+.svc-check-card:has(input[value="elcable"]:checked) {
+  border-color: var(--amber);
+  background: rgba(255,183,0,.06);
+}
+
+.svc-check-card:has(input:checked) .svc-check-tick {
+  background: var(--green);
+  border-color: var(--green);
+  color: #000;
+}
+.svc-check-card:has(input[value="argentium"]:checked) .svc-check-tick {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #000;
+}
+.svc-check-card:has(input[value="elcable"]:checked) .svc-check-tick {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #000;
+}
