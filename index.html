@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css?v=1.0.60"/>
+  <link rel="stylesheet" href="style.css?v=1.0.9"/>
   <script>
     // Verificar compatibilidad del navegador
     (function() {
@@ -520,6 +520,16 @@
         </div>
       </div>
 
+      <!-- AGREGAR SERVICIO -->
+      <div class="add-svc-card" id="addSvcCard" style="display:none">
+        <div class="add-svc-icon">🗂</div>
+        <div class="add-svc-text">
+          <div class="add-svc-title">¿Tenés otro servicio?</div>
+          <div class="add-svc-sub">Solicitá agregar COOSPU, ARGENTIUM o EL CABLE a tu cuenta</div>
+        </div>
+        <button class="btn-add-svc" id="btnAgregarServicio">Agregar</button>
+      </div>
+
       <!-- BANNER PENDIENTE -->
       <div class="pending-banner" id="pendingBanner">
         <div class="pb-loader"></div>
@@ -565,6 +575,44 @@
     </div>
   </div>
 
+</div>
+
+<!-- MODAL SOLICITAR SERVICIO -->
+<div id="modalSolicitarSvc" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:360px">
+    <div class="modal-header">
+      <h3>Agregar servicio</h3>
+      <button class="btn-close" id="btnCloseSolicitarSvc"><svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">Seleccioná los servicios que querés agregar a tu cuenta. Te avisaremos cuando estén activados.</p>
+      <div id="solSvcCards" style="display:flex;flex-direction:column;gap:8px">
+        <label class="sol-svc-row" id="solSvcRow-coospu">
+          <input type="checkbox" class="sol-svc-cb" value="coospu" style="accent-color:var(--green);width:16px;height:16px"/>
+          <span style="font-size:18px">⚡</span>
+          <span class="sol-svc-name" style="color:var(--green)">COOSPU</span>
+          <span class="sol-svc-badge" id="solSvcBadge-coospu" style="display:none;font-size:9px;color:var(--text-3);margin-left:auto">Ya registrado</span>
+        </label>
+        <label class="sol-svc-row" id="solSvcRow-argentium">
+          <input type="checkbox" class="sol-svc-cb" value="argentium" style="accent-color:var(--blue);width:16px;height:16px"/>
+          <span style="font-size:18px">🌐</span>
+          <span class="sol-svc-name" style="color:var(--blue)">ARGENTIUM</span>
+          <span class="sol-svc-badge" id="solSvcBadge-argentium" style="display:none;font-size:9px;color:var(--text-3);margin-left:auto">Ya registrado</span>
+        </label>
+        <label class="sol-svc-row" id="solSvcRow-elcable">
+          <input type="checkbox" class="sol-svc-cb" value="elcable" style="accent-color:var(--amber);width:16px;height:16px"/>
+          <span style="font-size:18px">📺</span>
+          <span class="sol-svc-name" style="color:var(--amber)">EL CABLE</span>
+          <span class="sol-svc-badge" id="solSvcBadge-elcable" style="display:none;font-size:9px;color:var(--text-3);margin-left:auto">Ya registrado</span>
+        </label>
+      </div>
+      <div id="solSvcError" style="font-size:11px;color:#ff4d6d;margin-top:8px;min-height:16px"></div>
+    </div>
+    <div class="modal-footer" style="padding:16px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <button class="btn-primary" id="btnEnviarSolicitudSvc" style="width:100%"><span>Enviar solicitud</span></button>
+      <p style="font-size:11px;color:var(--text-3);text-align:center;margin-top:10px">El administrador recibirá tu solicitud y activará los servicios.</p>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL RECUPERAR CONTRASEÑA -->
@@ -766,6 +814,6 @@
   <div class="ios-arrow">▼</div>
 </div>
 
-<script type="module" src="app.js?v=1.0.19"></script>
+<script type="module" src="app.js?v=1.0.22"></script>
 </body>
 </html>

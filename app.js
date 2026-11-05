@@ -338,6 +338,66 @@ $("btnToggleNotif")?.addEventListener("click", async () => {
   }
 });
 $("btnSupport")?.addEventListener("click", () => {
+
+// ════════════════════════════════════════════════════
+//  MODAL SOLICITAR SERVICIO (cliente)
+// ════════════════════════════════════════════════════
+$("btnAgregarServicio")?.addEventListener("click", () => abrirModalSolicitarSvc());
+$("btnCloseSolicitarSvc")?.addEventListener("click", () => $("modalSolicitarSvc")?.classList.add("hidden"));
+$("modalSolicitarSvc")?.addEventListener("click", e => { if(e.target===$("modalSolicitarSvc")) $("modalSolicitarSvc").classList.add("hidden"); });
+
+function abrirModalSolicitarSvc() {
+  const svcsActuales = Array.isArray(State.user?.servicios) ? State.user.servicios : ["coospu"];
+  const todos = ["coospu","argentium","elcable"];
+  // Marcar los ya registrados y deshabilitarlos
+  todos.forEach(svc => {
+    const row = $("solSvcRow-" + svc);
+    const cb  = row?.querySelector("input[type=checkbox]");
+    const badge = $("solSvcBadge-" + svc);
+    if (!row || !cb) return;
+    if (svcsActuales.includes(svc)) {
+      cb.checked  = false;
+      cb.disabled = true;
+      row.classList.add("disabled-svc");
+      if (badge) badge.style.display = "";
+    } else {
+      cb.checked  = false;
+      cb.disabled = false;
+      row.classList.remove("disabled-svc");
+      if (badge) badge.style.display = "none";
+    }
+  });
+  const errEl = $("solSvcError");
+  if (errEl) errEl.textContent = "";
+  $("modalSolicitarSvc")?.classList.remove("hidden");
+}
+
+$("btnEnviarSolicitudSvc")?.addEventListener("click", async () => {
+  const checkboxes = document.querySelectorAll("#solSvcCards .sol-svc-cb:not(:disabled)");
+  const seleccionados = [...checkboxes].filter(c => c.checked).map(c => c.value);
+  const errEl = $("solSvcError");
+  if (!seleccionados.length) {
+    if (errEl) errEl.textContent = "Seleccioná al menos un servicio que no tenés aún";
+    return;
+  }
+  const btn = $("btnEnviarSolicitudSvc");
+  if (btn) { btn.disabled = true; btn.querySelector("span").textContent = "Enviando..."; }
+  try {
+    const res = await fetch(`${CFG.backendUrl}/solicitar-servicio`, {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ usuarioId: State.user?.id, serviciosSolicitados: seleccionados })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al enviar solicitud");
+    $("modalSolicitarSvc")?.classList.add("hidden");
+    toast("✅ Solicitud enviada. Te avisaremos cuando esté activada.", "success", 5000);
+  } catch(e) {
+    if (errEl) errEl.textContent = e.message;
+    if (btn) { btn.disabled = false; btn.querySelector("span").textContent = "Enviar solicitud"; }
+  }
+});
+
   const n = State.user?.nombre || "Cliente";
   const c = State.user?.nroCliente || "—";
   window.open(`https://wa.me/${CFG.soporteWA}?text=${encodeURIComponent(`Hola AlDía, soy ${n} (N° ${c}). Necesito ayuda con:`)}`, "_blank");
@@ -928,6 +988,14 @@ function renderDashboard(user) {
     checkVencimientoMembresia();
     setTimeout(initInstallCard, 500);
     setTimeout(mostrarBannerTelegram, 1200);
+    // Card "Agregar servicio" — solo si tiene menos de 3 servicios
+    const addSvcCard = $("addSvcCard");
+    if (addSvcCard) {
+      const svcsActuales = Array.isArray(user.servicios) ? user.servicios : ["coospu"];
+      const todosLosServicios = ["coospu","argentium","elcable"];
+      const faltantes = todosLosServicios.filter(s => !svcsActuales.includes(s));
+      addSvcCard.style.display = faltantes.length > 0 ? "" : "none";
+    }
   } else {
     if(memCard) memCard.style.display="none";
     if(vencCard) vencCard.style.display="";

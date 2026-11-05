@@ -917,6 +917,94 @@ app.get("/admin/boletas/:usuarioId", async (req, res) => {
   } catch(e) { handleError(res, e, "admin/boletas"); }
 });
 
+
+// ─── PATCH /usuarios/:id/servicios — editar servicios de un cliente ─
+app.patch("/usuarios/:id/servicios", async (req, res) => {
+  const { id } = req.params;
+  const { servicios } = req.body;
+  if (!Array.isArray(servicios) || servicios.length === 0) {
+    return res.status(400).json({ error: "Debe seleccionar al menos un servicio" });
+  }
+  const validos = ["coospu","argentium","elcable"];
+  const filtrados = servicios.filter(s => validos.includes(s));
+  if (!filtrados.length) return res.status(400).json({ error: "Servicios inválidos" });
+  try {
+    const userRef = db.collection("usuarios").doc(id);
+    const snap = await userRef.get();
+    if (!snap.exists) return res.status(404).json({ error: "Usuario no encontrado" });
+    const user = snap.data();
+    await userRef.update({ servicios: filtrados });
+    const SVC_ICONS = { coospu:"⚡", argentium:"🌐", elcable:"📺" };
+    const svcStr = filtrados.map(s => `${SVC_ICONS[s]||"•"} ${s.toUpperCase()}`).join(", ");
+    await telegramAdmin(
+      `✏️ <b>Servicios actualizados</b>\n` +
+      `👤 ${user.nombre || id}\n` +
+      `🗂 Nuevos servicios: ${svcStr}`
+    );
+    res.json({ success: true, servicios: filtrados });
+  } catch(e) { handleError(res, e, "usuarios/servicios"); }
+});
+
+// ─── POST /solicitar-servicio — cliente pide agregar un servicio ─
+app.post("/solicitar-servicio", async (req, res) => {
+  const { usuarioId, serviciosSolicitados } = req.body;
+  if (!usuarioId || !Array.isArray(serviciosSolicitados) || !serviciosSolicitados.length) {
+    return res.status(400).json({ error: "Datos incompletos" });
+  }
+  try {
+    const snap = await db.collection("usuarios").doc(usuarioId).get();
+    if (!snap.exists) return res.status(404).json({ error: "Usuario no encontrado" });
+    const user = snap.data();
+    const SVC_ICONS = { coospu:"⚡", argentium:"🌐", elcable:"📺" };
+    const svcStr = serviciosSolicitados.map(s => `${SVC_ICONS[s]||"•"} ${s.toUpperCase()}`).join(", ");
+    // Guardar solicitud en Firestore
+    await db.collection("solicitudesServicio").add({
+      usuarioId,
+      nombre: user.nombre || "—",
+      nroCliente: user.nroCliente || "—",
+      serviciosSolicitados,
+      estado: "pendiente",
+      creadoEn: new Date()
+    });
+    // Notificar al admin por Telegram
+    await telegramAdmin(
+      `🆕 <b>Solicitud de nuevo servicio</b>\n` +
+      `👤 ${user.nombre || usuarioId} (N° ${user.nroCliente || "—"})\n` +
+      `📋 Servicios solicitados: ${svcStr}\n\n` +
+      `Ir al panel admin para activar los nuevos servicios.`
+    );
+    // Notificar admin por push FCM si tiene token
+    try {
+      const cfgSnap = await db.collection("admins").doc("config").get();
+      const adminFcmToken = cfgSnap.data()?.fcmToken;
+      if (adminFcmToken) {
+        const { getMessaging } = await import("firebase-admin/messaging");
+        await getMessaging().send({
+          token: adminFcmToken,
+          notification: { title: "🆕 Solicitud de servicio", body: `${user.nombre||"Un cliente"} quiere agregar: ${svcStr}` },
+          android: { priority: "high" }
+        });
+      }
+    } catch(pushErr) { console.warn("[FCM admin push]", pushErr.message); }
+    res.json({ success: true, mensaje: "Solicitud enviada al administrador" });
+  } catch(e) { handleError(res, e, "solicitar-servicio"); }
+});
+
+// ─── GET /solicitudes-servicio — listar solicitudes pendientes ─
+app.get("/solicitudes-servicio", async (req, res) => {
+  try {
+    const snap = await db.collection("solicitudesServicio")
+      .where("estado","==","pendiente")
+      .orderBy("creadoEn","desc")
+      .get();
+    const solicitudes = snap.docs.map(d => ({
+      id: d.id, ...d.data(),
+      creadoEn: d.data().creadoEn?.toDate?.()?.toLocaleDateString("es-AR") || "—"
+    }));
+    res.json({ success: true, solicitudes, total: solicitudes.length });
+  } catch(e) { handleError(res, e, "solicitudes-servicio/get"); }
+});
+
 app.use((req, res) => res.status(404).json({ error:"Endpoint no encontrado", path:req.path }));
 app.use((err, req, res, next) => {
   if (err.message?.includes("CORS"))   return res.status(403).json({ error:err.message });

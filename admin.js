@@ -509,6 +509,7 @@ window.openModal = function(userId) {
     ` : selectedUser.estado==="bloqueado" ? `
       <button class="btn-activate" id="btnReactivate">✅ Reactivar</button>
     ` : ""}
+    <button class="btn-reject" id="btnEditarServicios" style="background:rgba(57,255,143,.07);border-color:rgba(57,255,143,.25);color:var(--green)">🗂 Editar servicios</button>
     <button class="btn-reject" id="btnResetModal" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:#f59e0b">🔑 Reset contraseña</button>
     <button class="btn-reject" id="btnDeleteModal" style="background:rgba(255,77,109,.1);border-color:rgba(255,77,109,.3)">🗑️ Eliminar usuario</button>
 
@@ -577,6 +578,7 @@ window.openModal = function(userId) {
   $("btnBloquear")?.addEventListener("click",   () => { closeModal(); accion("bloquear", selectedUser.id, selectedUser.nombre); });
   $("btnResetModal")?.addEventListener("click", () => { closeModal(); accion("reset", selectedUser.id, selectedUser.nombre); });
   $("btnDeleteModal")?.addEventListener("click",() => { closeModal(); accion("borrar", selectedUser.id, selectedUser.nombre); });
+  $("btnEditarServicios")?.addEventListener("click", () => abrirEditarServicios(selectedUser));
   $("btnUploadBoleta")?.addEventListener("click", uploadBoleta);
 
   cargarBoletasAdmin(selectedUser.id);
@@ -746,6 +748,89 @@ async function rejectUser(user) {
 // ════════════════════════════════════════════════════
 $("btnCloseModal")?.addEventListener("click", closeModal);
 $("userModal")?.addEventListener("click", e => { if(e.target===$("userModal")) closeModal(); });
+// ════════════════════════════════════════════════════
+//  EDITAR SERVICIOS DE UN CLIENTE
+// ════════════════════════════════════════════════════
+function abrirEditarServicios(user) {
+  const svcs = Array.isArray(user.servicios) ? user.servicios : ["coospu"];
+  const SVC_LIST = [
+    { id:"coospu",    icon:"⚡", label:"COOSPU",    color:"var(--green)" },
+    { id:"argentium", icon:"🌐", label:"ARGENTIUM",  color:"var(--blue)" },
+    { id:"elcable",   icon:"📺", label:"EL CABLE",   color:"var(--amber)" }
+  ];
+
+  // Reusar el userModal mostrando un sub-panel
+  $("modalTitle").textContent = `🗂 Servicios — ${user.nombre || "Usuario"}`;
+  $("modalBody").innerHTML = `
+    <p style="font-size:12px;color:var(--text-2);margin-bottom:16px">Seleccioná los servicios que tiene contratados este cliente. Se actualizará en Firestore y se le habilitarán las pestañas correspondientes.</p>
+    <div id="editSvcCards" style="display:flex;flex-direction:column;gap:8px">
+      ${SVC_LIST.map(s => `
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid ${svcs.includes(s.id)?s.color+"55":"rgba(255,255,255,.08)"};background:${svcs.includes(s.id)?"rgba(255,255,255,.04)":"transparent"};cursor:pointer;transition:all .2s" id="editSvcRow-${s.id}">
+          <input type="checkbox" value="${s.id}" ${svcs.includes(s.id)?"checked":""} style="accent-color:${s.color};width:16px;height:16px" onchange="onEditSvcChange('${s.id}','${s.color}')"/>
+          <span style="font-size:18px">${s.icon}</span>
+          <span style="font-size:13px;font-weight:700;color:${s.color}">${s.label}</span>
+        </label>
+      `).join("")}
+    </div>
+    <div id="editSvcError" style="font-size:11px;color:#ff4d6d;margin-top:8px;min-height:16px"></div>
+  `;
+  $("modalActions").innerHTML = `
+    <button class="btn-activate" id="btnGuardarServicios">💾 Guardar cambios</button>
+    <button class="btn-reject" id="btnVolverModal" style="background:transparent;border-color:rgba(255,255,255,.12)">← Volver</button>
+  `;
+  $("btnGuardarServicios")?.addEventListener("click", () => guardarServicios(user));
+  $("btnVolverModal")?.addEventListener("click", () => openModal(user.id));
+}
+
+window.onEditSvcChange = function(svcId, color) {
+  const row = $("editSvcRow-" + svcId);
+  const cb  = row?.querySelector("input[type=checkbox]");
+  if (!row) return;
+  if (cb?.checked) {
+    row.style.borderColor = color + "55";
+    row.style.background  = "rgba(255,255,255,.04)";
+  } else {
+    row.style.borderColor = "rgba(255,255,255,.08)";
+    row.style.background  = "transparent";
+  }
+};
+
+async function guardarServicios(user) {
+  const checkboxes = document.querySelectorAll("#editSvcCards input[type=checkbox]");
+  const seleccionados = [...checkboxes].filter(c => c.checked).map(c => c.value);
+  const errEl = $("editSvcError");
+  if (!seleccionados.length) {
+    if (errEl) errEl.textContent = "Seleccioná al menos un servicio";
+    return;
+  }
+  const btn = $("btnGuardarServicios");
+  if (btn) { btn.disabled = true; btn.textContent = "Guardando..."; }
+  try {
+    const res = await fetch(`${CFG.api}/usuarios/${user.id}/servicios`, {
+      method: "PATCH",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ servicios: seleccionados })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error al guardar");
+    // Actualizar en memoria local
+    const idx = allUsers.findIndex(u => u.id === user.id);
+    if (idx !== -1) allUsers[idx].servicios = seleccionados;
+    // Volver al modal actualizado
+    const updated = { ...user, servicios: seleccionados };
+    openModal(user.id);
+    // Flash success en el row de servicios
+    setTimeout(() => {
+      const rows = $("modalBody")?.querySelectorAll(".detail-row");
+      rows?.forEach(r => { if(r.textContent.includes("Servicios")) r.style.background="rgba(57,255,143,.06)"; });
+      setTimeout(() => rows?.forEach(r => r.style.background=""), 1500);
+    }, 100);
+  } catch(e) {
+    if (errEl) errEl.textContent = e.message;
+    if (btn) { btn.disabled = false; btn.textContent = "💾 Guardar cambios"; }
+  }
+}
+
 function closeModal() {
   $("userModal")?.classList.add("hidden");
   selectedUser    = null;
