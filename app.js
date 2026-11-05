@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  ALDIA APP — script.js v1.0.21
+//  ALDIA APP — script.js v6
 //  Fix completo notificaciones push + auto-refresh
 // ═══════════════════════════════════════════════════
 
@@ -69,14 +69,12 @@ try {
 //  ESTADO GLOBAL
 // ════════════════════════════════════════════════════
 const State = {
-  user:          null,
-  fcmToken:      null,
-  notifActivas:  null,   // true | false | null (desconocido aún)
-  loading:       false,
-  regStep:       1,
-  serviciosReg:  [],
-  obSlide:       0,
-  forgotStep:    1,
+  user:        null,
+  fcmToken:    null,
+  loading:     false,
+  regStep:     1,
+  obSlide:     0,
+  forgotStep:  1,
   forgotSmsCode: null,
   refreshTimer:  null,
 };
@@ -179,23 +177,11 @@ window.addEventListener("DOMContentLoaded", async () => {
       const actualizado = await verificarEstadoUsuario(saved);
       State.user = actualizado;
       saveSession(actualizado);
-      // Si tiene cambio de contraseña pendiente, forzar pantalla
-      if (actualizado.passwordTemp) {
-        showForzarCambioPass(actualizado);
-      } else {
-        showDashboard(actualizado);
-      }
+      showDashboard(actualizado);
       // Actualizar FCM token si cambió
       const token = await obtenerFCMToken();
-      if (token && token !== "no-token") {
-        State.notifActivas = true;
-        updateNotifToggleBtn(true);
-        if (token !== actualizado.fcmToken) {
-          actualizarTokenBackend(actualizado.id, token);
-        }
-      } else if (token === null && Notification.permission !== "granted") {
-        State.notifActivas = false;
-        updateNotifToggleBtn(false);
+      if (token && token !== actualizado.fcmToken) {
+        actualizarTokenBackend(actualizado.id, token);
       }
     }, 700);
     return;
@@ -302,102 +288,16 @@ $("btnGoToDash")?.addEventListener("click", async () => {
   showDashboard(State.user);
 });
 
-$("btnLogoutUser")?.addEventListener("click", async () => {
-  // Remover token FCM del backend antes de cerrar sesión
-  const uid   = State.user?.id;
-  const token = State.fcmToken;
-  if (uid && token && token !== "no-token") {
-    try {
-      await fetch(`${CFG.backendUrl}/usuario/${uid}/unsubscribe-push`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ fcmToken: token }),
-        signal: AbortSignal.timeout(4000),
-      });
-    } catch(e) { /* silencioso */ }
-  }
+$("btnLogoutUser")?.addEventListener("click", () => {
   clearSession(); stopPendingCheck();
-  State.user = null; State.fcmToken = null; State.notifActivas = null;
-  // Resetear botón toggle
-  updateNotifToggleBtn(null);
+  State.user = null; State.fcmToken = null;
   goTo("benefits"); toast("Sesión cerrada", "");
 });
 $("btnNovAvisos")?.addEventListener("click", () => {
   renderNovedades(); goTo("novedades");
   const nd = $("notifDot"); if (nd) nd.style.display = "none";
 });
-$("btnToggleNotif")?.addEventListener("click", async () => {
-  const perm = ("Notification" in window) ? Notification.permission : "default";
-  const tokenActivo = State.fcmToken && State.fcmToken !== "no-token";
-  if (State.notifActivas && tokenActivo) {
-    await desactivarNotificaciones();
-  } else if (perm === "denied") {
-    toast("Notificaciones bloqueadas. Habilitá el permiso en Ajustes del navegador.", "error", 6000);
-  } else {
-    await activarNotificaciones();
-  }
-});
 $("btnSupport")?.addEventListener("click", () => {
-
-// ════════════════════════════════════════════════════
-//  MODAL SOLICITAR SERVICIO (cliente)
-// ════════════════════════════════════════════════════
-$("btnAgregarServicio")?.addEventListener("click", () => abrirModalSolicitarSvc());
-$("btnCloseSolicitarSvc")?.addEventListener("click", () => $("modalSolicitarSvc")?.classList.add("hidden"));
-$("modalSolicitarSvc")?.addEventListener("click", e => { if(e.target===$("modalSolicitarSvc")) $("modalSolicitarSvc").classList.add("hidden"); });
-
-function abrirModalSolicitarSvc() {
-  const svcsActuales = Array.isArray(State.user?.servicios) ? State.user.servicios : ["coospu"];
-  const todos = ["coospu","argentium","elcable"];
-  // Marcar los ya registrados y deshabilitarlos
-  todos.forEach(svc => {
-    const row = $("solSvcRow-" + svc);
-    const cb  = row?.querySelector("input[type=checkbox]");
-    const badge = $("solSvcBadge-" + svc);
-    if (!row || !cb) return;
-    if (svcsActuales.includes(svc)) {
-      cb.checked  = false;
-      cb.disabled = true;
-      row.classList.add("disabled-svc");
-      if (badge) badge.style.display = "";
-    } else {
-      cb.checked  = false;
-      cb.disabled = false;
-      row.classList.remove("disabled-svc");
-      if (badge) badge.style.display = "none";
-    }
-  });
-  const errEl = $("solSvcError");
-  if (errEl) errEl.textContent = "";
-  $("modalSolicitarSvc")?.classList.remove("hidden");
-}
-
-$("btnEnviarSolicitudSvc")?.addEventListener("click", async () => {
-  const checkboxes = document.querySelectorAll("#solSvcCards .sol-svc-cb:not(:disabled)");
-  const seleccionados = [...checkboxes].filter(c => c.checked).map(c => c.value);
-  const errEl = $("solSvcError");
-  if (!seleccionados.length) {
-    if (errEl) errEl.textContent = "Seleccioná al menos un servicio que no tenés aún";
-    return;
-  }
-  const btn = $("btnEnviarSolicitudSvc");
-  if (btn) { btn.disabled = true; btn.querySelector("span").textContent = "Enviando..."; }
-  try {
-    const res = await fetch(`${CFG.backendUrl}/solicitar-servicio`, {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ usuarioId: State.user?.id, serviciosSolicitados: seleccionados })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Error al enviar solicitud");
-    $("modalSolicitarSvc")?.classList.add("hidden");
-    toast("✅ Solicitud enviada. Te avisaremos cuando esté activada.", "success", 5000);
-  } catch(e) {
-    if (errEl) errEl.textContent = e.message;
-    if (btn) { btn.disabled = false; btn.querySelector("span").textContent = "Enviar solicitud"; }
-  }
-});
-
   const n = State.user?.nombre || "Cliente";
   const c = State.user?.nroCliente || "—";
   window.open(`https://wa.me/${CFG.soporteWA}?text=${encodeURIComponent(`Hola AlDía, soy ${n} (N° ${c}). Necesito ayuda con:`)}`, "_blank");
@@ -429,67 +329,6 @@ $("btnEyeReg")?.addEventListener("click",   () => eyeToggle("password"));
 $("btnLogin")?.addEventListener("click", handleLogin);
 $("loginPass")?.addEventListener("keydown", e => { if (e.key==="Enter") handleLogin(); });
 
-
-// ════════════════════════════════════════════════════
-//  CAMBIO DE CONTRASEÑA FORZADO (passwordTemp)
-// ════════════════════════════════════════════════════
-function showForzarCambioPass(user) {
-  const overlay = $("forzarCambioOverlay");
-  if (!overlay) return;
-  overlay.classList.remove("hidden");
-  // Limpiar campos
-  const nva  = $("forzarPassNueva");
-  const conf = $("forzarPassConfirm");
-  const err  = $("forzarPassError");
-  if (nva)  nva.value  = "";
-  if (conf) conf.value = "";
-  if (err)  err.textContent = "";
-}
-
-async function handleForzarCambio() {
-  const nva  = $("forzarPassNueva")?.value   || "";
-  const conf = $("forzarPassConfirm")?.value || "";
-  const err  = $("forzarPassError");
-
-  if (err) err.textContent = "";
-
-  if (nva.length < 6) {
-    if (err) err.textContent = "La contraseña debe tener al menos 6 caracteres";
-    return;
-  }
-  if (nva !== conf) {
-    if (err) err.textContent = "Las contraseñas no coinciden";
-    return;
-  }
-
-  setLoading("btnForzarCambio", true, "Guardando...");
-  try {
-    const resp = await fetch(`${CFG.backendUrl}/usuarios/${State.user.id}/cambiar-password`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ passwordNueva: nva }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) {
-      if (err) err.textContent = data.error || "Error al cambiar contraseña";
-      return;
-    }
-    // Actualizar sesión local
-    State.user.passwordTemp = false;
-    State.user.password = nva;
-    saveSession(State.user);
-    // Cerrar overlay y mostrar dashboard
-    $("forzarCambioOverlay")?.classList.add("hidden");
-    showDashboard(State.user);
-    toast("✅ Contraseña actualizada", "success");
-  } catch(e) {
-    console.error("[CambioPass]", e);
-    if (err) err.textContent = "Error de conexión. Intentá de nuevo.";
-  } finally {
-    setLoading("btnForzarCambio", false, "Guardar contraseña");
-  }
-}
-
 async function handleLogin() {
   if (State.loading) return;
   const usuario = $("loginUser")?.value.trim() || "";
@@ -515,15 +354,8 @@ async function handleLogin() {
 
     State.user = data.usuario;
     saveSession(data.usuario);
-    // Si tiene cambio de contraseña pendiente, forzar pantalla de cambio
-    if (data.usuario.passwordTemp) {
-      showForzarCambioPass(data.usuario);
-    } else {
-      // Marcar notificaciones como activas si ya tenemos token
-      if (token && token !== "no-token") State.notifActivas = true;
-      showDashboard(data.usuario);
-      toast("Bienvenido ✓", "success");
-    }
+    showDashboard(data.usuario);
+    toast("Bienvenido ✓", "success");
   } catch(e) {
     console.error("[Login]", e);
     if(errEl) errEl.textContent = "Error al ingresar. Intentá de nuevo.";
@@ -538,22 +370,17 @@ async function handleLogin() {
 // ════════════════════════════════════════════════════
 function resetStepper() {
   State.regStep = 1;
-  // Limpiar checkboxes de servicios
-  document.querySelectorAll(".svc-checkbox").forEach(cb => { cb.checked = false; });
-  document.querySelectorAll(".svc-check-card").forEach(c => c.classList.remove("selected"));
-  const errSvc = $("err-servicios"); if (errSvc) errSvc.textContent = "";
   showRegStep(1);
 }
 
 function showRegStep(step) {
   State.regStep = step;
-  // 4 pasos: regStep0=servicios, regStep1=datos, regStep2=pago, regStep3=listo
-  [$("regStep0"), $("regStep1"), $("regStep2"), $("regStep3")].forEach((el,i) => {
+  [$("regStep1"), $("regStep2"), $("regStep3")].forEach((el,i) => {
     if (el) el.classList.toggle("hidden", i+1 !== step);
   });
   const fill = $("regStepFill");
-  if (fill) fill.style.width = `${Math.round((step/4)*100)}%`;
-  [0,1,2,3].forEach(i => {
+  if (fill) fill.style.width = `${Math.round((step/3)*100)}%`;
+  [0,1,2].forEach(i => {
     const step_el = $(`rstep${i}`);
     if (!step_el) return;
     step_el.classList.remove("active","done");
@@ -562,24 +389,10 @@ function showRegStep(step) {
   });
 }
 
-// PASO 0 → 1: Validar servicios seleccionados, pasar a Datos
-$("btnRegStep0")?.addEventListener("click", () => {
-  const seleccionados = Array.from(document.querySelectorAll(".svc-checkbox:checked")).map(cb => cb.value);
-  const errSvc = $("err-servicios");
-  if (seleccionados.length === 0) {
-    if (errSvc) errSvc.textContent = "Seleccioná al menos un servicio.";
-    return;
-  }
-  if (errSvc) errSvc.textContent = "";
-  State.serviciosReg = seleccionados;
-  showRegStep(2);
-});
-
-// PASO 1 → 2: Validar datos, pasar a Pago
 $("btnRegStep1")?.addEventListener("click", async () => {
   if (!validateForm()) return;
   try { await obtenerFCMToken(); } catch(e) { console.warn("[Reg] FCM opcional:", e.message); }
-  showRegStep(3);
+  showRegStep(2);
   // Deshabilitar botones de pago hasta que acepte términos
   initPagoStep();
 });
@@ -611,7 +424,6 @@ async function handleRegister() {
     console.info("[Registro] FCM Token:", token ? token.substring(0,20)+"…" : "NO TOKEN");
 
     const payload = {
-      servicios:  State.serviciosReg || ["coospu"],
       nroCliente: $("nroCliente")?.value.trim()  || "",
       nombre:     $("nombre")?.value.trim()      || "",
       dni:        $("dni")?.value.trim()         || "",
@@ -707,9 +519,6 @@ $("btnForgotAction")?.addEventListener("click", async () => {
 function showDashboard(user) {
   goTo("dashboard");
 
-  // Actualizar botón toggle según estado actual
-  updateNotifToggleBtn(State.notifActivas);
-
   // Mostrar skeleton
   const skel = $("dashSkeleton");
   const cont = $("dashContent");
@@ -724,8 +533,6 @@ function showDashboard(user) {
       cont.style.opacity = "1";
     }
     renderDashboard(user);
-    // Re-evaluar toggle después de que el dashboard renderizó
-    updateNotifToggleBtn(State.notifActivas);
   }, 400);
 }
 
@@ -830,90 +637,6 @@ function mostrarBannerTelegram() {
   });
 }
 
-// ════════════════════════════════════════════════════
-//  NOTIFICACIONES PUSH — TOGGLE 🔔/🔕
-// ════════════════════════════════════════════════════
-
-/** Actualiza el ícono y visibilidad del botón toggle */
-function updateNotifToggleBtn(notifActivas) {
-  const btn  = $("btnToggleNotif");
-  const icon = $("notifToggleIcon");
-  if (!btn || !icon) return;
-
-  // Mostrar solo si push está soportado
-  const pushSupported = "Notification" in window && "serviceWorker" in navigator;
-  if (!pushSupported) { btn.style.display = "none"; return; }
-
-  btn.style.display = "";
-
-  if (notifActivas === null || notifActivas === undefined) {
-    // Estado desconocido: mostrar según permiso del navegador
-    const perm = Notification.permission;
-    if (perm === "granted" && State.fcmToken && State.fcmToken !== "no-token") {
-      icon.textContent = "🔔";
-      btn.title = "Notificaciones activas — tocá para desactivar";
-    } else if (perm === "denied") {
-      icon.textContent = "🔕";
-      btn.title = "Notificaciones bloqueadas en el navegador";
-    } else {
-      icon.textContent = "🔕";
-      btn.title = "Activar notificaciones push";
-    }
-  } else if (notifActivas) {
-    icon.textContent = "🔔";
-    btn.title = "Notificaciones activas — tocá para desactivar";
-  } else {
-    icon.textContent = "🔕";
-    btn.title = "Activar notificaciones push";
-  }
-}
-
-/** Activa las notificaciones: pide permiso y sube token */
-async function activarNotificaciones() {
-  if (!messaging) { toast("Push no disponible en este dispositivo", ""); return; }
-  try {
-    const token = await obtenerFCMToken();
-    if (!token) {
-      // Si el permiso fue denegado, explicar cómo reactivar
-      if (Notification.permission === "denied") {
-        toast("Notificaciones bloqueadas. Habilitá el permiso en la configuración del navegador.", "error", 5000);
-      } else {
-        toast("No se pudo activar. Intentá de nuevo.", "error");
-      }
-      return;
-    }
-    State.notifActivas = true;
-    if (State.user?.id) {
-      await actualizarTokenBackend(State.user.id, token);
-    }
-    updateNotifToggleBtn(true);
-    toast("🔔 Notificaciones activadas", "success");
-  } catch(e) {
-    console.warn("[Toggle notif activar]", e.message);
-    toast("No se pudo activar", "error");
-  }
-}
-
-/** Desactiva las notificaciones: borra token del backend */
-async function desactivarNotificaciones() {
-  const uid   = State.user?.id;
-  const token = State.fcmToken;
-  if (uid && token && token !== "no-token") {
-    try {
-      await fetch(`${CFG.backendUrl}/usuario/${uid}/unsubscribe-push`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ fcmToken: token }),
-        signal: AbortSignal.timeout(4000),
-      });
-    } catch(e) { /* silencioso */ }
-  }
-  State.fcmToken     = null;
-  State.notifActivas = false;
-  updateNotifToggleBtn(false);
-  toast("🔕 Notificaciones desactivadas", "");
-}
-
 function renderDashboard(user) {
   if (!user) return;
   const nombre = user.nombre || "Usuario";
@@ -967,19 +690,10 @@ function renderDashboard(user) {
     const diaActual = hoy.getDate();
     const pct = Math.round((diaActual / diasMes) * 100);
 
-    $("mcDias")       && ($("mcDias").textContent       = `${diasNum}`);
+    $("mcDias")       && ($("mcDias").textContent       = `${diasNum} día${diasNum!==1?"s":""}`);
     $("mcFechaInicio")&& ($("mcFechaInicio").textContent = fechaInicioStr);
     $("mcFechaVenc")  && ($("mcFechaVenc").textContent   = fechaVencStr);
-    // Ring chart animado
-    setTimeout(() => {
-      const ring = $("mcRingFill");
-      if (ring) {
-        const circum = 2 * Math.PI * 33; // ≈ 207.3
-        const pctRing = Math.max(0.03, Math.min(1, diasNum / diasMes));
-        ring.style.strokeDasharray = circum;
-        ring.style.strokeDashoffset = circum * (1 - pctRing);
-      }
-    }, 150);
+    setTimeout(() => { const bar=$("mcBarFill"); if(bar) bar.style.width=`${pct}%`; }, 300);
     $("statTotal")    && ($("statTotal").textContent    = "—");
     $("statDias")     && ($("statDias").textContent     = `${diasNum} día${diasNum!==1?"s":""}`);
     $("statVencDias") && ($("statVencDias").textContent = fechaVencStr);
@@ -988,14 +702,6 @@ function renderDashboard(user) {
     checkVencimientoMembresia();
     setTimeout(initInstallCard, 500);
     setTimeout(mostrarBannerTelegram, 1200);
-    // Card "Agregar servicio" — solo si tiene menos de 3 servicios
-    const addSvcCard = $("addSvcCard");
-    if (addSvcCard) {
-      const svcsActuales = Array.isArray(user.servicios) ? user.servicios : ["coospu"];
-      const todosLosServicios = ["coospu","argentium","elcable"];
-      const faltantes = todosLosServicios.filter(s => !svcsActuales.includes(s));
-      addSvcCard.style.display = faltantes.length > 0 ? "" : "none";
-    }
   } else {
     if(memCard) memCard.style.display="none";
     if(vencCard) vencCard.style.display="";
@@ -1030,23 +736,12 @@ async function checkNovedades() {
     const { aviso } = await resp.json();
 
     if (aviso && aviso.activo && aviso.titulo && aviso.cuerpo) {
-      // Color del banner según tipo
-      const AVISO_COLORS = {
-        alerta:  { bg:"rgba(255,77,109,.12)", border:"rgba(255,77,109,.3)",  color:"#ff4d6d" },
-        aviso:   { bg:"rgba(245,158,11,.10)", border:"rgba(245,158,11,.3)",  color:"#f59e0b" },
-        info:    { bg:"rgba(0,194,255,.10)",  border:"rgba(0,194,255,.3)",   color:"var(--blue)" },
-        novedad: { bg:"rgba(57,255,143,.08)", border:"rgba(57,255,143,.25)", color:"var(--green)" },
-      };
-      const c = AVISO_COLORS[aviso.tipo] || AVISO_COLORS.novedad;
-      ban.style.display     = "";
-      ban.style.background  = c.bg;
-      ban.style.borderColor = c.border;
+      ban.style.display = "";
       // Ícono según tipo
       const iconos = { alerta:"🚨", aviso:"⚠️", info:"ℹ️", novedad:"📢" };
       const novIcon = ban.querySelector(".nov-icon");
       if (novIcon) novIcon.textContent = iconos[aviso.tipo] || "📢";
-      const tEl = $("novTitle");
-      if (tEl) { tEl.textContent = aviso.titulo; tEl.style.color = c.color; }
+      $("novTitle") && ($("novTitle").textContent = aviso.titulo);
       $("novSub")   && ($("novSub").textContent   = aviso.cuerpo.substring(0, 90) + (aviso.cuerpo.length > 90 ? "…" : ""));
       $("notifDot") && ($("notifDot").style.display = "");
       $("novClose")?.addEventListener("click", () => { ban.style.display = "none"; }, { once:true });
@@ -1062,50 +757,19 @@ async function checkNovedades() {
 // ════════════════════════════════════════════════════
 //  NOVEDADES
 // ════════════════════════════════════════════════════
-async function renderNovedades() {
+function renderNovedades() {
   const list=$("novedadesList"); if(!list) return;
-  list.innerHTML = `<div class="sk-item"></div><div class="sk-item"></div>`;
   const iconMap={alerta:"🚨",aviso:"⚠️",info:"ℹ️",novedad:"📢"};
-
-  try {
-    const resp = await fetch(`${CFG.backendUrl}/avisos/generales`, {
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!resp.ok) throw new Error("Sin avisos");
-    const { avisos } = await resp.json();
-
-    if (!avisos || !avisos.length) {
-      list.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">📭</div><div style="font-size:14px;color:var(--text-3)">No hay avisos por ahora.</div></div>`;
-      return;
-    }
-
-    list.innerHTML = avisos.map(n => {
-      const icono = n.icono || iconMap[n.tipo] || "📢";
-      const fecha = n.creadoEn ? new Date(n.creadoEn).toLocaleDateString("es-AR", { day:"2-digit", month:"2-digit", year:"numeric" }) : "—";
-      return `
-        <div class="novedad-card tipo-${escHtml(n.tipo)}">
-          <div class="nov-card-header">
-            <span class="nov-card-icon">${icono}</span>
-            <span class="nov-card-title">${escHtml(n.titulo)}</span>
-            <span class="nov-card-fecha">${fecha}</span>
-          </div>
-          <div class="nov-card-body">${escHtml(n.mensaje)}</div>
-          <span class="nov-card-badge badge-${escHtml(n.tipo)}">${cap(n.tipo)}</span>
-        </div>`;
-    }).join("");
-  } catch(e) {
-    // Fallback a datos demo si falla el backend
-    list.innerHTML = DEMO.novedades.map(n=>`
-      <div class="novedad-card tipo-${n.tipo}">
-        <div class="nov-card-header">
-          <span class="nov-card-icon">${iconMap[n.tipo]||"📢"}</span>
-          <span class="nov-card-title">${escHtml(n.titulo)}</span>
-          <span class="nov-card-fecha">${n.fecha}</span>
-        </div>
-        <div class="nov-card-body">${escHtml(n.cuerpo)}</div>
-        <span class="nov-card-badge badge-${n.tipo}">${cap(n.tipo)}</span>
-      </div>`).join("");
-  }
+  list.innerHTML = DEMO.novedades.map(n=>`
+    <div class="novedad-card tipo-${n.tipo}">
+      <div class="nov-card-header">
+        <span class="nov-card-icon">${iconMap[n.tipo]||"📢"}</span>
+        <span class="nov-card-title">${escHtml(n.titulo)}</span>
+        <span class="nov-card-fecha">${n.fecha}</span>
+      </div>
+      <div class="nov-card-body">${escHtml(n.cuerpo)}</div>
+      <span class="nov-card-badge badge-${n.tipo}">${cap(n.tipo)}</span>
+    </div>`).join("");
 }
 
 // ════════════════════════════════════════════════════
@@ -1137,149 +801,72 @@ function renderBoletas(user) {
 }
 
 async function cargarBoletasReales(usuarioId) {
-  // Tabs multi-servicio: traer todas las boletas y distribuirlas
-  const SERVICIOS = ["coospu", "argentium", "elcable"];
-  const SVC_LABEL = { coospu:"COOSPU", argentium:"ARGENTIUM", elcable:"EL CABLE" };
-  const SVC_ICON  = { coospu:"⚡", argentium:"🌐", elcable:"📺" };
-  const SVC_COLOR = { coospu:"var(--green)", argentium:"var(--blue)", elcable:"var(--amber)" };
+  const list=$("boletasList"), count=$("boletasCount");
+  if(!list) return;
 
   try {
-    console.info("[Boletas] Fetching todas:", CFG.backendUrl + "/boletas/" + usuarioId);
+    console.info("[Boletas] Fetching:", CFG.backendUrl + "/boletas/" + usuarioId);
     const resp = await fetch(`${CFG.backendUrl}/boletas/${usuarioId}`, {
       headers: { Authorization: `Bearer ${State.user?.id||""}` },
       signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    const boletas = data.boletas || [];
-    console.info("[Boletas] Recibidas:", boletas.length);
+    const boletas = data.boletas;
+    console.info("[Boletas] Recibidas:", boletas?.length || 0, "boletas");
 
-    // Agrupar por servicio (retrocompatibilidad: sin servicio → coospu)
-    const grupos = { coospu:[], argentium:[], elcable:[] };
-    boletas.forEach(b => {
-      const svc = b.servicio || "coospu";
-      if (grupos[svc]) grupos[svc].push(b);
-      else grupos.coospu.push(b);
-    });
-
-    // Detectar qué servicios tienen boletas (Y que el usuario tiene contratados)
-    const serviciosUsuario = Array.isArray(State.user?.servicios) && State.user.servicios.length
-      ? State.user.servicios
-      : SERVICIOS; // sin campo → mostrar todos (retrocompatibilidad)
-    const serviciosConBoletas = SERVICIOS.filter(s => grupos[s].length > 0 && serviciosUsuario.includes(s));
-
-    // Mostrar/ocultar tabs según disponibilidad
-    const tabsWrap = $("serviciosTabs");
-    if (tabsWrap) tabsWrap.style.display = serviciosConBoletas.length > 0 ? "" : "none";
-
-    // Si solo hay un servicio con boletas, ocultar los tabs y mostrar directo
-    const mostrarTabs = serviciosConBoletas.length > 1;
-    if (tabsWrap) tabsWrap.style.display = mostrarTabs ? "" : "none";
-
-    // Actualizar tabs y paneles
-    const dl = getDescargas();
-    const hoyMs = Date.now();
-
-    SERVICIOS.forEach(svc => {
-      const tab   = document.querySelector(`.svc-tab[data-svc="${svc}"]`);
-      const panel = $(`svcPanel-${svc}`);
-      const list  = $(`boletasList-${svc}`);
-      const countEl = $(`svcCount-${svc}`);
-      const bols  = grupos[svc];
-
-      // Mostrar/ocultar tab
-      if (tab) tab.style.display = (mostrarTabs && bols.length > 0) ? "" : "none";
-
-      // Actualizar contador
-      if (countEl) countEl.textContent = bols.length || "0";
-
-      if (!list) return;
-
-      if (!bols.length) {
-        list.innerHTML = `<div class="pending-banner"><div class="pb-icon">${SVC_ICON[svc]}</div><div><div class="pb-title">Sin boletas de ${SVC_LABEL[svc]}</div><div class="pb-sub">Tu administrador aún no subió boletas de este servicio.</div></div></div>`;
-        return;
-      }
-
-      list.innerHTML = bols.map((b, idx) => {
-        const desc = !!dl[b.id];
-        let estadoClass = "";
-        if (b.vencimiento) {
-          const parts = b.vencimiento.split("/");
-          if (parts.length === 3) {
-            const vencMs = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
-            const diffDias = (vencMs - hoyMs) / (1000*60*60*24);
-            if (diffDias < 0)       estadoClass = "estado-vencida";
-            else if (diffDias <= 7) estadoClass = "estado-proximo";
-            else                    estadoClass = "estado-activa";
-          }
-        }
-        return `
-        <div class="boleta-card-expanded ${estadoClass}" id="bcard-${b.id}" style="animation-delay:${idx*0.05}s">
-          <div class="boleta-card-header" onclick="toggleBoleta('${b.id}')">
-            <div class="boleta-icon" style="font-size:17px;width:36px;height:36px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${SVC_ICON[svc]}</div>
-            <div class="boleta-info" style="flex:1;min-width:0">
-              <div class="boleta-periodo">${escHtml(b.periodo)}</div>
-              <div class="boleta-fecha">Vence: ${b.vencimiento}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-              ${estadoClass==="estado-vencida" ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,77,109,.15);border:1px solid rgba(255,77,109,.3);color:#ff4d6d">● VENCIDA</span>` : estadoClass==="estado-proximo" ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#f59e0b">● POR VENCER</span>` : `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(57,255,143,.1);border:1px solid rgba(57,255,143,.25);color:var(--green)">● AL DÍA</span>`}
-              <span class="boleta-estado ${desc?"estado-descargada":"estado-nueva"}">${desc?"✓ Descargada":"Nueva"}</span>
-            </div>
-            <div class="boleta-chevron"><svg viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          </div>
-          <div class="boleta-detail">
-            <div class="boleta-detail-row"><span>Período</span><span>${escHtml(b.periodo)}</span></div>
-            <div class="boleta-detail-row"><span>Emisión</span><span>${b.emitida}</span></div>
-            <div class="boleta-detail-row"><span>Vencimiento</span><span>${b.vencimiento}</span></div>
-            <div class="boleta-detail-row"><span>Estado</span>
-              <span id="estado-txt-${b.id}" style="color:${desc?"var(--green)":"var(--text-2)"};${desc?"font-weight:600":""}">
-                ${desc?"✓ Descargada":"Disponible para descargar"}
-              </span>
-            </div>
-            <div class="boleta-detail-actions">
-              <button class="${desc?"btn-ver-boleta":"btn-descargar-boleta"}" id="btn-dl-${b.id}"
-                      data-url="${escHtml(b.pdfUrl||"")}"
-                      onclick="descargarBoleta('${b.id}','${escHtml(b.periodo)}')">
-                <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                ${desc?"Descargar de nuevo":"Descargar PDF"}
-              </button>
-            </div>
-          </div>
-        </div>`;
-      }).join("");
-    });
-
-    // Si no hay ninguna boleta en ningún servicio
-    if (boletas.length === 0) {
-      const list = $("boletasList-coospu");
-      if (list) list.innerHTML = `<div class="pending-banner"><div class="pb-icon">⚡</div><div><div class="pb-title">Sin boletas todavía</div><div class="pb-sub">Tu administrador aún no subió boletas a tu cuenta.</div></div></div>`;
+    if (!boletas?.length) {
+      if(count) count.textContent="0 disponibles";
+      list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚡</div><div><div class="pb-title">Sin boletas todavía</div><div class="pb-sub">Tu proveedor aún no subió boletas a tu cuenta.</div></div></div>`;
+      return;
     }
 
-    // Stat card total
+    // Mostrar período de la última boleta en el contador
+    if(count) count.textContent = boletas[0]?.periodo || `${boletas.length} disponibles`;
+    // Actualizar stat card con cantidad real
     $("statTotal") && ($("statTotal").textContent = boletas.length);
-
-    // Activar primer tab con boletas
-    if (serviciosConBoletas.length > 0) {
-      switchServicioTab(serviciosConBoletas[0]);
-    }
+    console.info("[Boletas] Renderizando:", boletas.length, "boletas");
+    const dl=getDescargas();
+    list.innerHTML = boletas.map(b=>{
+      const desc=!!dl[b.id];
+      return `
+      <div class="boleta-card-expanded" id="bcard-${b.id}">
+        <div class="boleta-card-header" onclick="toggleBoleta('${b.id}')">
+          <div class="boleta-icon" style="font-size:19px;width:36px;height:36px;background:rgba(57,255,143,.08);border:1px solid rgba(57,255,143,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">⚡</div>
+          <div class="boleta-info" style="flex:1;min-width:0">
+            <div class="boleta-periodo">${escHtml(b.periodo)}</div>
+            <div class="boleta-fecha">Vence: ${b.vencimiento}</div>
+          </div>
+          <span class="boleta-estado ${desc?"estado-descargada":"estado-nueva"}">${desc?"✓ Descargada":"Nueva"}</span>
+          <div class="boleta-chevron"><svg viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="boleta-detail">
+          <div class="boleta-detail-row"><span>Período</span><span>${escHtml(b.periodo)}</span></div>
+          <div class="boleta-detail-row"><span>Emisión</span><span>${b.emitida}</span></div>
+          <div class="boleta-detail-row"><span>Vencimiento</span><span>${b.vencimiento}</span></div>
+          <div class="boleta-detail-row"><span>Estado</span>
+            <span id="estado-txt-${b.id}" style="color:${desc?"var(--green)":"var(--text-2)"};${desc?"font-weight:600":""}">
+              ${desc?"✓ Descargada":"Disponible para descargar"}
+            </span>
+          </div>
+          <div class="boleta-detail-actions">
+            <button class="${desc?"btn-ver-boleta":"btn-descargar-boleta"}" id="btn-dl-${b.id}"
+                    data-url="${escHtml(b.pdfUrl||"")}"
+                    onclick="descargarBoleta('${b.id}','${escHtml(b.periodo)}')">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              ${desc?"Descargar de nuevo":"Descargar PDF"}
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
 
   } catch(e) {
     console.error("[Boletas]", e);
-    const list = $("boletasList-coospu");
-    if (list) list.innerHTML = `<div class="pending-banner"><div class="pb-icon">⚠️</div><div><div class="pb-title">Error al cargar boletas</div><div class="pb-sub">Intentá de nuevo en unos segundos.</div></div></div>`;
+    if(count) count.textContent="—";
+    list.innerHTML=`<div class="pending-banner"><div class="pb-icon">⚠️</div><div><div class="pb-title">Error al cargar boletas</div><div class="pb-sub">Intentá de nuevo en unos segundos.</div></div></div>`;
   }
 }
-
-window.switchServicioTab = function(svc) {
-  // Desactivar todos los tabs y paneles
-  document.querySelectorAll(".svc-tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".svc-panel").forEach(p => p.classList.remove("active"));
-  // Activar el seleccionado
-  const tab = document.querySelector(`.svc-tab[data-svc="${svc}"]`);
-  const panel = $(`svcPanel-${svc}`);
-  if (tab) tab.classList.add("active");
-  if (panel) panel.classList.add("active");
-};
 
 window.toggleBoleta = id => document.getElementById("bcard-"+id)?.classList.toggle("open");
 
@@ -1790,16 +1377,3 @@ if("serviceWorker"in navigator){
     // No recargar — evita cerrar la sesión
   });
 }
-
-// ════════════════════════════════════════════════════
-//  LISTENERS — FORZAR CAMBIO CONTRASEÑA
-// ════════════════════════════════════════════════════
-$("btnForzarCambio")?.addEventListener("click", handleForzarCambio);
-
-[$("forzarPassNueva"), $("forzarPassConfirm")].forEach(el => {
-  el?.addEventListener("keydown", e => { if (e.key === "Enter") handleForzarCambio(); });
-});
-
-// Toggle ojo contraseña
-$("btnEyeForzarNueva")?.addEventListener("click",   () => eyeToggle("forzarPassNueva"));
-$("btnEyeForzarConf")?.addEventListener("click",    () => eyeToggle("forzarPassConfirm"));

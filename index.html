@@ -478,6 +478,23 @@
       </div>
 
       <div class="svc-panel active" id="svcPanel-coospu">
+        <!-- GRÁFICO DE CONSUMO -->
+        <div class="consumo-chart-card" id="consumoChartCard" style="display:none">
+          <div class="consumo-chart-header">
+            <div>
+              <div class="consumo-chart-title">Consumo eléctrico</div>
+              <div class="consumo-chart-sub" id="consumoChartSub">Últimos meses · kWh</div>
+            </div>
+            <div class="consumo-toggle">
+              <button class="consumo-toggle-btn active" id="toggleKwh" onclick="switchConsumoVista('kwh')">kWh</button>
+              <button class="consumo-toggle-btn" id="togglePesos" onclick="switchConsumoVista('pesos')">$</button>
+            </div>
+          </div>
+          <div class="consumo-chart-wrap">
+            <canvas id="consumoChart" height="140"></canvas>
+          </div>
+          <div class="consumo-stats-row" id="consumoStatsRow"></div>
+        </div>
         <div class="boletas-list" id="boletasList-coospu"></div>
       </div>
       <div class="svc-panel" id="svcPanel-argentium">
@@ -814,6 +831,7 @@
   <div class="ios-arrow">▼</div>
 </div>
 
-<script type="module" src="app.js?v=1.0.22"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module" src="app.js?v=1.0.23"></script>
 </body>
 </html>

@@ -178,8 +178,10 @@ function validate(body, rules) {
 }
 
 /**
- * Construye un mensaje FCM con maxima prioridad para todos los canales.
- * webpush Urgency:high, android priority:high (doze mode), apns priority:10 (iOS)
+ * Construye un mensaje FCM con máxima prioridad para todos los canales.
+ * - webpush Urgency:high  → Chrome/Edge/Firefox en desktop y Android
+ * - android priority:high → wake-up inmediato en Android (doze mode)
+ * - apns priority:10      → entrega inmediata en iOS (APN)
  */
 function buildMsg({ token = null, tokens = null, data = {}, link = "/" }) {
   const base = {
@@ -189,7 +191,7 @@ function buildMsg({ token = null, tokens = null, data = {}, link = "/" }) {
     },
     android: {
       priority: "high",
-      ttl:      60 * 1000,
+      ttl:      60 * 1000,   // 1 minuto — si no llega en 1 min, descartar
     },
     apns: {
       headers: {
@@ -224,8 +226,8 @@ function handleError(res, err, ctx = "") {
 }
 
 /** Construye la clave S3/R2 de un PDF */
-const r2Key = (nroCliente, periodo, servicio = "coospu") =>
-  `boletas/${servicio}/${nroCliente}/${periodo.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+const r2Key = (nroCliente, periodo) =>
+  `boletas/${nroCliente}/${periodo.replace(/\s+/g, "-").toLowerCase()}.pdf`;
 
 /** URL pública o firmada según configuración */
 async function getPdfUrl(key) {
@@ -259,7 +261,6 @@ app.get("/health", (_, res) => res.json({
  *   - usuarioId, nroCliente, periodo, vencimiento, emitida
  */
 app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
-  const SERVICIOS_VALIDOS = ["coospu","argentium","elcable"];
   const errs = validate(req.body, {
     usuarioId:   { required:true, type:"string" },
     nroCliente:  { required:true, type:"string" },
@@ -267,9 +268,6 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
     vencimiento: { required:true, type:"string" },
     emitida:     { required:true, type:"string" },
   });
-  const servicio = (req.body.servicio || "coospu").toLowerCase();
-  if (!SERVICIOS_VALIDOS.includes(servicio))
-    return res.status(400).json({ error:"servicio inválido (coospu|argentium|elcable)" });
   if (errs.length) return res.status(400).json({ errors:errs });
   if (!req.file)   return res.status(400).json({ error:"Archivo PDF requerido" });
 
@@ -277,7 +275,7 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
 
   try {
     // 1 ─── Subir PDF a Cloudflare R2 ────────────────
-    const key = r2Key(nroCliente, periodo, servicio);
+    const key = r2Key(nroCliente, periodo);
     await R2.send(new PutObjectCommand({
       Bucket:      R2_BUCKET,
       Key:         key,
@@ -294,7 +292,7 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
 
     // 2 ─── Guardar metadata en Firestore ────────────
     const boletaRef = await db.collection("boletas").add({
-      usuarioId, nroCliente, periodo, vencimiento, emitida, servicio,
+      usuarioId, nroCliente, periodo, vencimiento, emitida,
       r2Key:         key,
       pdfUrl,
       alertaEnviada: false,
@@ -311,7 +309,7 @@ app.post("/boleta/subir", upload.single("pdf"), async (req, res) => {
         try {
           const msgId = await messaging.send(buildMsg({
             token: fcmToken,
-            data: { tipo:"nueva-boleta", boletaId:boletaRef.id, titulo:"⚡ Nueva boleta disponible", cuerpo:`Tu boleta de ${periodo} ya está lista. Vence el ${vencimiento}.` },
+            data: { tipo:"nueva-boleta", boletaId:boletaRef.id, titulo:"📄 Nueva boleta disponible", cuerpo:`Tu boleta de ${periodo} ya está disponible. Vence el ${vencimiento}.` },
           }));
           console.log(`[Push OK] Nueva boleta enviada a ${nombre}: ${msgId.substring(0,20)}...`);
         } catch(pushErr) {
@@ -404,29 +402,18 @@ app.get("/boleta/:id", async (req, res) => {
  */
 app.get("/boletas/:usuarioId", async (req, res) => {
   const { usuarioId } = req.params;
-  const { servicio } = req.query;   // opcional: ?servicio=coospu
   if (!usuarioId) return res.status(400).json({ error:"usuarioId requerido" });
 
   try {
-    let q = db.collection("boletas")
+    const snap = await db.collection("boletas")
       .where("usuarioId", "==", usuarioId)
-      .orderBy("creadoEn", "desc");
+      .orderBy("creadoEn", "desc")
+      .limit(4)
+      .get();
 
-    if (servicio) {
-      // Firestore no permite dos where en campos distintos con orderBy sin índice compuesto
-      // => filtramos en memoria para no requerir índice adicional
-    }
-
-    const snap = await q.limit(20).get();   // traemos más y filtramos en memoria
-
-    let docs = snap.docs;
-    if (servicio) {
-      docs = docs.filter(d => (d.data().servicio || "coospu") === servicio.toLowerCase());
-    }
-    docs = docs.slice(0, 6);   // máximo 6 por servicio
-
-    const boletas = await Promise.all(docs.map(async d => {
+    const boletas = await Promise.all(snap.docs.map(async d => {
       const data = d.data();
+      // Renovar URL firmada si no hay dominio público
       const url = R2_PUB_URL
         ? `${R2_PUB_URL}/${data.r2Key}`
         : await getSignedUrl(R2, new GetObjectCommand({ Bucket:R2_BUCKET, Key:data.r2Key }), { expiresIn:604800 });
@@ -435,7 +422,6 @@ app.get("/boletas/:usuarioId", async (req, res) => {
         periodo:     data.periodo,
         vencimiento: data.vencimiento,
         emitida:     data.emitida,
-        servicio:    data.servicio || "coospu",
         pdfUrl:      url,
       };
     }));
@@ -623,6 +609,7 @@ app.post("/usuarios/:id/activar", async (req, res) => {
     await userRef.update({
       estado:     "activo",
       activadoEn: admin.firestore.FieldValue.serverTimestamp(),
+      membresiaVence: (()=>{ const d=new Date(); return new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().split("T")[0]; })(),
     });
 
     const { fcmToken, nombre="Cliente" } = snap.data();
@@ -737,7 +724,7 @@ app.get("/usuario/:id", async (req, res) => {
 
 // ─── POST /registro — nuevo usuario desde el frontend ──
 app.post("/registro", async (req, res) => {
-  const { servicios, nroCliente, nombre, dni, usuario, celular,
+  const { nroCliente, nombre, dni, usuario, celular,
           direccion, password, fcmToken } = req.body;
 
   if (!nombre || !dni || !usuario || !celular || !password) {
@@ -754,7 +741,6 @@ app.post("/registro", async (req, res) => {
 
     // Guardar con Admin SDK (sin restricciones de reglas Firestore)
     const ref = await db.collection("usuarios").add({
-      servicios:      Array.isArray(servicios) && servicios.length ? servicios : ["coospu"],
       nroCliente:     nroCliente || "",
       nombre,
       dni,
@@ -789,7 +775,6 @@ app.post("/registro", async (req, res) => {
       `👤 <b>${nombre}</b>\n` +
       `🪪 Usuario: ${usuario}\n` +
       `🔢 N° cliente: ${nroCliente}\n` +
-      `🗂 Servicios: ${(Array.isArray(servicios) && servicios.length ? servicios : ["coospu"]).map(s => s.toUpperCase()).join(", ")}\n` +
       `📱 Celular: ${celular}\n` +
       `📍 Dirección: ${direccion}\n` +
       `⏳ Estado: Pendiente de activación`
@@ -917,92 +902,217 @@ app.get("/admin/boletas/:usuarioId", async (req, res) => {
   } catch(e) { handleError(res, e, "admin/boletas"); }
 });
 
-
-// ─── PATCH /usuarios/:id/servicios — editar servicios de un cliente ─
-app.patch("/usuarios/:id/servicios", async (req, res) => {
+// ─── POST /usuarios/:id/bloquear ─────────────────────
+app.post("/usuarios/:id/bloquear", async (req, res) => {
   const { id } = req.params;
-  const { servicios } = req.body;
-  if (!Array.isArray(servicios) || servicios.length === 0) {
-    return res.status(400).json({ error: "Debe seleccionar al menos un servicio" });
-  }
-  const validos = ["coospu","argentium","elcable"];
-  const filtrados = servicios.filter(s => validos.includes(s));
-  if (!filtrados.length) return res.status(400).json({ error: "Servicios inválidos" });
   try {
     const userRef = db.collection("usuarios").doc(id);
-    const snap = await userRef.get();
-    if (!snap.exists) return res.status(404).json({ error: "Usuario no encontrado" });
-    const user = snap.data();
-    await userRef.update({ servicios: filtrados });
-    const SVC_ICONS = { coospu:"⚡", argentium:"🌐", elcable:"📺" };
-    const svcStr = filtrados.map(s => `${SVC_ICONS[s]||"•"} ${s.toUpperCase()}`).join(", ");
-    await telegramAdmin(
-      `✏️ <b>Servicios actualizados</b>\n` +
-      `👤 ${user.nombre || id}\n` +
-      `🗂 Nuevos servicios: ${svcStr}`
-    );
-    res.json({ success: true, servicios: filtrados });
-  } catch(e) { handleError(res, e, "usuarios/servicios"); }
+    const snap    = await userRef.get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const { nombre = "Cliente" } = snap.data();
+    await userRef.update({ estado:"bloqueado", bloqueadoEn: admin.firestore.FieldValue.serverTimestamp() });
+    await telegramAdmin(`🔒 <b>Usuario bloqueado</b>\n👤 <b>${nombre}</b>`);
+    res.json({ success:true, mensaje:`${nombre} bloqueado` });
+  } catch(e) { handleError(res, e, "usuarios/bloquear"); }
 });
 
-// ─── POST /solicitar-servicio — cliente pide agregar un servicio ─
-app.post("/solicitar-servicio", async (req, res) => {
-  const { usuarioId, serviciosSolicitados } = req.body;
-  if (!usuarioId || !Array.isArray(serviciosSolicitados) || !serviciosSolicitados.length) {
-    return res.status(400).json({ error: "Datos incompletos" });
+// ─── DELETE /usuarios/:id ─────────────────────────────
+app.delete("/usuarios/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const snap = await db.collection("usuarios").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const { nombre = "Cliente" } = snap.data();
+    await snap.ref.delete();
+    await telegramAdmin(`🗑️ <b>Usuario eliminado</b>\n👤 <b>${nombre}</b>`);
+    res.json({ success:true, mensaje:`${nombre} eliminado` });
+  } catch(e) { handleError(res, e, "usuarios/delete"); }
+});
+
+// ─── POST /usuarios/:id/reset-password ───────────────
+app.post("/usuarios/:id/reset-password", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const snap = await db.collection("usuarios").doc(id).get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const { nombre = "Cliente", telegramChatId } = snap.data();
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    const tempPass = Array.from({length:8}, () => chars[Math.floor(Math.random()*chars.length)]).join("");
+    await db.collection("usuarios").doc(id).update({ password: tempPass, passwordTemp: true, passwordResetEn: admin.firestore.FieldValue.serverTimestamp() });
+    if (telegramChatId) {
+      await telegramCliente(telegramChatId, `🔑 <b>Nueva contraseña temporal</b>\n\nHola <b>${nombre.split(" ")[0]}</b>, tu contraseña fue reseteada.\n\n🔐 Contraseña temporal: <code>${tempPass}</code>\n\nCambiala cuando puedas desde tu perfil.`);
+    }
+    res.json({ success:true, tempPass, mensaje:`Contraseña reseteada para ${nombre}` });
+  } catch(e) { handleError(res, e, "usuarios/reset-password"); }
+});
+
+// ─── POST /usuarios/:id/cambiar-password ─────────────
+app.post("/usuarios/:id/cambiar-password", async (req, res) => {
+  const { id } = req.params;
+  const { passwordNueva } = req.body;
+
+  if (!passwordNueva || passwordNueva.length < 6) {
+    return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
   }
+
   try {
-    const snap = await db.collection("usuarios").doc(usuarioId).get();
+    const snap = await db.collection("usuarios").doc(id).get();
     if (!snap.exists) return res.status(404).json({ error: "Usuario no encontrado" });
-    const user = snap.data();
-    const SVC_ICONS = { coospu:"⚡", argentium:"🌐", elcable:"📺" };
-    const svcStr = serviciosSolicitados.map(s => `${SVC_ICONS[s]||"•"} ${s.toUpperCase()}`).join(", ");
-    // Guardar solicitud en Firestore
-    await db.collection("solicitudesServicio").add({
-      usuarioId,
-      nombre: user.nombre || "—",
-      nroCliente: user.nroCliente || "—",
-      serviciosSolicitados,
-      estado: "pendiente",
-      creadoEn: new Date()
+
+    const data = snap.data();
+
+    // Solo se puede cambiar si hay un reset pendiente
+    if (!data.passwordTemp) {
+      return res.status(403).json({
+        error: "No tenés un cambio de contraseña pendiente. Si necesitás cambiarla, pedile al administrador que te la resetee."
+      });
+    }
+
+    await snap.ref.update({
+      password: passwordNueva,
+      passwordTemp: false,
+      passwordCambiadaEn: admin.firestore.FieldValue.serverTimestamp(),
     });
-    // Notificar al admin por Telegram
-    await telegramAdmin(
-      `🆕 <b>Solicitud de nuevo servicio</b>\n` +
-      `👤 ${user.nombre || usuarioId} (N° ${user.nroCliente || "—"})\n` +
-      `📋 Servicios solicitados: ${svcStr}\n\n` +
-      `Ir al panel admin para activar los nuevos servicios.`
-    );
-    // Notificar admin por push FCM si tiene token
-    try {
-      const cfgSnap = await db.collection("admins").doc("config").get();
-      const adminFcmToken = cfgSnap.data()?.fcmToken;
-      if (adminFcmToken) {
-        const { getMessaging } = await import("firebase-admin/messaging");
-        await getMessaging().send({
-          token: adminFcmToken,
-          notification: { title: "🆕 Solicitud de servicio", body: `${user.nombre||"Un cliente"} quiere agregar: ${svcStr}` },
-          android: { priority: "high" }
-        });
-      }
-    } catch(pushErr) { console.warn("[FCM admin push]", pushErr.message); }
-    res.json({ success: true, mensaje: "Solicitud enviada al administrador" });
-  } catch(e) { handleError(res, e, "solicitar-servicio"); }
+
+    console.log(`[CambiarPass] Usuario ${id} cambió su contraseña`);
+    res.json({ success: true, mensaje: "Contraseña actualizada correctamente" });
+  } catch(e) { handleError(res, e, "usuarios/cambiar-password"); }
 });
 
-// ─── GET /solicitudes-servicio — listar solicitudes pendientes ─
-app.get("/solicitudes-servicio", async (req, res) => {
+// ─── GET /avisos/generales — lista de avisos generales ──
+app.get("/avisos/generales", async (req, res) => {
   try {
-    const snap = await db.collection("solicitudesServicio")
-      .where("estado","==","pendiente")
-      .orderBy("creadoEn","desc")
+    const snap = await db.collection("avisos_generales")
+      .orderBy("creadoEn", "desc")
+      .limit(20)
       .get();
-    const solicitudes = snap.docs.map(d => ({
-      id: d.id, ...d.data(),
-      creadoEn: d.data().creadoEn?.toDate?.()?.toLocaleDateString("es-AR") || "—"
-    }));
-    res.json({ success: true, solicitudes, total: solicitudes.length });
-  } catch(e) { handleError(res, e, "solicitudes-servicio/get"); }
+    const avisos = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id:           d.id,
+        tipo:         data.tipo        || "aviso",
+        titulo:       data.titulo      || "",
+        mensaje:      data.mensaje     || "",
+        icono:        data.icono       || "📢",
+        creadoEn:     data.creadoEn?.toDate?.()?.toISOString() || null,
+        enviados:     data.enviados    || 0,
+        destinatarios:data.destinatarios || 0,
+      };
+    });
+    res.json({ success:true, avisos, total:avisos.length });
+  } catch(e) { handleError(res, e, "avisos/generales"); }
+});
+
+// ─── POST /avisos/general — admin envía aviso a todos ──
+app.post("/avisos/general", async (req, res) => {
+  const { titulo, mensaje, tipo = "aviso" } = req.body;
+  if (!titulo || !mensaje) {
+    return res.status(400).json({ error:"titulo y mensaje son requeridos" });
+  }
+  if (titulo.length > 100 || mensaje.length > 500) {
+    return res.status(400).json({ error:"titulo máx 100 chars, mensaje máx 500 chars" });
+  }
+
+  const iconos = { alerta:"🚨", aviso:"⚠️", info:"ℹ️", novedad:"📢" };
+  const icono  = iconos[tipo] || "📢";
+
+  try {
+    // 1 — Guardar en avisos_generales
+    const avisoRef = await db.collection("avisos_generales").add({
+      tipo,
+      titulo,
+      mensaje,
+      icono,
+      creadoEn:     admin.firestore.FieldValue.serverTimestamp(),
+      enviados:     0,
+      destinatarios:0,
+    });
+
+    // 2 — Obtener tokens de clientes activos con push habilitado
+    const snap   = await db.collection("usuarios").where("estado","==","activo").get();
+    const tokens = snap.docs
+      .map(d => d.data().fcmToken)
+      .filter(t => t && t !== "no-token" && t.length > 50);
+
+    let enviados = 0, fallidos = 0;
+
+    // 3 — Enviar en lotes de 100 (más seguro que 500 para general notices)
+    for (let i = 0; i < tokens.length; i += 100) {
+      try {
+        const resp = await messaging.sendEachForMulticast({
+          tokens: tokens.slice(i, i+100),
+          webpush: { headers:{ Urgency:"high", TTL:"7200" }, fcmOptions:{ link:"/" } },
+          data: {
+            tipo,
+            titulo:   `${icono} ${titulo}`,
+            cuerpo:   mensaje.substring(0, 200),
+            avisoId:  avisoRef.id,
+            ts:       Date.now().toString(),
+          },
+        });
+        enviados += resp.successCount;
+        fallidos += resp.failureCount;
+        // Limpiar tokens inválidos
+        resp.responses.forEach((r, idx) => {
+          if (!r.success && r.error?.code === "messaging/registration-token-not-registered") {
+            const tokenVencido = tokens.slice(i, i+100)[idx];
+            db.collection("usuarios").where("fcmToken","==",tokenVencido).limit(1).get()
+              .then(s => s.forEach(d => d.ref.update({ fcmToken:"no-token" })))
+              .catch(() => {});
+          }
+        });
+        if (i + 100 < tokens.length) {
+          // Pequeña pausa entre lotes para no saturar FCM
+          await new Promise(r => setTimeout(r, 100));
+        }
+      } catch(pushErr) {
+        console.error(`[Aviso General Push] Lote ${i/100+1} error:`, pushErr.message);
+        fallidos += tokens.slice(i, i+100).length;
+      }
+    }
+
+    // 4 — Actualizar contadores en el documento del aviso
+    await avisoRef.update({ enviados, destinatarios: tokens.length, enviadoEn: admin.firestore.FieldValue.serverTimestamp() });
+
+    // 5 — También guardar en avisos_config para el banner del dashboard
+    await db.collection("avisos_config").doc("activo").set({
+      tipo, titulo, cuerpo: mensaje, activo: true,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 6 — Telegram masivo
+    let telegramCount = 0;
+    try {
+      for (const doc of snap.docs) {
+        const { telegramChatId } = doc.data();
+        if (telegramChatId) {
+          await telegramCliente(telegramChatId, `${icono} <b>${titulo}</b>\n\n${mensaje}\n\nIngresá a la app: https://aldia-app1.web.app`);
+          telegramCount++;
+        }
+      }
+    } catch(tErr) { console.warn("[Telegram Aviso General]", tErr.message); }
+
+    console.log(`[Aviso General] "${titulo}" → Push:${enviados}/${tokens.length}, Telegram:${telegramCount}`);
+    res.json({ success:true, avisoId:avisoRef.id, pushEnviados:enviados, pushFallidos:fallidos, total:tokens.length });
+  } catch(e) { handleError(res, e, "avisos/general"); }
+});
+
+// ─── POST /usuario/:id/unsubscribe-push — logout elimina token ──
+app.post("/usuario/:id/unsubscribe-push", async (req, res) => {
+  const { id } = req.params;
+  const { fcmToken } = req.body;
+  try {
+    const userRef = db.collection("usuarios").doc(id);
+    const snap    = await userRef.get();
+    if (!snap.exists) return res.status(404).json({ error:"Usuario no encontrado" });
+    const data = snap.data();
+    // Solo limpiar si el token coincide (evitar que otro dispositivo borre el token nuevo)
+    if (!fcmToken || data.fcmToken === fcmToken) {
+      await userRef.update({ fcmToken:"no-token" });
+      console.log(`[Push] Token removido para ${id.substring(0,8)}... (logout)`);
+    }
+    res.json({ success:true });
+  } catch(e) { handleError(res, e, "usuario/unsubscribe-push"); }
 });
 
 app.use((req, res) => res.status(404).json({ error:"Endpoint no encontrado", path:req.path }));
